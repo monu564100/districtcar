@@ -1,0 +1,57 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role in ['super_admin', 'admin', 'operations', 'support'] ||
+         request.auth.token.admin == true);
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+
+    // Customer profile photos
+    match /customers/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+
+    // Driver profile photos
+    match /drivers/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+
+    // Driver vehicle photos
+    match /drivers/{userId}/vehicle/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+    }
+
+    // Driver verification documents
+    match /drivers/{userId}/documents/{fileName} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) && isValidSize();
+    }
+
+    // Public vehicle category icons/illustrations
+    match /vehicle_categories/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "319163006406",
+    "project_id": "districtcar-4b880",
+    "storage_bucket": "districtcar-4b880.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:319163006406:android:c4807f606480e920fa46c7",
+        "android_client_info": {
+          "package_name": "com.districtcar.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

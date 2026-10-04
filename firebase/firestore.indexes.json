@@ -1,0 +1,59 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "drivers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isOnline", "order": "ASCENDING" },
+        { "fieldPath": "verificationStatus", "order": "ASCENDING" },
+        { "fieldPath": "driverStatus", "order": "ASCENDING" },
+        { "fieldPath": "currentLocation.geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driverId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driverId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bookingId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "offeredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "action", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

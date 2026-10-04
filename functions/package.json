@@ -1,0 +1,37 @@
+{
+  "name": "district_car_functions",
+  "description": "District Car - Production Firebase Cloud Functions Backend",
+  "scripts": {
+    "lint": "eslint --ext .js,.ts .",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "test": "mocha -r ts-node/register 'test/**/*.ts' --reporter spec"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.0",
+    "@typescript-eslint/parser": "^6.18.0",
+    "chai": "^4.3.10",
+    "eslint": "^8.56.0",
+    "firebase-functions-test": "^3.1.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "private": true
+}
