@@ -305,7 +305,11 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final localName = prefs.getString('district_user_name');
-      if (localName != null && localName.isNotEmpty) {
+      final localPhone = prefs.getString('district_user_phone');
+      final localDob = prefs.getString('district_user_dob');
+      if (localName != null && localName.isNotEmpty &&
+          localPhone != null && localPhone.isNotEmpty &&
+          localDob != null && localDob.isNotEmpty) {
         return true;
       }
     } catch (_) {}
@@ -314,21 +318,27 @@ class AuthService {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (!doc.exists) return false;
       final data = doc.data() ?? {};
-      return data['role'] == 'customer' && data['name'] != null && (data['name'] as String).isNotEmpty;
+      final hasName = data['name'] != null && (data['name'] as String).trim().isNotEmpty;
+      final hasPhone = (data['phoneNumber'] != null && (data['phoneNumber'] as String).trim().isNotEmpty) ||
+                       (data['phone'] != null && (data['phone'] as String).trim().isNotEmpty);
+      final hasDob = data['dateOfBirth'] != null && (data['dateOfBirth'] as String).trim().isNotEmpty;
+      return hasName && hasPhone && hasDob;
     } catch (_) {
-      return _localUser?.displayName != null && _localUser!.displayName!.isNotEmpty;
+      return false;
     }
   }
 
   Future<void> createCustomerProfile({
     required String name,
-    required int age,
+    required String mobileNumber,
+    required String dateOfBirth,
     required String gender,
   }) async {
     final user = currentUser;
     if (user == null) return;
 
     final userEmail = user.email ?? '';
+    final cleanPhone = mobileNumber.startsWith('+91') ? mobileNumber : '+91 $mobileNumber';
 
     try {
       await _firestore.collection('users').doc(user.uid).set({
@@ -336,7 +346,9 @@ class AuthService {
         'role': 'customer',
         'email': userEmail,
         'name': name,
-        'age': age,
+        'phoneNumber': cleanPhone,
+        'phone': cleanPhone,
+        'dateOfBirth': dateOfBirth,
         'gender': gender,
         'walletBalance': 500.0, // Initial promotional ₹500 credit
         'isActive': true,
@@ -351,11 +363,15 @@ class AuthService {
       uid: user.uid,
       email: user.email,
       displayName: name,
+      phoneNumber: cleanPhone,
+      dateOfBirth: dateOfBirth,
     );
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('district_user_name', name);
+      await prefs.setString('district_user_phone', cleanPhone);
+      await prefs.setString('district_user_dob', dateOfBirth);
       await prefs.setString('district_user_uid', user.uid);
       await prefs.setString('district_user_email', userEmail);
     } catch (_) {}

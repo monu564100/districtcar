@@ -440,8 +440,17 @@ class DriverService {
       }).timeout(const Duration(seconds: 4));
       return Map<String, dynamic>.from(res.data as Map);
     } catch (_) {
-      // 2. Direct Firestore update fallback
-      await _firestore.collection('bookings').doc(bookingId).update({
+      // 2. Direct Firestore update fallback with optimistic concurrency
+      final bookingRef = _firestore.collection('bookings').doc(bookingId);
+      final currentDoc = await bookingRef.get();
+      final currentStatus = currentDoc.data()?['status'] as String? ?? '';
+
+      // If already accepted by another driver, raise exception
+      if (currentStatus != 'searching_driver' && currentStatus != 'requested') {
+        throw Exception('This ride was already accepted by another nearby driver.');
+      }
+
+      await bookingRef.update({
         'status': 'driver_assigned',
         'driverId': uid,
         'driverName': driverName,
@@ -453,13 +462,21 @@ class DriverService {
         'acceptedAt': FieldValue.serverTimestamp(),
       });
 
-      if (requestId != null) {
-        try {
-          await _firestore.collection('bookingRequests').doc(requestId).update({
-            'status': 'accepted',
-          });
-        } catch (_) {}
-      }
+      // Mark this request as accepted and expire/dismiss for all other drivers immediately
+      try {
+        final allRequests = await _firestore
+            .collection('bookingRequests')
+            .where('bookingId', isEqualTo: bookingId)
+            .get();
+
+        for (final doc in allRequests.docs) {
+          if (doc.id == requestId || doc.data()['driverId'] == uid) {
+            await doc.reference.update({'status': 'accepted'});
+          } else {
+            await doc.reference.update({'status': 'claimed_by_other'});
+          }
+        }
+      } catch (_) {}
 
       return {'success': true, 'bookingId': bookingId};
     }

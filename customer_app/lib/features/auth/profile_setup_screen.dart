@@ -13,7 +13,9 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _dobController = TextEditingController();
+  DateTime? _selectedDob;
   String _selectedGender = 'Male';
   bool _isLoading = false;
   String? _errorMessage;
@@ -21,22 +23,45 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
+    _mobileController.dispose();
+    _dobController.dispose();
     super.dispose();
+  }
+
+  void _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final initialDate = _selectedDob ?? DateTime(now.year - 20, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1930),
+      lastDate: DateTime(now.year - 12, now.month, now.day),
+      helpText: 'SELECT DATE OF BIRTH',
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDob = picked;
+        _dobController.text =
+            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+      });
+    }
   }
 
   void _submitProfile() async {
     final name = _nameController.text.trim();
-    final ageText = _ageController.text.trim();
+    final mobile = _mobileController.text.trim();
+    final dob = _dobController.text.trim();
 
-    if (name.isEmpty || ageText.isEmpty) {
-      setState(() => _errorMessage = 'Please complete all required fields');
+    if (name.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your Full Name');
       return;
     }
-
-    final age = int.tryParse(ageText);
-    if (age == null || age < 16 || age > 110) {
-      setState(() => _errorMessage = 'Please enter a valid age (16+)');
+    if (mobile.isEmpty || mobile.replaceAll(RegExp(r'\D'), '').length < 10) {
+      setState(() => _errorMessage = 'Please enter a valid 10-digit Mobile Number');
+      return;
+    }
+    if (dob.isEmpty) {
+      setState(() => _errorMessage = 'Please select your Date of Birth (DOB)');
       return;
     }
 
@@ -48,7 +73,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     try {
       await ref.read(authServiceProvider).createCustomerProfile(
         name: name,
-        age: age,
+        mobileNumber: mobile,
+        dateOfBirth: dob,
         gender: _selectedGender,
       );
 
@@ -91,34 +117,57 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 32),
-              const Text('Full Name', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const Text('Full Name *', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
+                textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. Muhammad Al-Rashid',
+                  hintText: 'Enter your full name',
                   prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Age', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const Text('Mobile Number *', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 8),
               TextField(
-                controller: _ageController,
-                keyboardType: TextInputType.number,
+                controller: _mobileController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. 28',
-                  prefixIcon: Icon(Icons.cake_outlined, color: AppColors.primary),
+                  counterText: '',
+                  hintText: '10-digit mobile number',
+                  prefixIcon: Icon(Icons.phone_iphone_outlined, color: AppColors.primary),
+                  prefixText: '+91 ',
+                  prefixStyle: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Gender', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const Text('Date of Birth (DOB) *', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: _pickDateOfBirth,
+                borderRadius: BorderRadius.circular(16),
+                child: IgnorePointer(
+                  child: TextField(
+                    controller: _dobController,
+                    decoration: const InputDecoration(
+                      hintText: 'DD/MM/YYYY',
+                      prefixIcon: Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+                      suffixIcon: Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text('Gender', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSecondary,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderLight),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(

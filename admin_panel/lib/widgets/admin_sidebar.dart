@@ -44,6 +44,8 @@ class AdminSidebar extends StatelessWidget {
           const SizedBox(height: 16),
           _buildItem(context, 'Dashboard', Icons.dashboard_outlined, '/dashboard'),
           _buildItem(context, 'Driver Verifications', Icons.verified_user_outlined, '/driver-verification'),
+          _buildItem(context, 'User Moderation & Block', Icons.security_outlined, '/users'),
+          _buildItem(context, 'Remote App Updates', Icons.system_update_alt, '/remote-updates'),
           _buildItem(context, 'Fares & Categories', Icons.payments_outlined, '/fares'),
           const Spacer(),
           _buildItem(context, 'Sign Out', Icons.logout, '/admin-login'),

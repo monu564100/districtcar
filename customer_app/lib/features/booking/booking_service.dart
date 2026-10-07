@@ -157,6 +157,37 @@ class BookingService {
       } catch (_) {}
     }
   }
+  /// Stream active booking for current customer
+  Stream<BookingModel?> streamUserActiveBooking(String customerId) {
+    if (customerId.isEmpty) return Stream.value(null);
+    return _firestore
+        .collection('bookings')
+        .where('customerId', isEqualTo: customerId)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isEmpty) return null;
+      // Filter in memory for active statuses
+      final activeDocs = snapshot.docs.where((doc) {
+        final data = doc.data();
+        final status = data['status'] as String? ?? '';
+        return status == 'driver_assigned' ||
+            status == 'driver_arrived' ||
+            status == 'trip_started' ||
+            status == 'searching_driver';
+      }).toList();
+
+      if (activeDocs.isEmpty) return null;
+      // Return the most recently updated or first active booking
+      activeDocs.sort((a, b) {
+        final aTime = a.data()['createdAt']?.toString() ?? '';
+        final bTime = b.data()['createdAt']?.toString() ?? '';
+        return bTime.compareTo(aTime);
+      });
+
+      final doc = activeDocs.first;
+      return BookingModel.fromMap(doc.data(), doc.id);
+    });
+  }
 }
 
 final bookingServiceProvider = Provider<BookingService>((ref) => BookingService());

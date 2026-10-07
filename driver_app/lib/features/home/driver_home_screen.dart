@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/widgets/location_picker_sheet.dart';
+import 'package:district_car_shared/services/remote_update_checker.dart';
 import '../../services/driver_service.dart';
 import '../requests/incoming_request_dialog.dart';
 
@@ -36,6 +37,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     super.initState();
     _loadOnlineStatus();
     _checkLocationPermissionAndFetch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RemoteUpdateChecker.checkAndShowUpdateDialog(
+        context: context,
+        appKey: 'driver_app',
+        currentBuildNumber: 2,
+      );
+    });
   }
 
   @override

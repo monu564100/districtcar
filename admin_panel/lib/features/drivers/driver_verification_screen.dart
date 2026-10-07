@@ -63,7 +63,7 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                     child: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('drivers')
-                          .where('verificationStatus', '==', 'pending')
+                          .where('verificationStatus', isEqualTo: 'pending')
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {

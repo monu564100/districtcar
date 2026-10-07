@@ -5,6 +5,8 @@ import '../features/auth/admin_login_screen.dart';
 import '../features/dashboard/admin_dashboard_screen.dart';
 import '../features/drivers/driver_verification_screen.dart';
 import '../features/fares/fare_management_screen.dart';
+import '../features/users/user_management_screen.dart';
+import '../features/updates/remote_update_screen.dart';
 
 final adminRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -21,6 +23,14 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/driver-verification',
         builder: (context, state) => const DriverVerificationScreen(),
+      ),
+      GoRoute(
+        path: '/users',
+        builder: (context, state) => const UserManagementScreen(),
+      ),
+      GoRoute(
+        path: '/remote-updates',
+        builder: (context, state) => const RemoteUpdateScreen(),
       ),
       GoRoute(
         path: '/fares',

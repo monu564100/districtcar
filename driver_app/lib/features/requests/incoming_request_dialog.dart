@@ -76,11 +76,16 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
           final requestId = requestDoc.id;
 
           if (!_dismissedIds.contains(bookingId) && !_dismissedIds.contains(requestId)) {
-            return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('bookings').doc(bookingId).get(),
+            return StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance.collection('bookings').doc(bookingId).snapshots(),
               builder: (context, bSnap) {
                 if (!bSnap.hasData || !bSnap.data!.exists) return const SizedBox.shrink();
                 final bData = bSnap.data!.data() as Map<String, dynamic>;
+                final status = bData['status'] as String? ?? '';
+                // If ride is claimed by other, accepted, completed, or cancelled, do not show popup
+                if (status != 'searching_driver' && status != 'requested') {
+                  return const SizedBox.shrink();
+                }
                 final booking = BookingModel.fromMap(bData, bookingId);
                 return _buildPopupCard(booking, requestId);
               },

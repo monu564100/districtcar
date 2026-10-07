@@ -8,6 +8,7 @@ import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/rural_fare_calculator.dart';
 import 'package:district_car_shared/services/location_search_service.dart';
+import 'package:district_car_shared/services/remote_update_checker.dart';
 import '../../widgets/floating_bottom_dock.dart';
 import 'categories_provider.dart';
 import '../booking/booking_service.dart';
@@ -63,6 +64,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   void initState() {
     super.initState();
     _detectUserCurrentGpsOnStart();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RemoteUpdateChecker.checkAndShowUpdateDialog(
+        context: context,
+        appKey: 'customer_app',
+        currentBuildNumber: 2,
+      );
+    });
   }
 
   void _detectUserCurrentGpsOnStart() async {
@@ -70,8 +78,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       final loc = await LocationSearchService().getCurrentDeviceLocation();
       if (loc != null && mounted) {
         setState(() {
-          // As requested: user exact location in "To" (Drop)
-          _destinationLocation = loc.toLocationModel();
+          // User exact GPS location in "From" (Pickup)
+          _pickupLocation = loc.toLocationModel();
         });
       }
     } catch (_) {}
@@ -363,8 +371,185 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               onTabSelected: _onDockTabSelected,
             ),
           ),
+
+          // Persistent Active Booking Rectangle Popup Banner until complete trip is over
+          _buildActiveTripPersistentPopup(),
         ],
       ),
+    );
+  }
+
+  /// Persistent Rectangle Popup showing accepted booking status until trip completed
+  Widget _buildActiveTripPersistentPopup() {
+    final user = ref.watch(authServiceProvider).currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return StreamBuilder<BookingModel?>(
+      stream: ref.watch(bookingServiceProvider).streamUserActiveBooking(user.uid),
+      builder: (context, snapshot) {
+        final booking = snapshot.data;
+        if (booking == null) return const SizedBox.shrink();
+
+        final status = booking.status;
+        final isAccepted = status == 'driver_assigned' || status == 'driver_arrived' || status == 'trip_started';
+        final isSearching = status == 'searching_driver';
+
+        if (!isAccepted && !isSearching) return const SizedBox.shrink();
+
+        String statusLabel = '🔔 DRIVER ACCEPTED (ड्राइवर मिल गया)';
+        Color statusBg = const Color(0xFF15803D);
+        if (status == 'driver_arrived') {
+          statusLabel = '📍 DRIVER ARRIVED AT PICKUP (ड्राइवर पहुँच गया)';
+          statusBg = const Color(0xFF0284C7);
+        } else if (status == 'trip_started') {
+          statusLabel = '🚗 TRIP IN PROGRESS (सफ़र जारी है)';
+          statusBg = const Color(0xFF7C3AED);
+        } else if (isSearching) {
+          statusLabel = '🔍 CONNECTING NEARBY DRIVER (ड्राइवर खोज रहे हैं)';
+          statusBg = const Color(0xFFD97706);
+        }
+
+        return Positioned(
+          left: 16,
+          right: 16,
+          bottom: 84, // Directly above floating bottom dock
+          child: Material(
+            elevation: 12,
+            borderRadius: BorderRadius.circular(20),
+            shadowColor: Colors.black.withOpacity(0.35),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => context.push('/active-trip/${booking.id}'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isAccepted ? const Color(0xFF22C55E) : const Color(0xFFFBBF24),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header Status Strip
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (booking.rideOtp != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Text(
+                              'OTP: ${booking.rideOtp}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                                color: Color(0xFF1D4ED8),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Driver info / Route info row
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.primaryLight,
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/app_logo.jpg'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking.driverName ?? 'Nearby Partner Driver',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${booking.vehicleModel ?? "District Car"} · ${booking.vehiclePlate ?? "JH Reg"}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF059669),
+                              ),
+                            ),
+                            const Text(
+                              'Tap to View >',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
