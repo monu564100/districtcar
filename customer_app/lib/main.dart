@@ -6,11 +6,13 @@ import 'core/router.dart';
 
 import 'package:district_car_shared/firebase_options.dart';
 
+import 'package:flutter/foundation.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      options: kIsWeb ? DefaultFirebaseOptions.web : DefaultFirebaseOptions.customerAndroid,
     );
   } catch (e) {
     debugPrint('Firebase init notice: $e');

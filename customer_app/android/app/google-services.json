@@ -7,12 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:319163006406:android:c4807f606480e920fa46c7",
+        "mobilesdk_app_id": "1:319163006406:android:79e09e87d733ac7afa46c7",
         "android_client_info": {
-          "package_name": "com.districtcar.customer"
+          "package_name": "com.districtcarcustomerd.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "319163006406-4qdno4u5iv2h0p7u7k1npe649ku58g77.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.districtcarcustomerd.app",
+            "certificate_hash": "a1043aa49f40241374dbd29ca99657e197198eb8"
+          }
+        },
+        {
+          "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM"
@@ -20,7 +33,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:319163006406:android:c4807f606480e920fa46c7",
+        "android_client_info": {
+          "package_name": "com.drivercardistrict.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "319163006406-u711pd6mqa2j4n5b1fp9uvdc8m9vf7cj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.drivercardistrict.app",
+            "certificate_hash": "a1043aa49f40241374dbd29ca99657e197198eb8"
+          }
+        },
+        {
+          "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

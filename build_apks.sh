@@ -41,7 +41,7 @@ echo "🚀 Building Customer App Release APK (com.districtcar.customer)..."
 cd "$PROJECT_ROOT/customer_app"
 flutter clean
 flutter pub get
-flutter build apk --release --split-per-abi=false
+flutter build apk --release
 
 if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
     cp "build/app/outputs/flutter-apk/app-release.apk" "$OUTPUT_DIR/DistrictCar_Customer_Release.apk"
@@ -59,7 +59,7 @@ echo "🚀 Building Driver / Partner Release APK (com.drivercardistrict.app)..."
 cd "$PROJECT_ROOT/driver_app"
 flutter clean
 flutter pub get
-flutter build apk --release --split-per-abi=false
+flutter build apk --release
 
 if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
     cp "build/app/outputs/flutter-apk/app-release.apk" "$OUTPUT_DIR/DistrictCar_Driver_Release.apk"

@@ -14,14 +14,14 @@ class FloatingBottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1B2030),
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withOpacity(0.22),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -31,74 +31,67 @@ class FloatingBottomDock extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildPillTab(
+          _buildTabItem(
             index: 0,
             icon: Icons.home_rounded,
             label: 'Home',
           ),
-          _buildIconTab(
+          const SizedBox(width: 12),
+          _buildTabItem(
             index: 1,
             icon: Icons.receipt_long_rounded,
+            label: 'My Trips',
           ),
-          _buildIconTab(
+          const SizedBox(width: 12),
+          _buildTabItem(
             index: 2,
-            icon: Icons.account_balance_wallet_outlined,
-          ),
-          _buildIconTab(
-            index: 3,
-            icon: Icons.person_outline_rounded,
+            icon: Icons.person_rounded,
+            label: 'Profile',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPillTab({
+  Widget _buildTabItem({
     required int index,
     required IconData icon,
     required String label,
   }) {
     final isSelected = currentIndex == index;
-    if (isSelected) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+    return GestureDetector(
+      onTap: () => onTabSelected(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 18 : 14,
+          vertical: 10,
+        ),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: isSelected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white60,
+              size: 22,
             ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ],
-        ),
-      );
-    }
-    return _buildIconTab(index: index, icon: icon);
-  }
-
-  Widget _buildIconTab({
-    required int index,
-    required IconData icon,
-  }) {
-    return GestureDetector(
-      onTap: () => onTabSelected(index),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Icon(
-          icon,
-          color: const Color(0xFF8E95A5),
-          size: 22,
         ),
       ),
     );

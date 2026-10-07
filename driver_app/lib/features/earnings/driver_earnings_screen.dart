@@ -24,15 +24,15 @@ class DriverEarningsScreen extends ConsumerWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
-            .where('driverId', '==', user.uid)
-            .where('status', '==', 'trip_completed')
+            .where('driverId', isEqualTo: user.uid)
+            .where('status', isEqualTo: 'trip_completed')
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data?.docs ?? [];
           double totalEarnings = 0;
           for (final doc in docs) {
             final data = doc.data() as Map<String, dynamic>;

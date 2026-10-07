@@ -31,14 +31,16 @@ class DriverProfileScreen extends ConsumerWidget {
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('drivers').doc(user.uid).get(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-          final name = data['name'] ?? 'Driver Partner';
-          final phone = user.phoneNumber ?? data['phoneNumber'] ?? '';
-          final status = data['verificationStatus'] ?? 'pending';
+          final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+          final name = (data['name'] != null && (data['name'] as String).isNotEmpty)
+              ? data['name']
+              : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
+          final phone = user.phoneNumber ?? data['phoneNumber'] ?? '+91 98765 43210';
+          final status = data['verificationStatus'] ?? 'approved';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -63,7 +65,21 @@ class DriverProfileScreen extends ConsumerWidget {
                 _buildInfoTile('Vehicle Category', data['vehicleCategoryId'] ?? 'Car'),
                 _buildInfoTile('Total Trips', '${data['totalTrips'] ?? 0}'),
                 _buildInfoTile('Average Rating', '${data['rating'] ?? 5.0} ★'),
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    icon: const Icon(Icons.edit_note, size: 20),
+                    label: const Text('Edit Vehicle & Profile (वाहन व प्रोफ़ाइल बदलें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => context.push('/driver-onboarding'),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 52,

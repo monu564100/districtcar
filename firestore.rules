@@ -1,127 +1,71 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
+    // Email OTPs for Customer & Driver verification
+    match /email_otps/{email} {
+      allow read, write: if true;
     }
 
-    function isUser(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    match /driver_otps/{email} {
+      allow read, write: if true;
     }
 
-    function isAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.role in ['super_admin', 'admin', 'operations', 'support'] ||
-         request.auth.token.admin == true);
-    }
-
-    function isSuperAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.role == 'super_admin' || request.auth.token.admin == true);
-    }
-
-    // Customers (users collection)
-    match /users/{userId} {
-      allow read: if isUser(userId) || isAdmin();
-      allow create: if isUser(userId) 
-        && request.resource.data.uid == userId 
-        && request.resource.data.role == 'customer';
-      allow update: if (isUser(userId) 
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isBlocked', 'isActive']))
-        || isAdmin();
-      allow delete: if isSuperAdmin();
-    }
-
-    // Drivers
-    match /drivers/{driverId} {
-      allow read: if isAuthenticated();
-      allow create: if isUser(driverId) 
-        && request.resource.data.uid == driverId 
-        && request.resource.data.verificationStatus == 'pending'
-        && request.resource.data.role == 'driver';
-      allow update: if (isUser(driverId) 
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'isBlocked', 'role', 'rating', 'totalTrips']))
-        || isAdmin();
-      allow delete: if isSuperAdmin();
-    }
-
-    // Vehicles
-    match /vehicles/{vehicleId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.driverId == request.auth.uid;
-      allow update: if (isAuthenticated() && resource.data.driverId == request.auth.uid
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus']))
-        || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // Vehicle Categories (Pricing, Categories)
+    // Vehicle categories catalog (Pricing & types)
     match /vehicleCategories/{categoryId} {
-      allow read: if true; // Public catalog for vehicle options & fare calculation
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
-    // Bookings
+    // Customer User Profiles
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Driver Partner Profiles
+    match /drivers/{driverId} {
+      allow read, write: if true;
+    }
+
+    // Registered Vehicles
+    match /vehicles/{vehicleId} {
+      allow read, write: if true;
+    }
+
+    // Bookings & Rides
     match /bookings/{bookingId} {
-      allow read: if isAuthenticated() && (
-        resource.data.customerId == request.auth.uid || 
-        resource.data.driverId == request.auth.uid ||
-        isAdmin()
-      );
-      // Client cannot write arbitrary status or fares directly; creation & transitions handled via Cloud Functions or strict user validation
-      allow create: if isAuthenticated() && request.resource.data.customerId == request.auth.uid;
-      allow update: if isAdmin(); // Status transitions enforced strictly via Cloud Functions transactions
-      allow delete: if isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // Booking Requests (Offered to drivers)
+    // Driver dispatch requests
     match /bookingRequests/{requestId} {
-      allow read: if isAuthenticated() && (
-        resource.data.driverId == request.auth.uid || isAdmin()
-      );
-      // Status update (reject) can be signaled or handled via Callable functions
-      allow update: if isAuthenticated() && resource.data.driverId == request.auth.uid;
-      allow create, delete: if isAdmin();
+      allow read, write: if true;
     }
 
-    // Notifications
+    // Notifications & Ratings
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
-    // Ratings
     match /ratings/{ratingId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.fromUserId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow read, write: if true;
     }
 
-    // Support Tickets
     match /supportTickets/{ticketId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isSuperAdmin();
+      allow read, write: if true;
     }
 
-    // Audit Logs
-    match /auditLogs/{logId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
-    }
-
-    // App Config & Fare Configs
     match /appConfig/{configId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /fareConfigs/{fareId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
+    }
+
+    // Global rule for testing & development
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

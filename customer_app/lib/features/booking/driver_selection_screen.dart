@@ -64,7 +64,7 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                   _buildDriverCard(
                     driverName: 'Carlos Santos',
                     ratingTag: '99% Smooth Ride',
-                    ratePerHour: '\$30/h',
+                    ratePerHour: '₹300/h',
                     vehicleModel: 'Porsche Taycan',
                     durationArrival: '25 mins',
                     imageAsset: 'assets/images/car_blue.jpg',
@@ -76,7 +76,7 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                   _buildDriverCard(
                     driverName: 'Lucas Martinez',
                     ratingTag: '93% Smooth Ride',
-                    ratePerHour: '\$35/h',
+                    ratePerHour: '₹350/h',
                     vehicleModel: 'Porsche Taycan',
                     durationArrival: '18 mins',
                     imageAsset: 'assets/images/car_white.jpg',

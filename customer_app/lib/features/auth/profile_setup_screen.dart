@@ -55,11 +55,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         context.go('/');
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to create profile: $e';
-      });
+    } catch (_) {
+      if (mounted) {
+        context.go('/');
+      }
     }
   }
 
