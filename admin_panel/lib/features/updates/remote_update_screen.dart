@@ -12,20 +12,20 @@ class RemoteUpdateScreen extends StatefulWidget {
 
 class _RemoteUpdateScreenState extends State<RemoteUpdateScreen> {
   // Customer App Form Controllers
-  final _custVersionCtrl = TextEditingController(text: '1.0.2');
-  final _custBuildNumberCtrl = TextEditingController(text: '3');
+  final _custVersionCtrl = TextEditingController(text: '1.0.0');
+  final _custBuildNumberCtrl = TextEditingController(text: '4');
   final _custUpdateUrlCtrl = TextEditingController(text: 'https://districtcarjharkhand.com/DistrictCar_Customer.apk');
-  final _custTitleCtrl = TextEditingController(text: 'New District Car Update Available!');
-  final _custMessageCtrl = TextEditingController(text: 'Enjoy faster rural dispatch, 24-district village selection, and improved ride security.');
-  bool _custIsForceUpdate = false;
+  final _custTitleCtrl = TextEditingController(text: 'New District Car Update (Build 4)');
+  final _custMessageCtrl = TextEditingController(text: 'New 24-district Jharkhand village selection, WhatsApp helpline, 35% round-trip savings, and offer banners.');
+  bool _custIsForceUpdate = true;
   bool _custIsActive = true;
 
   // Driver App Form Controllers
-  final _drvVersionCtrl = TextEditingController(text: '1.0.2');
-  final _drvBuildNumberCtrl = TextEditingController(text: '3');
+  final _drvVersionCtrl = TextEditingController(text: '1.0.0');
+  final _drvBuildNumberCtrl = TextEditingController(text: '4');
   final _drvUpdateUrlCtrl = TextEditingController(text: 'https://districtcarjharkhand.com/DistrictCar_Driver.apk');
-  final _drvTitleCtrl = TextEditingController(text: 'Driver Partner App Update (सारथी)');
-  final _drvMessageCtrl = TextEditingController(text: 'Optimistic nearby booking acceptance and 10% dynamic commission settlement dashboard.');
+  final _drvTitleCtrl = TextEditingController(text: 'Driver Partner App Update (सारथी - Build 4)');
+  final _drvMessageCtrl = TextEditingController(text: 'Optimistic nearby booking acceptance, conflict-free dispatch, and 10% dynamic wallet commission ledger.');
   bool _drvIsForceUpdate = true;
   bool _drvIsActive = true;
 
