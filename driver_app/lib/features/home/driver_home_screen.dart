@@ -41,7 +41,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'driver_app',
-        currentBuildNumber: 2,
+        currentBuildNumber: 4,
       );
     });
   }
