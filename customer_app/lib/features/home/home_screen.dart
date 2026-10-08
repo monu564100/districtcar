@@ -9,6 +9,7 @@ import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/rural_fare_calculator.dart';
 import 'package:district_car_shared/services/location_search_service.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/floating_bottom_dock.dart';
@@ -71,6 +72,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         context: context,
         appKey: 'customer_app',
         currentBuildNumber: 4,
+      );
+      final user = ref.read(authServiceProvider).currentUser;
+      FCMNotificationService.initFCM(
+        role: 'customer',
+        userId: user?.uid,
+      );
+      FCMNotificationService.listenToLiveBroadcasts(
+        context: context,
+        role: 'customer',
       );
     });
   }

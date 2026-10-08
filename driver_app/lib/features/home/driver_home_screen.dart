@@ -9,6 +9,7 @@ import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
 import '../../services/driver_service.dart';
 import '../requests/incoming_request_dialog.dart';
 
@@ -42,6 +43,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         context: context,
         appKey: 'driver_app',
         currentBuildNumber: 4,
+      );
+      final user = ref.read(driverServiceProvider).currentUser;
+      FCMNotificationService.initFCM(
+        role: 'driver',
+        userId: user?.uid,
+      );
+      FCMNotificationService.listenToLiveBroadcasts(
+        context: context,
+        role: 'driver',
       );
     });
   }
