@@ -462,6 +462,15 @@ class DriverService {
         'acceptedAt': FieldValue.serverTimestamp(),
       });
 
+      // Mark driver as busy and link active booking to prevent concurrent ride offers
+      try {
+        await _firestore.collection('drivers').doc(uid).set({
+          'isBusy': true,
+          'activeBookingId': bookingId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (_) {}
+
       // Mark this request as accepted and expire/dismiss for all other drivers immediately
       try {
         final allRequests = await _firestore
@@ -555,9 +564,12 @@ class DriverService {
 
       if (uid != null) {
         await _firestore.collection('drivers').doc(uid).set({
+          'isBusy': false,
+          'activeBookingId': null,
           'totalTrips': FieldValue.increment(1),
           'totalEarnings': FieldValue.increment(fare),
           'walletBalance': FieldValue.increment(fare),
+          'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
 

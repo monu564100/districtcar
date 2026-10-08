@@ -65,74 +65,89 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
   Widget build(BuildContext context) {
     final driverCat = (widget.vehicleCategory ?? 'car').trim().toLowerCase();
 
-    // 1. First listen to direct driver offers targeted to this driver
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookingRequests')
-          .where('driverId', isEqualTo: widget.driverId)
-          .where('status', isEqualTo: 'offered')
-          .snapshots(),
-      builder: (context, requestSnap) {
-        if (requestSnap.hasData && requestSnap.data!.docs.isNotEmpty) {
-          final requestDoc = requestSnap.data!.docs.first;
-          final reqData = requestDoc.data() as Map<String, dynamic>;
-          final bookingId = reqData['bookingId'] as String;
-          final requestId = requestDoc.id;
+    // 0. STRICT: Verify driver is NOT currently busy on another ride or blocked
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('drivers').doc(widget.driverId).snapshots(),
+      builder: (context, driverDocSnap) {
+        if (driverDocSnap.hasData && driverDocSnap.data!.exists) {
+          final dData = driverDocSnap.data!.data() as Map<String, dynamic>?;
+          final isBusy = dData?['isBusy'] == true || dData?['activeBookingId'] != null;
+          final isBlocked = dData?['isBlocked'] == true;
+          if (isBusy || isBlocked) {
+            return const SizedBox.shrink();
+          }
+        }
 
-          if (!_dismissedIds.contains(bookingId) && !_dismissedIds.contains(requestId)) {
-            return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('bookings').doc(bookingId).snapshots(),
-              builder: (context, bSnap) {
-                if (!bSnap.hasData || !bSnap.data!.exists) return const SizedBox.shrink();
-                final bData = bSnap.data!.data() as Map<String, dynamic>;
-                final status = bData['status'] as String? ?? '';
+        // 1. First listen to direct driver offers targeted to this driver
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('bookingRequests')
+              .where('driverId', isEqualTo: widget.driverId)
+              .where('status', isEqualTo: 'offered')
+              .snapshots(),
+          builder: (context, requestSnap) {
+            if (requestSnap.hasData && requestSnap.data!.docs.isNotEmpty) {
+              final requestDoc = requestSnap.data!.docs.first;
+              final reqData = requestDoc.data() as Map<String, dynamic>;
+              final bookingId = reqData['bookingId'] as String;
+              final requestId = requestDoc.id;
+
+              if (!_dismissedIds.contains(bookingId) && !_dismissedIds.contains(requestId)) {
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance.collection('bookings').doc(bookingId).snapshots(),
+                  builder: (context, bSnap) {
+                    if (!bSnap.hasData || !bSnap.data!.exists) return const SizedBox.shrink();
+                    final bData = bSnap.data!.data() as Map<String, dynamic>;
+                    final status = bData['status'] as String? ?? '';
+                    final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+
+                    // STRICT: Popup ONLY goes to driver of that particular booked category
+                    if (bookedCategory != driverCat) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // If ride is claimed by other, accepted, completed, or cancelled, do not show popup
+                    if (status != 'searching_driver' && status != 'requested') {
+                      return const SizedBox.shrink();
+                    }
+                    final booking = BookingModel.fromMap(bData, bookingId);
+                    return _buildPopupCard(booking, requestId);
+                  },
+                );
+              }
+            }
+
+            // 2. Fallback / Universal listener: Listen to searching_driver bookings strictly matching driver category!
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('bookings')
+                  .where('status', isEqualTo: 'searching_driver')
+                  .where('vehicleCategoryId', isEqualTo: driverCat)
+                  .limit(1)
+                  .snapshots(),
+              builder: (context, bookingSnap) {
+                if (!bookingSnap.hasData || bookingSnap.data!.docs.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                final bDoc = bookingSnap.data!.docs.first;
+                final bookingId = bDoc.id;
+                if (_dismissedIds.contains(bookingId)) {
+                  return const SizedBox.shrink();
+                }
+
+                final bData = bDoc.data() as Map<String, dynamic>;
                 final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
 
-                // STRICT: Popup ONLY goes to driver of that particular booked category
+                // STRICT: Double check category match
                 if (bookedCategory != driverCat) {
                   return const SizedBox.shrink();
                 }
 
-                // If ride is claimed by other, accepted, completed, or cancelled, do not show popup
-                if (status != 'searching_driver' && status != 'requested') {
-                  return const SizedBox.shrink();
-                }
                 final booking = BookingModel.fromMap(bData, bookingId);
-                return _buildPopupCard(booking, requestId);
+                return _buildPopupCard(booking, null);
               },
             );
-          }
-        }
-
-        // 2. Fallback / Universal listener: Listen to searching_driver bookings strictly matching driver category!
-        return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('bookings')
-              .where('status', isEqualTo: 'searching_driver')
-              .where('vehicleCategoryId', isEqualTo: driverCat)
-              .limit(1)
-              .snapshots(),
-          builder: (context, bookingSnap) {
-            if (!bookingSnap.hasData || bookingSnap.data!.docs.isEmpty) {
-              return const SizedBox.shrink();
-            }
-
-            final bDoc = bookingSnap.data!.docs.first;
-            final bookingId = bDoc.id;
-            if (_dismissedIds.contains(bookingId)) {
-              return const SizedBox.shrink();
-            }
-
-            final bData = bDoc.data() as Map<String, dynamic>;
-            final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
-
-            // STRICT: Double check category match
-            if (bookedCategory != driverCat) {
-              return const SizedBox.shrink();
-            }
-
-            final booking = BookingModel.fromMap(bData, bookingId);
-            return _buildPopupCard(booking, null);
           },
         );
       },

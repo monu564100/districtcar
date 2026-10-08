@@ -22,25 +22,22 @@ class RuralFareCalculator {
     final double dist = oneWayDistanceKm < 1.0 ? 1.0 : oneWayDistanceKm;
 
     if (!isRoundTrip) {
-      // One-Way Trip to Village / Remote Area:
-      // Base fare + (dist * perKmRate * 1.45 rural deadhead factor) + booking fee
-      final ruralDistanceCharge = dist * category.perKmRate * 1.45;
-      final total = category.baseFare + ruralDistanceCharge + category.bookingFee;
+      // One-Way Trip: Base fare + (dist * perKmRate)
+      final distanceCharge = dist * category.perKmRate;
+      final total = category.baseFare + distanceCharge;
       return total < category.minimumFare ? category.minimumFare : total.roundToDouble();
     } else {
-      // Round-Trip (Cheaper per km because return passenger is guaranteed!):
-      // Total km = 2 * dist
-      // Discounted perKmRate (0.75x) because vehicle has guaranteed revenue both ways
-      final totalKm = dist * 2.0;
-      final roundTripKmCharge = totalKm * (category.perKmRate * 0.75);
-      
-      // Stopping / Waiting charge:
-      // First 1 hour is FREE
-      final billableWaitHours = (stoppingHours - 1.0).clamp(0.0, 12.0);
-      final waitingCost = billableWaitHours * 60.0; // ₹60 per extra hour
+      // Round-Trip:
+      // 1. Outbound leg: Base fare + (dist * perKmRate)
+      // 2. Return leg: (dist * perKmRate) discounted (e.g. 35% discount = 0.65x)
+      // 3. Waiting charge: stoppingHours * hourlyWaitingCharge (default ₹60/hr)
+      final outboundFare = category.baseFare + (dist * category.perKmRate);
+      final returnDiscountMultiplier = ((100.0 - category.roundTripDiscountPercent).clamp(0.0, 100.0)) / 100.0;
+      final returnDiscountedFare = (dist * category.perKmRate) * returnDiscountMultiplier;
+      final waitingCharge = stoppingHours * category.hourlyWaitingCharge;
 
-      final total = category.baseFare + roundTripKmCharge + waitingCost + category.bookingFee;
-      return total < (category.minimumFare * 1.5) ? (category.minimumFare * 1.5) : total.roundToDouble();
+      final total = outboundFare + returnDiscountedFare + waitingCharge;
+      return total < category.minimumFare ? category.minimumFare : total.roundToDouble();
     }
   }
 
@@ -49,11 +46,7 @@ class RuralFareCalculator {
     required VehicleCategoryModel category,
     required double oneWayDistanceKm,
   }) {
-    final twoOneWays = calculateFare(
-          category: category,
-          oneWayDistanceKm: oneWayDistanceKm,
-          isRoundTrip: false,
-        ) * 2;
+    final twoOneWays = (category.baseFare + (oneWayDistanceKm * category.perKmRate)) * 2;
     final roundTrip = calculateFare(
       category: category,
       oneWayDistanceKm: oneWayDistanceKm,

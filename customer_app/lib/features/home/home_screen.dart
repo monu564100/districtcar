@@ -9,6 +9,8 @@ import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/rural_fare_calculator.dart';
 import 'package:district_car_shared/services/location_search_service.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/floating_bottom_dock.dart';
 import 'categories_provider.dart';
 import '../booking/booking_service.dart';
@@ -348,6 +350,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   const SizedBox(height: 12),
                   _buildDestinationSearchInput(),
                   const SizedBox(height: 16),
+                  _buildPromotionalOffersCarousel(),
+                  const SizedBox(height: 16),
                   _buildVehicleCategorySelector(categoriesAsync, distanceKm),
                   const SizedBox(height: 16),
                   _buildJourneyDetailsCard(distanceKm, durationMinutes, categoriesAsync),
@@ -356,11 +360,20 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   const SizedBox(height: 16),
                   _buildRoundTripOptionCard(categoriesAsync, distanceKm),
                   const SizedBox(height: 16),
+                  _buildWhatsAppHelplineCard(),
+                  const SizedBox(height: 16),
                   _buildJharkhandVillagePricingBanner(),
                 ],
               ),
             ),
           ),
+          // Floating WhatsApp Quick Action Button above dock
+          Positioned(
+            right: 20,
+            bottom: 84,
+            child: _buildWhatsAppFloatingButton(),
+          ),
+
           // Floating Bottom Navigation Dock (Home, Trips, Profile)
           Positioned(
             left: 0,
@@ -1263,4 +1276,397 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       ),
     );
   }
+
+  /// Launch WhatsApp with customized prefilled text
+  Future<void> _openWhatsApp({required String message}) async {
+    const phone = '918789601387';
+    final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(url);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open WhatsApp: $e')),
+        );
+      }
+    }
+  }
+
+  /// Interactive WhatsApp Support & Booking Modal Sheet
+  void _showWhatsAppHelpModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.chat_bubble_rounded, color: Color(0xFF16A34A), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'District Car WhatsApp 24x7',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF0F172A)),
+                      ),
+                      Text(
+                        'Official Helpline: +91 87896 01387',
+                        style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Select an option for instant one-tap WhatsApp assistance:',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 14),
+
+            _buildWhatsAppOptionTile(
+              icon: Icons.local_taxi,
+              title: '🚕 Quick Instant Ride (तुरंत बुकिंग)',
+              subtitle: 'From: ${_pickupLocation.address.split(',').first} → ${_destinationLocation.address.split(',').first}',
+              onTap: () {
+                Navigator.pop(ctx);
+                _openWhatsApp(
+                  message:
+                      'Hello District Car Control Room,\nI want to book an instant cab ride.\n📍 Pickup: ${_pickupLocation.address}\n🏁 Drop: ${_destinationLocation.address}\n🚗 Category: ${_selectedCategory.toUpperCase()}\nPlease send an available driver right now.',
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            _buildWhatsAppOptionTile(
+              icon: Icons.map_outlined,
+              title: '🗺️ Long Tour / Outstation (लंबी यात्रा & टूर पैकेज)',
+              subtitle: 'Inter-district & rural multi-day tour cabs across Jharkhand',
+              color: const Color(0xFF2563EB),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openWhatsApp(
+                  message:
+                      'Hello District Car Support,\nI need a car for a Long Tour / Outstation journey in Jharkhand.\n📍 From: ${_pickupLocation.address}\n🏁 Destination: ${_destinationLocation.address}\nPlease share vehicle choices (Bolero/Scorpio/Sedan) and tour package rates.',
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            _buildWhatsAppOptionTile(
+              icon: Icons.report_problem_outlined,
+              title: '⚠️ Report Live Ride Issue (सवारी में समस्या)',
+              subtitle: 'Driver delay, route concern, or urgent SOS assistance',
+              color: const Color(0xFFEA580C),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openWhatsApp(
+                  message:
+                      'Hello District Car Emergency Helpdesk,\nI want to report an issue with my ride.\n📍 Current Location: ${_pickupLocation.address}\nPlease assist me immediately.',
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            _buildWhatsAppOptionTile(
+              icon: Icons.feedback_outlined,
+              title: '📝 Complain / Grievance (शिकायत व सुझाव)',
+              subtitle: 'Fare dispute, lost item, or driver feedback',
+              color: const Color(0xFF6366F1),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openWhatsApp(
+                  message:
+                      'Hello District Car Grievance Team,\nI would like to file a complaint/feedback regarding my recent trip experience with District Car.',
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF16A34A),
+  }) {
+    return Material(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Floating WhatsApp Helpline FAB button
+  Widget _buildWhatsAppFloatingButton() {
+    return FloatingActionButton.extended(
+      heroTag: 'fab_whatsapp_btn',
+      onPressed: _showWhatsAppHelpModal,
+      backgroundColor: const Color(0xFF16A34A),
+      elevation: 6,
+      icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 18),
+      label: const Text(
+        'WhatsApp Help',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+    );
+  }
+
+  /// Downside WhatsApp Helpline Card Banner
+  Widget _buildWhatsAppHelplineCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF16A34A),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.call, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Quick WhatsApp & Call Booking',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF14532D)),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Book on WhatsApp or call Ranchi control: +91 87896 01387',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF166534)),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _showWhatsAppHelpModal,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Chat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Live Promotional Offers & Seasonal Discount Banner Carousel
+  Widget _buildPromotionalOffersCarousel() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('banner_offers')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final List<Map<String, String>> banners = [];
+
+        if (docs.isNotEmpty) {
+          for (final doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            banners.add({
+              'tag': 'SPECIAL OFFER',
+              'title': data['title'] ?? 'District Car Offer',
+              'subtitle': data['description'] ?? '',
+              'badgeColor': '0xFF2563EB',
+            });
+          }
+        }
+
+        // Fallback default rich promotional banners if Firestore is empty
+        if (banners.isEmpty) {
+          banners.addAll([
+            {
+              'tag': 'ROUND TRIP SAVER',
+              'title': '🎉 35% Off Return Journey!',
+              'subtitle': 'Save ₹200 to ₹800 on all return rides across Jharkhand 24 districts.',
+              'badgeColor': '0xFF059669',
+            },
+            {
+              'tag': 'RURAL SPECIAL',
+              'title': '🚗 Rural Bolero & SUV Fleet',
+              'subtitle': 'Rugged 4x4 Bolero & Scorpio for village hatia, hospital & court visits.',
+              'badgeColor': '0xFFD97706',
+            },
+            {
+              'tag': 'OUTSTATION',
+              'title': '🌾 Gramin Darshan & Pilgrimage',
+              'subtitle': 'Full-day tours to Parasnath, Deoghar, Rajrappa & Netarhat with top drivers.',
+              'badgeColor': '0xFF7C3AED',
+            },
+          ]);
+        }
+
+        return Container(
+          height: 98,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          child: PageView.builder(
+            itemCount: banners.length,
+            controller: PageController(viewportFraction: 0.96),
+            itemBuilder: (context, index) {
+              final banner = banners[index];
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Color(int.parse(banner['badgeColor'] ?? '0xFF2563EB')),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              banner['tag']!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9.5,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            banner['title']!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            banner['subtitle']!,
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }
+

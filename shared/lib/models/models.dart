@@ -45,6 +45,9 @@ class VehicleCategoryModel {
   final double bookingFee;
   final double waitingCharge;
   final double cancellationFee;
+  final double roundTripDiscountPercent;
+  final double hourlyWaitingCharge;
+  final double platformCommissionPercent;
   final bool isActive;
 
   VehicleCategoryModel({
@@ -60,6 +63,9 @@ class VehicleCategoryModel {
     required this.bookingFee,
     required this.waitingCharge,
     required this.cancellationFee,
+    this.roundTripDiscountPercent = 35.0,
+    this.hourlyWaitingCharge = 60.0,
+    this.platformCommissionPercent = 10.0,
     this.isActive = true,
   });
 
@@ -77,6 +83,9 @@ class VehicleCategoryModel {
       'bookingFee': bookingFee,
       'waitingCharge': waitingCharge,
       'cancellationFee': cancellationFee,
+      'roundTripDiscountPercent': roundTripDiscountPercent,
+      'hourlyWaitingCharge': hourlyWaitingCharge,
+      'platformCommissionPercent': platformCommissionPercent,
       'isActive': isActive,
     };
   }
@@ -95,6 +104,9 @@ class VehicleCategoryModel {
       bookingFee: (map['bookingFee'] as num?)?.toDouble() ?? 0.0,
       waitingCharge: (map['waitingCharge'] as num?)?.toDouble() ?? 0.0,
       cancellationFee: (map['cancellationFee'] as num?)?.toDouble() ?? 0.0,
+      roundTripDiscountPercent: (map['roundTripDiscountPercent'] as num?)?.toDouble() ?? 35.0,
+      hourlyWaitingCharge: (map['hourlyWaitingCharge'] as num?)?.toDouble() ?? 60.0,
+      platformCommissionPercent: (map['platformCommissionPercent'] as num?)?.toDouble() ?? 10.0,
       isActive: map['isActive'] as bool? ?? true,
     );
   }

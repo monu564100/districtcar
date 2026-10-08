@@ -91,16 +91,18 @@ class BookingService {
         await bookingRef.set(newBooking);
       } catch (_) {}
 
-      // Broadcast ride request ONLY to active/online drivers of that particular booked category
+      // Broadcast ride request ONLY to available (non-busy, non-blocked) drivers of that particular category
       try {
         final driversSnapshot = await _firestore.collection('drivers').get();
         for (final driverDoc in driversSnapshot.docs) {
           final dData = driverDoc.data();
+          final isBusy = dData['isBusy'] == true || dData['activeBookingId'] != null;
+          final isBlocked = dData['isBlocked'] == true;
           final driverCategory = (dData['vehicleCategoryId'] ?? dData['category'] ?? 'car').toString().trim().toLowerCase();
           final requestedCategory = categoryId.trim().toLowerCase();
 
-          // Only send request if the driver's vehicle category matches the booked category
-          if (driverCategory == requestedCategory) {
+          // Only send request if the driver is NOT busy on another ride, NOT blocked, and category matches
+          if (!isBusy && !isBlocked && driverCategory == requestedCategory) {
             await _firestore.collection('bookingRequests').add({
               'bookingId': bookingRef.id,
               'driverId': driverDoc.id,
