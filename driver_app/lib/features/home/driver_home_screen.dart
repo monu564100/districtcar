@@ -258,6 +258,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         final String vehicleModel = data?['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
         final double rating = (data?['rating'] as num?)?.toDouble() ?? 5.0;
         final double totalEarnings = (data?['totalEarnings'] as num?)?.toDouble() ?? 0.0;
+        final String driverCategory = (data?['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
@@ -473,7 +474,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                           ),
                         ),
                       ] else ...[
-                        _buildAvailableRequestsStream(),
+                        _buildAvailableRequestsStream(driverCategory),
                       ],
                     ],
                   ),
@@ -484,6 +485,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
               if (_isOnline && _activeBooking == null)
                 IncomingRequestOverlay(
                   driverId: user.uid,
+                  vehicleCategory: driverCategory,
                   onAccepted: (booking) {
                     setState(() {
                       _activeBooking = booking.copyWith(status: 'driver_assigned');
@@ -506,14 +508,20 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     );
   }
 
-  Widget _buildAvailableRequestsStream() {
+  Widget _buildAvailableRequestsStream(String driverCategory) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('bookings')
           .where('status', isEqualTo: 'searching_driver')
+          .where('vehicleCategoryId', isEqualTo: driverCategory)
           .snapshots(),
       builder: (context, snapshot) {
-        final docs = snapshot.data?.docs ?? [];
+        final allDocs = snapshot.data?.docs ?? [];
+        final docs = allDocs.where((doc) {
+          final d = doc.data() as Map<String, dynamic>;
+          final cat = (d['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+          return cat == driverCategory;
+        }).toList();
 
         if (docs.isEmpty) {
           return Container(

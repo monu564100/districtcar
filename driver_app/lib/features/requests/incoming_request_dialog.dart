@@ -9,11 +9,13 @@ import '../../services/driver_service.dart';
 
 class IncomingRequestOverlay extends ConsumerStatefulWidget {
   final String driverId;
+  final String? vehicleCategory;
   final Function(BookingModel booking)? onAccepted;
 
   const IncomingRequestOverlay({
     super.key,
     required this.driverId,
+    this.vehicleCategory,
     this.onAccepted,
   });
 
@@ -61,7 +63,9 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
 
   @override
   Widget build(BuildContext context) {
-    // 1. First listen to direct driver offers
+    final driverCat = (widget.vehicleCategory ?? 'car').trim().toLowerCase();
+
+    // 1. First listen to direct driver offers targeted to this driver
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('bookingRequests')
@@ -82,6 +86,13 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                 if (!bSnap.hasData || !bSnap.data!.exists) return const SizedBox.shrink();
                 final bData = bSnap.data!.data() as Map<String, dynamic>;
                 final status = bData['status'] as String? ?? '';
+                final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+
+                // STRICT: Popup ONLY goes to driver of that particular booked category
+                if (bookedCategory != driverCat) {
+                  return const SizedBox.shrink();
+                }
+
                 // If ride is claimed by other, accepted, completed, or cancelled, do not show popup
                 if (status != 'searching_driver' && status != 'requested') {
                   return const SizedBox.shrink();
@@ -93,11 +104,12 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
           }
         }
 
-        // 2. Fallback / Universal listener: Listen to all searching_driver bookings so driver never misses a customer in Chrome!
+        // 2. Fallback / Universal listener: Listen to searching_driver bookings strictly matching driver category!
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('bookings')
               .where('status', isEqualTo: 'searching_driver')
+              .where('vehicleCategoryId', isEqualTo: driverCat)
               .limit(1)
               .snapshots(),
           builder: (context, bookingSnap) {
@@ -112,6 +124,13 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
             }
 
             final bData = bDoc.data() as Map<String, dynamic>;
+            final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+
+            // STRICT: Double check category match
+            if (bookedCategory != driverCat) {
+              return const SizedBox.shrink();
+            }
+
             final booking = BookingModel.fromMap(bData, bookingId);
             return _buildPopupCard(booking, null);
           },

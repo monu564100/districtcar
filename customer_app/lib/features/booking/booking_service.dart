@@ -91,16 +91,24 @@ class BookingService {
         await bookingRef.set(newBooking);
       } catch (_) {}
 
-      // Broadcast ride request to all active/online drivers
+      // Broadcast ride request ONLY to active/online drivers of that particular booked category
       try {
         final driversSnapshot = await _firestore.collection('drivers').get();
         for (final driverDoc in driversSnapshot.docs) {
-          await _firestore.collection('bookingRequests').add({
-            'bookingId': bookingRef.id,
-            'driverId': driverDoc.id,
-            'status': 'offered',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          final dData = driverDoc.data();
+          final driverCategory = (dData['vehicleCategoryId'] ?? dData['category'] ?? 'car').toString().trim().toLowerCase();
+          final requestedCategory = categoryId.trim().toLowerCase();
+
+          // Only send request if the driver's vehicle category matches the booked category
+          if (driverCategory == requestedCategory) {
+            await _firestore.collection('bookingRequests').add({
+              'bookingId': bookingRef.id,
+              'driverId': driverDoc.id,
+              'vehicleCategoryId': requestedCategory,
+              'status': 'offered',
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
         }
       } catch (_) {}
 
