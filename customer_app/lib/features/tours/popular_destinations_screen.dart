@@ -80,7 +80,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     // 1. App Bar & Search Header
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -143,7 +143,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 10),
 
                             // Search Field
                             Container(
@@ -227,7 +227,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     if (_selectedCategory == 'all' && _searchQuery.isEmpty && trendingList.isNotEmpty) ...[
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
+                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -280,7 +280,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     // 4. Section Title for Grid: "Popular Places (1 Row 2 Cards)"
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                         child: Row(
                           children: [
                             Text(
@@ -329,8 +329,8 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2, // 2 items per row
                             crossAxisSpacing: 14,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.58, // Fixed 11px overflow - ample height for image, text and price
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 0.72, // Snug, responsive ratio without white gap or overflow
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -475,12 +475,21 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                           '${dest.approxDistanceKm.toInt()} km away',
                           style: const TextStyle(color: Colors.white70, fontSize: 11),
                         ),
-                        Text(
-                          'From ₹${dest.startingFare.toInt()}',
-                          style: const TextStyle(
-                            color: Color(0xFF86EFAC),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: const [
+                              Text(
+                                'Explore',
+                                style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 3),
+                              Icon(Icons.arrow_forward_rounded, size: 10, color: Colors.white),
+                            ],
                           ),
                         ),
                       ],
@@ -642,32 +651,29 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Starting at',
-                              style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
-                            ),
-                            Text(
-                              '₹${dest.startingFare.toInt()}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF059669),
-                              ),
-                            ),
-                          ],
-                        ),
                         Container(
-                          padding: const EdgeInsets.all(5),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFECFDF5),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFF059669)),
+                          child: const Text(
+                            'Explore Place',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF059669),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.arrow_forward_rounded, size: 12, color: Colors.white),
                         ),
                       ],
                     ),

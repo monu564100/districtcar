@@ -526,23 +526,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Estimated Tour Fare',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
+                    children: const [
                       Text(
-                        '₹${dest.startingFare.toInt()}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A),
-                        ),
+                        'Live Fare Booking',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF0F172A), fontWeight: FontWeight.w900),
                       ),
-                      const Text(
-                        'Round trip & stay options',
-                        style: TextStyle(fontSize: 10, color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                      SizedBox(height: 2),
+                      Text(
+                        'Transparent Distance Pricing',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
