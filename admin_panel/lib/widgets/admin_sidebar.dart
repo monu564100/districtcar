@@ -45,6 +45,7 @@ class AdminSidebar extends StatelessWidget {
           _buildItem(context, 'Dashboard', Icons.dashboard_outlined, '/dashboard'),
           _buildItem(context, 'Driver Trips & Commission', Icons.account_balance_wallet_outlined, '/driver-earnings'),
           _buildItem(context, 'Push Notifications & Offers', Icons.campaign_outlined, '/notifications'),
+          _buildItem(context, 'Tours & Popular Places', Icons.travel_explore_rounded, '/destinations'),
           _buildItem(context, 'Driver Verifications', Icons.verified_user_outlined, '/driver-verification'),
           _buildItem(context, 'User Moderation & Block', Icons.security_outlined, '/users'),
           _buildItem(context, 'Remote App Updates', Icons.system_update_alt, '/remote-updates'),

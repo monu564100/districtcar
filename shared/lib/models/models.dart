@@ -299,3 +299,140 @@ class BookingModel {
     );
   }
 }
+
+class PopularDestinationModel {
+  final String id;
+  final String name;
+  final String category; // 'waterfall', 'temple', 'hill_station', 'nature', 'heritage'
+  final String district;
+  final String locationAddress;
+  final double latitude;
+  final double longitude;
+  final String imageUrl;
+  final List<String> galleryImages;
+  final String description;
+  final String bestTimeToVisit;
+  final String timings;
+  final double rating;
+  final int reviewsCount;
+  final double approxDistanceKm;
+  final double startingFare;
+  final bool isTrending;
+  final bool isPopular;
+  final List<String> highlights;
+
+  PopularDestinationModel({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.district,
+    required this.locationAddress,
+    required this.latitude,
+    required this.longitude,
+    required this.imageUrl,
+    this.galleryImages = const [],
+    required this.description,
+    this.bestTimeToVisit = 'October to March',
+    this.timings = '06:00 AM – 06:00 PM',
+    this.rating = 4.8,
+    this.reviewsCount = 450,
+    this.approxDistanceKm = 45.0,
+    this.startingFare = 799.0,
+    this.isTrending = true,
+    this.isPopular = true,
+    this.highlights = const [],
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'district': district,
+      'locationAddress': locationAddress,
+      'latitude': latitude,
+      'longitude': longitude,
+      'imageUrl': imageUrl,
+      'galleryImages': galleryImages,
+      'description': description,
+      'bestTimeToVisit': bestTimeToVisit,
+      'timings': timings,
+      'rating': rating,
+      'reviewsCount': reviewsCount,
+      'approxDistanceKm': approxDistanceKm,
+      'startingFare': startingFare,
+      'isTrending': isTrending,
+      'isPopular': isPopular,
+      'highlights': highlights,
+    };
+  }
+
+  factory PopularDestinationModel.fromMap(Map<String, dynamic> map, String docId) {
+    return PopularDestinationModel(
+      id: docId,
+      name: map['name'] as String? ?? 'Tour Destination',
+      category: (map['category'] as String? ?? 'nature').toLowerCase().trim(),
+      district: map['district'] as String? ?? 'Ranchi',
+      locationAddress: map['locationAddress'] as String? ?? '',
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 23.3441,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 85.3096,
+      imageUrl: map['imageUrl'] as String? ?? '',
+      galleryImages: (map['galleryImages'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      description: map['description'] as String? ?? '',
+      bestTimeToVisit: map['bestTimeToVisit'] as String? ?? 'October to March',
+      timings: map['timings'] as String? ?? '06:00 AM – 06:00 PM',
+      rating: (map['rating'] as num?)?.toDouble() ?? 4.8,
+      reviewsCount: (map['reviewsCount'] as num?)?.toInt() ?? 320,
+      approxDistanceKm: (map['approxDistanceKm'] as num?)?.toDouble() ?? 45.0,
+      startingFare: (map['startingFare'] as num?)?.toDouble() ?? 799.0,
+      isTrending: map['isTrending'] == true,
+      isPopular: map['isPopular'] ?? true,
+      highlights: (map['highlights'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+
+  PopularDestinationModel copyWith({
+    String? id,
+    String? name,
+    String? category,
+    String? district,
+    String? locationAddress,
+    double? latitude,
+    double? longitude,
+    String? imageUrl,
+    List<String>? galleryImages,
+    String? description,
+    String? bestTimeToVisit,
+    String? timings,
+    double? rating,
+    int? reviewsCount,
+    double? approxDistanceKm,
+    double? startingFare,
+    bool? isTrending,
+    bool? isPopular,
+    List<String>? highlights,
+  }) {
+    return PopularDestinationModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      district: district ?? this.district,
+      locationAddress: locationAddress ?? this.locationAddress,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      imageUrl: imageUrl ?? this.imageUrl,
+      galleryImages: galleryImages ?? this.galleryImages,
+      description: description ?? this.description,
+      bestTimeToVisit: bestTimeToVisit ?? this.bestTimeToVisit,
+      timings: timings ?? this.timings,
+      rating: rating ?? this.rating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+      approxDistanceKm: approxDistanceKm ?? this.approxDistanceKm,
+      startingFare: startingFare ?? this.startingFare,
+      isTrending: isTrending ?? this.isTrending,
+      isPopular: isPopular ?? this.isPopular,
+      highlights: highlights ?? this.highlights,
+    );
+  }
+}
+

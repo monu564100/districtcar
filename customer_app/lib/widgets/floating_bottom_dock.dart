@@ -14,15 +14,15 @@ class FloatingBottomDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF1B2030),
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(0.24),
+            blurRadius: 22,
             offset: const Offset(0, 8),
           ),
         ],
@@ -36,15 +36,21 @@ class FloatingBottomDock extends StatelessWidget {
             icon: Icons.home_rounded,
             label: 'Home',
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
           _buildTabItem(
             index: 1,
+            icon: Icons.travel_explore_rounded,
+            label: 'Tours',
+          ),
+          const SizedBox(width: 4),
+          _buildTabItem(
+            index: 2,
             icon: Icons.receipt_long_rounded,
             label: 'My Trips',
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
           _buildTabItem(
-            index: 2,
+            index: 3,
             icon: Icons.person_rounded,
             label: 'Profile',
           ),

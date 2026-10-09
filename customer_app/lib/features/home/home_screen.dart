@@ -136,8 +136,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   void _onDockTabSelected(int index) {
     setState(() => _currentDockIndex = index);
     if (index == 1) {
-      context.push('/trips');
+      context.push('/tours');
     } else if (index == 2) {
+      context.push('/trips');
+    } else if (index == 3) {
       context.push('/profile');
     }
   }
@@ -359,6 +361,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   _buildHeader(),
                   const SizedBox(height: 12),
                   _buildDestinationSearchInput(),
+                  const SizedBox(height: 16),
+                  _buildTourAndTravelsShortcutBanner(),
                   const SizedBox(height: 16),
                   _buildPromotionalOffersCarousel(),
                   const SizedBox(height: 16),
@@ -1536,6 +1540,112 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             child: const Text('Chat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tour & Travels Dedicated Popular Places Home Banner
+  Widget _buildTourAndTravelsShortcutBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F766E), Color(0xFF0D9488), Color(0xFF059669)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0D9488).withOpacity(0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => context.push('/tours'),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: Text('🌊', style: TextStyle(fontSize: 26)),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF08A),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'TOUR & TRAVELS 🚖',
+                              style: TextStyle(
+                                color: Color(0xFF854D0E),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9.5,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'NEW',
+                            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Popular Waterfalls, Temples & Hills',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Hundru, Dassam, Baidyanath Dham, Netarhat & more',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F766E), size: 18),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
