@@ -7,6 +7,8 @@ import 'core/router.dart';
 import 'package:district_car_shared/firebase_options.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,9 @@ void main() async {
     await Firebase.initializeApp(
       options: kIsWeb ? DefaultFirebaseOptions.web : DefaultFirebaseOptions.driverAndroid,
     );
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    }
   } catch (e) {
     debugPrint('Firebase driver app init notice: $e');
   }

@@ -92,23 +92,26 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     );
   }
   void _callDriver(String? phoneNumber) async {
-    final phone = (phoneNumber != null && phoneNumber.isNotEmpty) ? phoneNumber : '+91 94311 23456';
-    final uri = Uri.parse('tel:$phone');
+    final phone = (phoneNumber != null && phoneNumber.trim().isNotEmpty)
+        ? phoneNumber.trim()
+        : '+91 87896 01387';
+    // Remove all whitespace, hyphens, parentheses to satisfy Android intent filter & RFC 3966
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri.parse('tel:$cleanPhone');
     try {
-      if (await canLaunchUrl(uri)) {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
         await launchUrl(uri);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Calling driver at $phone')),
-          );
-        }
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Call driver: $phone')),
-        );
+      try {
+        await launchUrl(uri);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Dialer: $phone')),
+          );
+        }
       }
     }
   }

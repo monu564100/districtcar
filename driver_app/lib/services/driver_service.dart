@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
 
 class DriverService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -438,6 +439,27 @@ class DriverService {
         'vehicleImage': vehicleImage,
         'driverPhoto': driverPhoto,
       }).timeout(const Duration(seconds: 4));
+
+      // Push notification to customer on cloud function success
+      try {
+        final currentDoc = await _firestore.collection('bookings').doc(bookingId).get();
+        final cId = currentDoc.data()?['customerId'] as String? ?? '';
+        final cOtp = currentDoc.data()?['rideOtp'] as String? ?? '';
+        if (cId.isNotEmpty) {
+          await FCMNotificationService.sendBookingAcceptedNotificationToCustomer(
+            bookingId: bookingId,
+            customerId: cId,
+            driverName: driverName,
+            driverPhone: driverPhone,
+            vehiclePlate: vehiclePlate,
+            vehicleModel: vehicleModel,
+            rideOtp: cOtp,
+          );
+        }
+      } catch (pushErr) {
+        debugPrint('Customer push notification notice: $pushErr');
+      }
+
       return Map<String, dynamic>.from(res.data as Map);
     } catch (_) {
       // 2. Direct Firestore update fallback with optimistic concurrency
@@ -486,6 +508,25 @@ class DriverService {
           }
         }
       } catch (_) {}
+
+      // High-priority Push Notification to Customer (delivered even if app is closed/in background)
+      try {
+        final customerId = currentDoc.data()?['customerId'] as String? ?? '';
+        final rideOtp = currentDoc.data()?['rideOtp'] as String? ?? '';
+        if (customerId.isNotEmpty) {
+          await FCMNotificationService.sendBookingAcceptedNotificationToCustomer(
+            bookingId: bookingId,
+            customerId: customerId,
+            driverName: driverName,
+            driverPhone: driverPhone,
+            vehiclePlate: vehiclePlate,
+            vehicleModel: vehicleModel,
+            rideOtp: rideOtp,
+          );
+        }
+      } catch (pushErr) {
+        debugPrint('Customer push notification notice: $pushErr');
+      }
 
       return {'success': true, 'bookingId': bookingId};
     }

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
 
 class BookingService {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -93,16 +95,25 @@ class BookingService {
 
       // Broadcast ride request ONLY to available (non-busy, non-blocked) drivers of that particular category
       try {
+        final List<String> matchingDriverTokens = [];
+        final List<String> matchingDriverIds = [];
+        final requestedCategory = categoryId.trim().toLowerCase();
+
         final driversSnapshot = await _firestore.collection('drivers').get();
         for (final driverDoc in driversSnapshot.docs) {
           final dData = driverDoc.data();
           final isBusy = dData['isBusy'] == true || dData['activeBookingId'] != null;
           final isBlocked = dData['isBlocked'] == true;
           final driverCategory = (dData['vehicleCategoryId'] ?? dData['category'] ?? 'car').toString().trim().toLowerCase();
-          final requestedCategory = categoryId.trim().toLowerCase();
 
           // Only send request if the driver is NOT busy on another ride, NOT blocked, and category matches
           if (!isBusy && !isBlocked && driverCategory == requestedCategory) {
+            matchingDriverIds.add(driverDoc.id);
+            final token = dData['fcmToken'] as String?;
+            if (token != null && token.isNotEmpty) {
+              matchingDriverTokens.add(token);
+            }
+
             await _firestore.collection('bookingRequests').add({
               'bookingId': bookingRef.id,
               'driverId': driverDoc.id,
@@ -112,7 +123,21 @@ class BookingService {
             });
           }
         }
-      } catch (_) {}
+
+        // Dispatch High-Priority System Push Notification to all matching drivers (Background & Closed App delivery)
+        await FCMNotificationService.sendBookingOfferedNotificationToDrivers(
+          bookingId: bookingRef.id,
+          readableId: readableId,
+          categoryId: requestedCategory,
+          pickupAddress: pickup.name.isNotEmpty ? pickup.name : pickup.address,
+          destinationAddress: destination.name.isNotEmpty ? destination.name : destination.address,
+          estimatedFare: fare,
+          driverTokens: matchingDriverTokens,
+          driverIds: matchingDriverIds,
+        );
+      } catch (err) {
+        debugPrint('Driver push notification dispatch notice: $err');
+      }
 
       return {
         'bookingId': bookingRef.id,

@@ -1,23 +1,36 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:district_car_shared/theme/app_theme.dart';
+
+/// Top-level background message handler for Android OS background execution
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint('FCM Background message handled: ${message.messageId} - ${message.notification?.title}');
+}
 
 class FCMNotificationService {
   static final DateTime _sessionStartTime = DateTime.now();
   static final Set<String> _shownNotifIds = {};
   static bool _isListeningBroadcasts = false;
+  static String? _cachedServerKey;
+
+  /// Android high-importance notification channel definition
+  static const String notificationChannelId = 'district_car_rides';
 
   /// Initialize Firebase Cloud Messaging tokens & topics
   static Future<void> initFCM({
     required String role, // 'customer' or 'driver'
     String? userId,
+    String? category, // optional vehicle category for driver
   }) async {
     try {
       final messaging = FirebaseMessaging.instance;
 
-      // 1. Request Permission
+      // 1. Request OS Notification Permission (Essential for Android 13+ & iOS)
       final settings = await messaging.requestPermission(
         alert: true,
         badge: true,
@@ -25,7 +38,7 @@ class FCMNotificationService {
         provisional: false,
       );
 
-      debugPrint('FCM Authorization Status: ${settings.authorizationStatus}');
+      debugPrint('FCM Authorization Status ($role): ${settings.authorizationStatus}');
 
       // 2. Fetch Device Token
       String? token;
@@ -38,15 +51,30 @@ class FCMNotificationService {
       if (token != null && token.isNotEmpty) {
         debugPrint('FCM Token ($role): $token');
 
-        // Subscribe to General Topics
+        // Subscribe to General & Specific Topics
         try {
           if (!kIsWeb) {
             await messaging.subscribeToTopic('all_users');
-            await messaging.subscribeToTopic(role == 'driver' ? 'drivers' : 'customers');
+            if (role == 'driver') {
+              await messaging.subscribeToTopic('drivers');
+              if (category != null && category.isNotEmpty) {
+                await messaging.subscribeToTopic('driver_${category.toLowerCase().trim()}');
+              }
+              if (userId != null && userId.isNotEmpty) {
+                await messaging.subscribeToTopic('driver_$userId');
+              }
+            } else {
+              await messaging.subscribeToTopic('customers');
+              if (userId != null && userId.isNotEmpty) {
+                await messaging.subscribeToTopic('customer_$userId');
+              }
+            }
           }
-        } catch (_) {}
+        } catch (subErr) {
+          debugPrint('FCM topic subscription notice: $subErr');
+        }
 
-        // Save token to Firestore profile
+        // Save token to Firestore profile for direct target dispatch
         if (userId != null && userId.isNotEmpty) {
           final collection = role == 'driver' ? 'drivers' : 'users';
           await FirebaseFirestore.instance.collection(collection).doc(userId).set({
@@ -56,20 +84,277 @@ class FCMNotificationService {
         }
       }
 
-      // 3. Listen to Foreground Messages from FCM
+      // 3. Foreground Message Listener
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Received foreground FCM message: ${message.notification?.title}');
+        debugPrint('Foreground FCM message received: ${message.notification?.title}');
+      });
+
+      // 4. Message Click / App Open Listeners
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('User tapped notification to open app: ${message.data}');
       });
     } catch (e) {
       debugPrint('FCM initialization notice: $e');
     }
   }
 
+  /// Subscribe to a specific FCM topic (e.g., driver_car, customer_xxx)
+  static Future<void> subscribeToTopic(String topic) async {
+    if (kIsWeb) return;
+    try {
+      await FirebaseMessaging.instance.subscribeToTopic(topic.toLowerCase().trim());
+      debugPrint('FCM subscribed to topic: $topic');
+    } catch (e) {
+      debugPrint('FCM topic subscription notice: $e');
+    }
+  }
+
+  /// Unsubscribe from a specific FCM topic
+  static Future<void> unsubscribeFromTopic(String topic) async {
+    if (kIsWeb) return;
+    try {
+      await FirebaseMessaging.instance.unsubscribeFromTopic(topic.toLowerCase().trim());
+      debugPrint('FCM unsubscribed from topic: $topic');
+    } catch (e) {
+      debugPrint('FCM topic unsubscribe notice: $e');
+    }
+  }
+
+
+  /// Retrieve FCM Server Key from Firestore app_config
+  static Future<String?> _getServerKey() async {
+    if (_cachedServerKey != null && _cachedServerKey!.isNotEmpty) {
+      return _cachedServerKey;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('fcm_settings')
+          .get();
+      if (doc.exists) {
+        _cachedServerKey = doc.data()?['serverKey'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Failed to load FCM server key: $e');
+    }
+    return _cachedServerKey;
+  }
+
+  /// Low-level HTTP dispatch to Firebase Cloud Messaging API
+  static Future<void> _sendFCMHttp({
+    required String target, // device token or /topics/topic_name
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+    String? imageUrl,
+  }) async {
+    final serverKey = await _getServerKey();
+    if (serverKey == null || serverKey.isEmpty) {
+      debugPrint('FCM dispatch notice: No FCM serverKey configured in app_config/fcm_settings.');
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'key=$serverKey',
+        },
+        body: jsonEncode({
+          'to': target,
+          'priority': 'high',
+          'notification': {
+            'title': title,
+            'body': body,
+            'sound': 'default',
+            'android_channel_id': notificationChannelId,
+            if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+          },
+          'data': {
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            'title': title,
+            'body': body,
+            if (data != null) ...data,
+          },
+        }),
+      );
+
+      debugPrint('FCM HTTP send status to $target: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('FCM HTTP dispatch error: $e');
+    }
+  }
+
+  /// DISPATCH 1: When Customer Books a Ride -> Push Notification to all matching Drivers
+  static Future<void> sendBookingOfferedNotificationToDrivers({
+    required String bookingId,
+    required String readableId,
+    required String categoryId,
+    required String pickupAddress,
+    required String destinationAddress,
+    required double estimatedFare,
+    List<String>? driverTokens,
+    List<String>? driverIds,
+  }) async {
+    final title = '🚖 New Ride Request! (₹${estimatedFare.toInt()})';
+    final body = '$pickupAddress ➔ $destinationAddress [${categoryId.toUpperCase()}]';
+
+    final dataPayload = {
+      'type': 'new_booking_offered',
+      'bookingId': bookingId,
+      'readableId': readableId,
+      'categoryId': categoryId,
+      'fare': estimatedFare.toString(),
+      'pickup': pickupAddress,
+      'destination': destinationAddress,
+    };
+
+    // 1. Write to Firestore 'notifications' collection for in-app popups & audit log
+    try {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': title,
+        'body': body,
+        'targetAudience': 'drivers',
+        'type': 'new_booking_offered',
+        'bookingId': bookingId,
+        'readableId': readableId,
+        'categoryId': categoryId,
+        'status': 'delivered',
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+
+    // 2. Dispatch to each driver's personal inbox
+    if (driverIds != null) {
+      for (final dId in driverIds) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('drivers')
+              .doc(dId)
+              .collection('inbox_notifications')
+              .add({
+            'title': title,
+            'body': body,
+            'bookingId': bookingId,
+            'sentAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        } catch (_) {}
+      }
+    }
+
+    // 3. Dispatch Background Push to individual device tokens
+    if (driverTokens != null && driverTokens.isNotEmpty) {
+      for (final token in driverTokens) {
+        await _sendFCMHttp(
+          target: token,
+          title: title,
+          body: body,
+          data: dataPayload,
+        );
+      }
+    }
+
+    // 4. Dispatch Background Push to Category Topic & General Drivers Topic
+    final catTopic = '/topics/driver_${categoryId.toLowerCase().trim()}';
+    await _sendFCMHttp(
+      target: catTopic,
+      title: title,
+      body: body,
+      data: dataPayload,
+    );
+  }
+
+  /// DISPATCH 2: When Driver Accepts Ride -> Push Notification to Customer
+  static Future<void> sendBookingAcceptedNotificationToCustomer({
+    required String bookingId,
+    required String customerId,
+    String? customerToken,
+    required String driverName,
+    required String driverPhone,
+    required String vehiclePlate,
+    required String vehicleModel,
+    String? rideOtp,
+  }) async {
+    final title = '🎉 Booking Confirmed! Driver Assigned';
+    final body = '$driverName is on the way in $vehicleModel ($vehiclePlate). OTP: ${rideOtp ?? ''}';
+
+    final dataPayload = {
+      'type': 'booking_accepted',
+      'bookingId': bookingId,
+      'driverName': driverName,
+      'driverPhone': driverPhone,
+      'vehiclePlate': vehiclePlate,
+      'vehicleModel': vehicleModel,
+      'rideOtp': rideOtp ?? '',
+    };
+
+    // 1. Write to Firestore 'notifications' collection
+    try {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': title,
+        'body': body,
+        'targetAudience': 'customers',
+        'targetUserId': customerId,
+        'type': 'booking_accepted',
+        'bookingId': bookingId,
+        'status': 'delivered',
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+
+    // 2. Write to Customer's personal inbox
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(customerId)
+          .collection('inbox_notifications')
+          .add({
+        'title': title,
+        'body': body,
+        'bookingId': bookingId,
+        'driverName': driverName,
+        'driverPhone': driverPhone,
+        'vehiclePlate': vehiclePlate,
+        'sentAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (_) {}
+
+    // 3. Look up Customer Token if not supplied
+    String? targetToken = customerToken;
+    if (targetToken == null || targetToken.isEmpty) {
+      try {
+        final custDoc = await FirebaseFirestore.instance.collection('users').doc(customerId).get();
+        targetToken = custDoc.data()?['fcmToken'] as String?;
+      } catch (_) {}
+    }
+
+    // 4. Dispatch Background Push to Customer Token
+    if (targetToken != null && targetToken.isNotEmpty) {
+      await _sendFCMHttp(
+        target: targetToken,
+        title: title,
+        body: body,
+        data: dataPayload,
+      );
+    }
+
+    // 5. Also dispatch to Customer personal topic
+    await _sendFCMHttp(
+      target: '/topics/customer_$customerId',
+      title: title,
+      body: body,
+      data: dataPayload,
+    );
+  }
+
   /// Real-time In-App Push Notification Listener
-  /// Ensures 100% reliable broadcast receipt even if FCM is blocked or on web/emulators
   static void listenToLiveBroadcasts({
     required BuildContext context,
     required String role, // 'customer' or 'driver'
+    String? currentUserId,
   }) {
     if (_isListeningBroadcasts) return;
     _isListeningBroadcasts = true;
@@ -91,10 +376,12 @@ class FCMNotificationService {
 
           final data = doc.data();
           final audience = data['targetAudience'] as String? ?? 'all';
+          final targetUser = data['targetUserId'] as String?;
           final sentAt = (data['sentAt'] as Timestamp?)?.toDate();
 
-          // Only show notifications for this audience
+          // Audience check
           if (audience != 'all' && audience != targetAudience) continue;
+          if (targetUser != null && currentUserId != null && targetUser != currentUserId) continue;
 
           // Check if created after app session started (or within last 3 minutes)
           final isRecent = sentAt == null ||
@@ -108,7 +395,7 @@ class FCMNotificationService {
               body: data['body'] as String? ?? '',
               imageUrl: data['imageUrl'] as String?,
             );
-            break; // Show one at a time
+            break;
           }
         }
       });

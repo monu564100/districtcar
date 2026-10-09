@@ -27,6 +27,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   BookingModel? _activeBooking;
   final TextEditingController _otpVerifyCtrl = TextEditingController();
 
+  String? _subscribedCategory;
+
   LocationModel _driverLocation = LocationModel(
     latitude: 23.3441,
     longitude: 85.3096,
@@ -38,16 +40,24 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     super.initState();
     _loadOnlineStatus();
     _checkLocationPermissionAndFetch();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'driver_app',
         currentBuildNumber: 4,
       );
       final user = ref.read(driverServiceProvider).currentUser;
+      String driverCat = 'car';
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        driverCat = prefs.getString('driver_user_category') ?? 'car';
+      } catch (_) {}
+      _subscribedCategory = driverCat;
+
       FCMNotificationService.initFCM(
         role: 'driver',
         userId: user?.uid,
+        category: driverCat,
       );
       FCMNotificationService.listenToLiveBroadcasts(
         context: context,
@@ -151,17 +161,23 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   }
 
   void _callCustomer(String? phone) async {
-    final targetPhone = phone ?? '+91 98765 43210';
-    final uri = Uri.parse('tel:$targetPhone');
+    final targetPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : '+91 87896 01387';
+    final cleanPhone = targetPhone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri.parse('tel:$cleanPhone');
     try {
-      if (await canLaunchUrl(uri)) {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
         await launchUrl(uri);
-      } else {
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri);
+      } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Calling customer: $targetPhone')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Dialer: $targetPhone')));
         }
       }
-    } catch (_) {}
+    }
   }
 
   void _acceptFromList(BookingModel booking) async {
@@ -269,7 +285,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         final double rating = (data?['rating'] as num?)?.toDouble() ?? 5.0;
         final double totalEarnings = (data?['totalEarnings'] as num?)?.toDouble() ?? 0.0;
         final String driverCategory = (data?['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
-
+        if (_subscribedCategory != driverCategory) {
+          _subscribedCategory = driverCategory;
+          FCMNotificationService.subscribeToTopic('driver_$driverCategory');
+        }
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
