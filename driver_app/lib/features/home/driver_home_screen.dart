@@ -44,7 +44,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'driver_app',
-        currentBuildNumber: 5,
+        currentBuildNumber: 6,
       );
       final user = ref.read(driverServiceProvider).currentUser;
       String driverCat = 'car';
