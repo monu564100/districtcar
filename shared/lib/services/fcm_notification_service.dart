@@ -121,6 +121,24 @@ class FCMNotificationService {
   }
 
 
+  /// Manually update or cache FCM server key
+  static void setStaticServerKey(String key) {
+    _cachedServerKey = key.trim();
+  }
+
+  /// Store FCM server key to Firestore app_config/fcm_settings so all apps immediately have access
+  static Future<void> saveServerKeyToFirestore(String key) async {
+    _cachedServerKey = key.trim();
+    try {
+      await FirebaseFirestore.instance.collection('app_config').doc('fcm_settings').set({
+        'serverKey': key.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error saving FCM server key: $e');
+    }
+  }
+
   /// Retrieve FCM Server Key from Firestore app_config
   static Future<String?> _getServerKey() async {
     if (_cachedServerKey != null && _cachedServerKey!.isNotEmpty) {

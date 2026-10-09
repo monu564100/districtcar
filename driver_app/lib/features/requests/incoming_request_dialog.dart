@@ -63,6 +63,12 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
 
   @override
   Widget build(BuildContext context) {
+    String normalizeCat(String c) {
+      final clean = c.trim().toLowerCase();
+      if (clean == 'sedan' || clean == 'mini' || clean == 'bolero' || clean == 'prime' || clean == 'hatchback') return 'car';
+      return clean;
+    }
+
     final driverCat = (widget.vehicleCategory ?? 'car').trim().toLowerCase();
 
     // 0. STRICT: Verify driver is NOT currently busy on another ride or blocked
@@ -101,8 +107,8 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                     final status = bData['status'] as String? ?? '';
                     final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
 
-                    // STRICT: Popup ONLY goes to driver of that particular booked category
-                    if (bookedCategory != driverCat) {
+                    // If request was offered directly to this driver, or category matches:
+                    if (normalizeCat(bookedCategory) != normalizeCat(driverCat) && reqData['driverId'] != widget.driverId) {
                       return const SizedBox.shrink();
                     }
 
@@ -122,28 +128,30 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
               stream: FirebaseFirestore.instance
                   .collection('bookings')
                   .where('status', isEqualTo: 'searching_driver')
-                  .where('vehicleCategoryId', isEqualTo: driverCat)
-                  .limit(1)
+                  .limit(5)
                   .snapshots(),
               builder: (context, bookingSnap) {
                 if (!bookingSnap.hasData || bookingSnap.data!.docs.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
-                final bDoc = bookingSnap.data!.docs.first;
-                final bookingId = bDoc.id;
-                if (_dismissedIds.contains(bookingId)) {
+                // Find first un-dismissed booking matching normalized category
+                QueryDocumentSnapshot? matchedDoc;
+                for (final doc in bookingSnap.data!.docs) {
+                  final bData = doc.data() as Map<String, dynamic>;
+                  final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+                  if (!_dismissedIds.contains(doc.id) && normalizeCat(bookedCategory) == normalizeCat(driverCat)) {
+                    matchedDoc = doc;
+                    break;
+                  }
+                }
+
+                if (matchedDoc == null) {
                   return const SizedBox.shrink();
                 }
 
-                final bData = bDoc.data() as Map<String, dynamic>;
-                final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
-
-                // STRICT: Double check category match
-                if (bookedCategory != driverCat) {
-                  return const SizedBox.shrink();
-                }
-
+                final bookingId = matchedDoc.id;
+                final bData = matchedDoc.data() as Map<String, dynamic>;
                 final booking = BookingModel.fromMap(bData, bookingId);
                 return _buildPopupCard(booking, null);
               },
@@ -163,12 +171,15 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
       });
     }
 
+    final isTour = booking.bookingType == 'tour' || (booking.tourDestinationName != null && booking.tourDestinationName!.isNotEmpty);
+    final stayHours = booking.stayHours ?? (booking.roundTripStoppingHours > 0 ? booking.roundTripStoppingHours.toInt() : null);
+
     return Container(
       color: Colors.black.withValues(alpha: 0.65),
       child: Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
@@ -188,19 +199,25 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: isTour ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                    border: Border.all(color: isTour ? const Color(0xFFA7F3D0) : const Color(0xFFFCA5A5)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.notifications_active, color: Color(0xFFDC2626), size: 18),
+                      Icon(
+                        isTour ? Icons.tour : Icons.notifications_active,
+                        color: isTour ? const Color(0xFF047857) : const Color(0xFFDC2626),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        booking.isRoundTrip ? '🔔 NEW ROUND TRIP (दो तरफा राइड)' : '🔔 NEW RIDE BOOKING (नयी बुकिंग)',
-                        style: const TextStyle(
-                          color: Color(0xFFDC2626),
+                        isTour
+                            ? (booking.isRoundTrip ? '🌴 TOURS & TRAVELS (दो तरफा टूर)' : '🌴 TOURS & TRAVELS (टूर राइड)')
+                            : (booking.isRoundTrip ? '🔔 ROUND TRIP (दो तरफा राइड)' : '🔔 NEW RIDE BOOKING (नयी बुकिंग)'),
+                        style: TextStyle(
+                          color: isTour ? const Color(0xFF047857) : const Color(0xFFDC2626),
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                         ),
@@ -208,11 +225,25 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                if (isTour && booking.tourDestinationName != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '📍 ${booking.tourDestinationName!}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
 
                 // Fare Display in ₹
                 Text(
-                  '₹${booking.finalFare ?? booking.estimatedFare}',
+                  '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
@@ -220,10 +251,34 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                   ),
                 ),
                 Text(
-                  'Estimated Distance: ${booking.estimatedDistanceKm} km',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  'Total Distance: ${booking.estimatedDistanceKm} km ${booking.isRoundTrip ? "(Round Trip)" : "(One Way)"}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
+
+                // Waiting Duration Tag (if applicable)
+                if (stayHours != null && stayHours > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF92400E)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Waiting / Stay: $stayHours Hours Included',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
 
                 // Date & Time Slot
                 if (booking.scheduledDate != null || booking.scheduledTimeSlot != null) ...[
@@ -239,6 +294,22 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                     ),
                   ),
                   const SizedBox(height: 14),
+                ],
+
+                // Customer info preview
+                if (booking.customerName != null && booking.customerName!.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.person, size: 15, color: Color(0xFF64748B)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Customer: ${booking.customerName}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                 ],
 
                 // Route Details

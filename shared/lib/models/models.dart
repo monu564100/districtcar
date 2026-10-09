@@ -137,6 +137,11 @@ class BookingModel {
   final String? rideOtp;
   final bool isRoundTrip;
   final double roundTripStoppingHours;
+  final String? customerName;
+  final String? customerPhone;
+  final String? bookingType;
+  final String? tourDestinationName;
+  final int? stayHours;
   final String? scheduledDate;
   final String? scheduledTimeSlot;
   final DateTime createdAt;
@@ -145,6 +150,11 @@ class BookingModel {
     required this.id,
     required this.readableId,
     required this.customerId,
+    this.customerName,
+    this.customerPhone,
+    this.bookingType,
+    this.tourDestinationName,
+    this.stayHours,
     this.driverId,
     this.driverName,
     this.driverPhone,
@@ -176,6 +186,11 @@ class BookingModel {
       'id': id,
       'readableId': readableId,
       'customerId': customerId,
+      if (customerName != null) 'customerName': customerName,
+      if (customerPhone != null) 'customerPhone': customerPhone,
+      if (bookingType != null) 'bookingType': bookingType,
+      if (tourDestinationName != null) 'tourDestinationName': tourDestinationName,
+      if (stayHours != null) 'stayHours': stayHours,
       'driverId': driverId,
       'driverName': driverName,
       'driverPhone': driverPhone,
@@ -208,6 +223,11 @@ class BookingModel {
       id: docId,
       readableId: map['readableId'] as String? ?? docId,
       customerId: map['customerId'] as String? ?? '',
+      customerName: map['customerName'] as String?,
+      customerPhone: map['customerPhone'] as String?,
+      bookingType: map['bookingType'] as String?,
+      tourDestinationName: map['tourDestinationName'] as String?,
+      stayHours: (map['stayHours'] as num?)?.toInt(),
       driverId: map['driverId'] as String?,
       driverName: map['driverName'] as String?,
       driverPhone: map['driverPhone'] as String?,
@@ -243,6 +263,11 @@ class BookingModel {
     String? id,
     String? readableId,
     String? customerId,
+    String? customerName,
+    String? customerPhone,
+    String? bookingType,
+    String? tourDestinationName,
+    int? stayHours,
     String? driverId,
     String? driverName,
     String? driverPhone,
@@ -272,6 +297,11 @@ class BookingModel {
       id: id ?? this.id,
       readableId: readableId ?? this.readableId,
       customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      bookingType: bookingType ?? this.bookingType,
+      tourDestinationName: tourDestinationName ?? this.tourDestinationName,
+      stayHours: stayHours ?? this.stayHours,
       driverId: driverId ?? this.driverId,
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,

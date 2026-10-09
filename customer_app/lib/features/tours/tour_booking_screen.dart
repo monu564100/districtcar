@@ -25,7 +25,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
   String _tripType = 'round_trip'; // 'round_trip' or 'one_way'
   int _stayHours = 4; // 2, 4, 6, 8, 24 (overnight)
-  String _selectedVehicle = 'sedan'; // 'mini', 'sedan', 'suv', 'bolero'
+  String _selectedVehicle = 'car'; // Strictly: 'car', 'suv', 'auto'
   String _scheduledDate = 'Today';
   String _scheduledTime = '08:00 AM';
   String _paymentMethod = 'cash'; // 'cash' or 'online'
@@ -33,26 +33,17 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
   final List<Map<String, dynamic>> _vehicles = [
     {
-      'id': 'mini',
-      'name': 'Mini (WagonR / Alto)',
-      'capacity': '3-4 Seater',
-      'icon': Icons.directions_car_filled_outlined,
-      'perKm': 11.5,
-      'baseRate': 150.0,
-      'waitingRatePerHour': 40.0,
-    },
-    {
-      'id': 'sedan',
-      'name': 'Prime Sedan (Dzire AC)',
+      'id': 'car',
+      'name': 'Prime Car (Sedan / Hatchback AC)',
       'capacity': '4 Seater AC',
-      'icon': Icons.local_taxi,
-      'perKm': 14.0,
+      'icon': Icons.directions_car_filled_outlined,
+      'perKm': 13.0,
       'baseRate': 200.0,
       'waitingRatePerHour': 50.0,
     },
     {
       'id': 'suv',
-      'name': 'Ertiga / Carens (Family SUV)',
+      'name': 'Family SUV (Ertiga / Carens AC)',
       'capacity': '6-7 Seater AC',
       'icon': Icons.airport_shuttle,
       'perKm': 18.0,
@@ -60,13 +51,13 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
       'waitingRatePerHour': 70.0,
     },
     {
-      'id': 'bolero',
-      'name': 'Bolero / Scorpio (Hill/Rural Power)',
-      'capacity': '7 Seater Rugged',
-      'icon': Icons.directions_bus_filled_outlined,
-      'perKm': 17.0,
-      'baseRate': 280.0,
-      'waitingRatePerHour': 60.0,
+      'id': 'auto',
+      'name': 'Auto Rickshaw (Local & Rural Tour)',
+      'capacity': '3 Seater',
+      'icon': Icons.electric_rickshaw,
+      'perKm': 9.5,
+      'baseRate': 100.0,
+      'waitingRatePerHour': 35.0,
     },
   ];
 
@@ -182,7 +173,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
   }
 
   double _calculateTotalFare() {
-    final selectedVeh = _vehicles.firstWhere((v) => v['id'] == _selectedVehicle, orElse: () => _vehicles[1]);
+    final selectedVeh = _vehicles.firstWhere((v) => v['id'] == _selectedVehicle, orElse: () => _vehicles[0]);
     return _calculateVehicleFare(selectedVeh);
   }
 
@@ -210,14 +201,18 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
         'id': bookingRef.id,
         'readableId': readableId,
         'customerId': user.uid,
-        'customerName': user.displayName ?? 'Valued Customer',
+        'customerName': (user.displayName != null && user.displayName!.isNotEmpty)
+            ? user.displayName!
+            : 'Valued Customer',
         'customerPhone': user.phoneNumber ?? '',
         'bookingType': 'tour',
         'tourDestinationId': widget.destination.id,
         'tourDestinationName': widget.destination.name,
         'tripType': _tripType,
+        'isRoundTrip': _tripType == 'round_trip',
+        'roundTripStoppingHours': _tripType == 'round_trip' ? _stayHours.toDouble() : 0.0,
         'stayHours': _tripType == 'round_trip' ? _stayHours : 0,
-        'vehicleCategoryId': _selectedVehicle == 'bolero' ? 'car' : _selectedVehicle,
+        'vehicleCategoryId': _selectedVehicle,
         'vehicleType': _selectedVehicle,
         'pickup': _pickupLocation.toMap(),
         'destination': _destinationLocation.toMap(),
@@ -236,9 +231,9 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
       await bookingRef.set(bookingData);
 
-      // Notify matching available drivers
+      // Notify matching available drivers strictly of this selected vehicle category
       try {
-        final categoryQuery = _selectedVehicle == 'bolero' ? 'car' : _selectedVehicle;
+        final categoryQuery = _selectedVehicle;
         final driversSnapshot = await FirebaseFirestore.instance.collection('drivers').get();
         final List<String> tokens = [];
         final List<String> driverIds = [];
@@ -249,7 +244,8 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
           final isBlocked = data['isBlocked'] == true;
           final cat = (data['vehicleCategoryId'] ?? data['category'] ?? 'car').toString().trim().toLowerCase();
 
-          if (!isBusy && !isBlocked && (cat == categoryQuery || cat == 'car')) {
+          // Strictly filter drivers matching the booked vehicle category (car, suv, auto)
+          if (!isBusy && !isBlocked && cat == categoryQuery) {
             driverIds.add(doc.id);
             final tok = data['fcmToken'] as String?;
             if (tok != null && tok.isNotEmpty) tokens.add(tok);

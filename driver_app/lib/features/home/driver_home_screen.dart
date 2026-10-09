@@ -424,41 +424,99 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Quick Earnings Box
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF065F46), Color(0xFF059669)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Total Earnings (कुल कमाई)', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                                const SizedBox(height: 2),
-                                Text('₹${totalEarnings.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                      // Quick Earnings Box - Dynamic Live Calculation from Completed Bookings
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('bookings')
+                            .where('driverId', isEqualTo: user.uid)
+                            .where('status', isEqualTo: 'trip_completed')
+                            .snapshots(),
+                        builder: (context, completedSnap) {
+                          double completedEarnings = 0.0;
+                          int completedTripsCount = 0;
+                          if (completedSnap.hasData && completedSnap.data!.docs.isNotEmpty) {
+                            completedTripsCount = completedSnap.data!.docs.length;
+                            for (final doc in completedSnap.data!.docs) {
+                              final b = doc.data() as Map<String, dynamic>;
+                              completedEarnings += (b['finalFare'] as num?)?.toDouble() ??
+                                  (b['estimatedFare'] as num?)?.toDouble() ??
+                                  0.0;
+                            }
+                          }
+
+                          // If completed bookings have earnings, use that; otherwise fallback to profile totalEarnings
+                          final effectiveEarnings = completedEarnings > 0 ? completedEarnings : totalEarnings;
+                          final effectiveTrips = completedTripsCount > 0
+                              ? completedTripsCount
+                              : ((data?['totalTrips'] as num?)?.toInt() ?? 0);
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF065F46), Color(0xFF059669)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF059669).withValues(alpha: 0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
                               ],
                             ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF065F46),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              ),
-                              onPressed: () => context.push('/driver-earnings'),
-                              child: const Text('Wallet Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Total Earnings (कुल कमाई)',
+                                          style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                        ),
+                                        if (effectiveTrips > 0) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '$effectiveTrips trips',
+                                              style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '₹${effectiveEarnings.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900),
+                                    ),
+                                  ],
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF065F46),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  ),
+                                  onPressed: () => context.push('/driver-earnings'),
+                                  child: const Text('Wallet Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 24),
 

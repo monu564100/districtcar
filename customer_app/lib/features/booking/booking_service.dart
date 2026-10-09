@@ -63,6 +63,15 @@ class BookingService {
 
       final fare = customFare ?? (50.0 + (distanceKm * 15.0) + 10.0).roundToDouble();
 
+      String customerName = _auth.currentUser?.displayName ?? '';
+      String customerPhone = _auth.currentUser?.phoneNumber ?? '';
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (customerName.isEmpty) customerName = prefs.getString('district_user_name') ?? '';
+        if (customerPhone.isEmpty) customerPhone = prefs.getString('district_user_phone') ?? '';
+      } catch (_) {}
+      if (customerName.isEmpty) customerName = 'District Customer';
+
       final readableId = 'DC-${100000 + Random().nextInt(900000)}';
       final rideOtp = (1000 + Random().nextInt(9000)).toString();
 
@@ -71,6 +80,9 @@ class BookingService {
         'id': bookingRef.id,
         'readableId': readableId,
         'customerId': customerId,
+        'customerName': customerName,
+        'customerPhone': customerPhone,
+        'bookingType': 'regular',
         'vehicleCategoryId': categoryId,
         'pickup': pickup.toMap(),
         'destination': destination.toMap(),
