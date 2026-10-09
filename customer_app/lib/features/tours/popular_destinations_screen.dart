@@ -330,7 +330,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                             crossAxisCount: 2, // 2 items per row
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 16,
-                            childAspectRatio: 0.72, // Square image on top + details below
+                            childAspectRatio: 0.58, // Fixed 11px overflow - ample height for image, text and price
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -518,7 +518,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: AspectRatio(
-                aspectRatio: 1.05, // Square aspect ratio
+                aspectRatio: 1.15, // Responsive square photo ratio
                 child: Stack(
                   fit: StackFit.expand,
                   children: [

@@ -34,6 +34,8 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final addressCtrl = TextEditingController(text: existing?.locationAddress ?? '');
     final imgUrlCtrl = TextEditingController(text: existing?.imageUrl ?? '');
+    final List<String> galleryUrls = List<String>.from(existing?.galleryImages ?? []);
+    final newGalleryUrlCtrl = TextEditingController();
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     final highlightsCtrl = TextEditingController(text: existing?.highlights.join(', ') ?? '');
     final bestTimeCtrl = TextEditingController(text: existing?.bestTimeToVisit ?? 'October to March');
@@ -132,13 +134,13 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Image & Media', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text('Images & Media Gallery (फोटो व गैलरी)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: imgUrlCtrl,
                     onChanged: (_) => setDialogState(() {}),
                     decoration: InputDecoration(
-                      labelText: 'Primary Image URL (Unsplash / CDN)',
+                      labelText: 'Primary Cover Image URL',
                       hintText: 'https://images.unsplash.com/...',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -156,15 +158,108 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-                  const Text('Details & Highlights', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  // Multiple Gallery Images Section
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: newGalleryUrlCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Add Additional Gallery Image URL',
+                            hintText: 'Paste image link and tap Add...',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F766E),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                        onPressed: () {
+                          final url = newGalleryUrlCtrl.text.trim();
+                          if (url.isNotEmpty) {
+                            setDialogState(() {
+                              galleryUrls.add(url);
+                              newGalleryUrlCtrl.clear();
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.add_photo_alternate, size: 18),
+                        label: const Text('Add Image'),
+                      ),
+                    ],
+                  ),
+                  if (galleryUrls.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text('Gallery Images (${galleryUrls.length} added):', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 85,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: galleryUrls.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, gIdx) {
+                          final gUrl = galleryUrls[gIdx];
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  gUrl,
+                                  width: 85,
+                                  height: 85,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 85,
+                                    height: 85,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.broken_image, size: 20),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: InkWell(
+                                  onTap: () {
+                                    setDialogState(() {
+                                      galleryUrls.removeAt(gIdx);
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  const Text('Details & Description (विस्तृत विवरण)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: descCtrl,
-                    maxLines: 3,
+                    maxLines: 5,
                     decoration: InputDecoration(
-                      labelText: 'Comprehensive Description (विवरण)',
+                      labelText: 'Full Destination Description',
+                      hintText: 'Enter comprehensive details, history, sights, nature, visiting tips...',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -306,6 +401,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                   isTrending: isTrending,
                   isPopular: isPopular,
                   highlights: highlights,
+                  galleryImages: galleryUrls,
                 );
 
                 Navigator.pop(ctx);

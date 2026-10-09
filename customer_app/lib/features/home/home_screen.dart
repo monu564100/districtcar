@@ -71,7 +71,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'customer_app',
-        currentBuildNumber: 4,
+        currentBuildNumber: 5,
       );
       final user = ref.read(authServiceProvider).currentUser;
       FCMNotificationService.initFCM(

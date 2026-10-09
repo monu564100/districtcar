@@ -151,15 +151,14 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     return double.parse(oneWayKm.toStringAsFixed(1));
   }
 
-  double _calculateTotalFare() {
+  double _calculateVehicleFare(Map<String, dynamic> veh) {
     final oneWayKm = _calculateDistanceKm();
     final isRound = _tripType == 'round_trip';
     final totalKm = isRound ? (oneWayKm * 2) : oneWayKm;
 
-    final selectedVeh = _vehicles.firstWhere((v) => v['id'] == _selectedVehicle, orElse: () => _vehicles[1]);
-    final double perKm = (selectedVeh['perKm'] as num).toDouble();
-    final double baseRate = (selectedVeh['baseRate'] as num).toDouble();
-    final double waitingRate = (selectedVeh['waitingRatePerHour'] as num).toDouble();
+    final double perKm = (veh['perKm'] as num).toDouble();
+    final double baseRate = (veh['baseRate'] as num).toDouble();
+    final double waitingRate = (veh['waitingRatePerHour'] as num).toDouble();
 
     double distanceFare = baseRate + (totalKm * perKm);
 
@@ -180,6 +179,11 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     }
 
     return (distanceFare + waitingFee).roundToDouble();
+  }
+
+  double _calculateTotalFare() {
+    final selectedVeh = _vehicles.firstWhere((v) => v['id'] == _selectedVehicle, orElse: () => _vehicles[1]);
+    return _calculateVehicleFare(selectedVeh);
   }
 
   void _confirmAndBookTourRide() async {
@@ -545,15 +549,184 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
               const SizedBox(height: 20),
             ],
 
-            // 4. VEHICLE CATEGORY SELECTION
-            const Text(
-              'Select Vehicle (गाड़ी चुनें)',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            // 4. LIVE FARE CALCULATION CARD (Based on Distance, Waiting Time & Round Trip)
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 22),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF064E3B), Color(0xFF047857)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF059669).withOpacity(0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.calculate_rounded, color: Color(0xFF6EE7B7), size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Live Fare Calculation',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _tripType == 'round_trip' ? '🔄 Round Trip Package' : '➡️ One Way Drop',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Breakdown metrics in three columns
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildCalculationMetric(
+                          icon: Icons.alt_route_rounded,
+                          title: 'Distance',
+                          value: _tripType == 'round_trip'
+                              ? '${(oneWayKm * 2).toInt()} km (Round)'
+                              : '${oneWayKm.toInt()} km (Drop)',
+                        ),
+                        Container(width: 1, height: 30, color: Colors.white24),
+                        _buildCalculationMetric(
+                          icon: Icons.timer_outlined,
+                          title: 'Waiting Time',
+                          value: _tripType == 'round_trip'
+                              ? (_stayHours == 24 ? 'Overnight (24h)' : '$_stayHours Hours')
+                              : 'Direct Drop',
+                        ),
+                        Container(width: 1, height: 30, color: Colors.white24),
+                        _buildCalculationMetric(
+                          icon: Icons.local_offer_outlined,
+                          title: 'Package Benefit',
+                          value: _tripType == 'round_trip' ? '10% Return Off' : 'Standard Rate',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Fare for selected vehicle:',
+                        style: TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '₹${totalFare.toInt()}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(top: 8),
+                      iconColor: Colors.white70,
+                      collapsedIconColor: Colors.white70,
+                      title: const Text(
+                        'View Detailed Calculation Breakdown',
+                        style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildFareRow(
+                                label: 'Distance (${_tripType == 'round_trip' ? '${(oneWayKm * 2).toInt()} km' : '${oneWayKm.toInt()} km'})',
+                                value: 'Included',
+                              ),
+                              _buildFareRow(
+                                label: 'Driver Sightseeing Waiting',
+                                value: _tripType == 'round_trip' && _stayHours > 0
+                                    ? (_stayHours == 24 ? 'Overnight Allowance' : '$_stayHours Hours included')
+                                    : 'None',
+                              ),
+                              _buildFareRow(
+                                label: 'Doorstep Pickup & Return',
+                                value: 'FREE',
+                              ),
+                              if (_tripType == 'round_trip')
+                                _buildFareRow(
+                                  label: 'Round-Trip Package Discount',
+                                  value: '10% Return Savings',
+                                ),
+                              const Divider(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Estimated Fare:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                                  Text('₹${totalFare.toInt()}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF16A34A))),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 5. VEHICLE CATEGORY SELECTION (Showing Live Prices on Each Vehicle)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Select Vehicle (गाड़ी चुनें)',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                Text(
+                  'Live calculated fare',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             Column(
               children: _vehicles.map((v) {
                 final isSelected = _selectedVehicle == v['id'];
+                final vFare = _calculateVehicleFare(v);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
@@ -586,16 +759,35 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                       '${v['capacity']} · ₹${v['perKm']}/km',
                       style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
                     ),
-                    trailing: isSelected
-                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A))
-                        : const Icon(Icons.radio_button_off_rounded, color: Colors.grey),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${vFare.toInt()}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: isSelected ? const Color(0xFF15803D) : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          isSelected ? 'Selected' : 'Tap to select',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? const Color(0xFF16A34A) : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
             ),
             const SizedBox(height: 20),
 
-            // 5. SCHEDULE DATE & TIME
+            // 6. SCHEDULE DATE & TIME
             const Text(
               'Schedule Date & Departure Time',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
@@ -651,67 +843,6 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // 6. TRANSPARENT FARE SUMMARY CARD
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
-                        'Total Fare Estimate',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
-                      ),
-                      Text(
-                        'All Taxes & Tolls Included',
-                        style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  _buildFareRow(
-                    label: 'Calculated Travel Distance',
-                    value: _tripType == 'round_trip'
-                        ? '${(oneWayKm * 2).toInt()} km (Round Trip)'
-                        : '${oneWayKm.toInt()} km (One Way)',
-                  ),
-                  if (_tripType == 'round_trip' && _stayHours > 0)
-                    _buildFareRow(
-                      label: 'Waiting & Stay Duration',
-                      value: _stayHours == 24 ? 'Overnight (24h)' : '$_stayHours Hours included',
-                    ),
-                  _buildFareRow(label: 'Doorstep Pickup & Return', value: 'FREE'),
-                  const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Payable:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                      ),
-                      Text(
-                        '₹${totalFare.toInt()}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF16A34A),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -833,6 +964,22 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
         side: BorderSide(color: isSelected ? const Color(0xFF059669) : Colors.grey.shade300),
       ),
       onSelected: (_) => setState(() => _stayHours = hours),
+    );
+  }
+
+  Widget _buildCalculationMetric({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFF6EE7B7), size: 16),
+        const SizedBox(height: 3),
+        Text(title, style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
+        const SizedBox(height: 1),
+        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
+      ],
     );
   }
 

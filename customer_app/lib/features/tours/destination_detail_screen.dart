@@ -337,6 +337,90 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                       ),
                       const SizedBox(height: 22),
 
+                      // Photo Gallery Section (तस्वीरें)
+                      () {
+                        final allImages = {
+                          dest.imageUrl,
+                          ...dest.galleryImages,
+                        }.where((url) => url.isNotEmpty).toList();
+
+                        if (allImages.length <= 1) return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Photo Gallery (स्थान की तस्वीरें)',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Text(
+                                  '${allImages.length} Photos',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 110,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: allImages.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                itemBuilder: (context, idx) {
+                                  final img = allImages[idx];
+                                  return GestureDetector(
+                                    onTap: () => _openImageLightbox(context, img, allImages),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Stack(
+                                        children: [
+                                          Image.network(
+                                            img,
+                                            width: 140,
+                                            height: 110,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              width: 140,
+                                              height: 110,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 6,
+                                            right: 6,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(0.55),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                          ],
+                        );
+                      }(),
+
                       // Key Highlights
                       if (dest.highlights.isNotEmpty) ...[
                         const Text(
@@ -530,4 +614,79 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       ),
     );
   }
+
+  void _openImageLightbox(BuildContext context, String initialUrl, List<String> allImages) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        String current = initialUrl;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(12),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: InteractiveViewer(
+                    maxScale: 4.0,
+                    child: Image.network(
+                      current,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 250,
+                        color: Colors.black87,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ),
+                if (allImages.length > 1)
+                  Positioned(
+                    bottom: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: allImages.map((u) {
+                          final isSel = u == current;
+                          return GestureDetector(
+                            onTap: () => setDialogState(() => current = u),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: isSel ? 24 : 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: isSel ? AppColors.primary : Colors.white54,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
+
