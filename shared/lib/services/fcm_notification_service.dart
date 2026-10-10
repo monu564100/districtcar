@@ -18,6 +18,9 @@ class FCMNotificationService {
   static bool _isListeningBroadcasts = false;
   static String? _cachedServerKey;
 
+  /// Live District Car Notification Worker Server URL
+  static const String notificationServerBaseUrl = 'https://notification.projectmarket.in';
+
   /// Android high-importance notification channel definition
   static const String notificationChannelId = 'district_car_rides';
 
@@ -228,20 +231,30 @@ class FCMNotificationService {
       'destination': destinationAddress,
     };
 
-    // 1. Relay to background notification_service worker if running (localhost:4000)
+    // 1. Relay to background notification_service worker (Live Server & Localhost fallback)
     try {
+      final payload = jsonEncode({
+        'bookingId': bookingId,
+        'readableId': readableId,
+        'categoryId': categoryId,
+        'pickupAddress': pickupAddress,
+        'destinationAddress': destinationAddress,
+        'estimatedFare': estimatedFare,
+      });
+
+      // Dispatch to live server
       await http.post(
-        Uri.parse('http://localhost:4000/api/notifications/booking-created'),
+        Uri.parse('$notificationServerBaseUrl/api/notifications/booking-created'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'bookingId': bookingId,
-          'readableId': readableId,
-          'categoryId': categoryId,
-          'pickupAddress': pickupAddress,
-          'destinationAddress': destinationAddress,
-          'estimatedFare': estimatedFare,
-        }),
-      ).timeout(const Duration(seconds: 3));
+        body: payload,
+      ).timeout(const Duration(seconds: 4)).catchError((_) async {
+        // Fallback to localhost if testing locally
+        return await http.post(
+          Uri.parse('http://localhost:4000/api/notifications/booking-created'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        ).timeout(const Duration(seconds: 2));
+      });
     } catch (_) {}
 
     // 2. Write to Firestore 'notifications' collection for in-app popups & audit log
@@ -324,21 +337,29 @@ class FCMNotificationService {
       'rideOtp': rideOtp ?? '',
     };
 
-    // 1. Relay to background notification_service worker if running (localhost:4000)
+    // 1. Relay to background notification_service worker (Live Server & Localhost fallback)
     try {
+      final payload = jsonEncode({
+        'bookingId': bookingId,
+        'customerId': customerId,
+        'driverName': driverName,
+        'driverPhone': driverPhone,
+        'vehiclePlate': vehiclePlate,
+        'vehicleModel': vehicleModel,
+        'rideOtp': rideOtp,
+      });
+
       await http.post(
-        Uri.parse('http://localhost:4000/api/notifications/booking-accepted'),
+        Uri.parse('$notificationServerBaseUrl/api/notifications/booking-accepted'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'bookingId': bookingId,
-          'customerId': customerId,
-          'driverName': driverName,
-          'driverPhone': driverPhone,
-          'vehiclePlate': vehiclePlate,
-          'vehicleModel': vehicleModel,
-          'rideOtp': rideOtp,
-        }),
-      ).timeout(const Duration(seconds: 3));
+        body: payload,
+      ).timeout(const Duration(seconds: 4)).catchError((_) async {
+        return await http.post(
+          Uri.parse('http://localhost:4000/api/notifications/booking-accepted'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        ).timeout(const Duration(seconds: 2));
+      });
     } catch (_) {}
 
     // 2. Write to Firestore 'notifications' collection

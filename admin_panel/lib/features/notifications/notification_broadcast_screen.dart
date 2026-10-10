@@ -251,19 +251,27 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
         }
       }
 
-      // 4. Relay directly to Notification Service Worker if running (http://localhost:4000)
+      // 4. Relay directly to Notification Service Worker (Live Server & Localhost fallback)
       try {
+        final payload = jsonEncode({
+          'title': title,
+          'body': body,
+          'imageUrl': imageUrl.isNotEmpty ? imageUrl : null,
+          'targetAudience': _targetAudience,
+          'extraData': {'notificationId': notifDoc.id},
+        });
+
         await http.post(
-          Uri.parse('http://localhost:4000/api/notifications/admin-broadcast'),
+          Uri.parse('https://notification.projectmarket.in/api/notifications/admin-broadcast'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'title': title,
-            'body': body,
-            'imageUrl': imageUrl.isNotEmpty ? imageUrl : null,
-            'targetAudience': _targetAudience,
-            'extraData': {'notificationId': notifDoc.id},
-          }),
-        ).timeout(const Duration(seconds: 4));
+          body: payload,
+        ).timeout(const Duration(seconds: 4)).catchError((_) async {
+          return await http.post(
+            Uri.parse('http://localhost:4000/api/notifications/admin-broadcast'),
+            headers: {'Content-Type': 'application/json'},
+            body: payload,
+          ).timeout(const Duration(seconds: 2));
+        });
       } catch (workerErr) {
         debugPrint('Notification worker relay notice: $workerErr');
       }
