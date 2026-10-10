@@ -228,7 +228,23 @@ class FCMNotificationService {
       'destination': destinationAddress,
     };
 
-    // 1. Write to Firestore 'notifications' collection for in-app popups & audit log
+    // 1. Relay to background notification_service worker if running (localhost:4000)
+    try {
+      await http.post(
+        Uri.parse('http://localhost:4000/api/notifications/booking-created'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'bookingId': bookingId,
+          'readableId': readableId,
+          'categoryId': categoryId,
+          'pickupAddress': pickupAddress,
+          'destinationAddress': destinationAddress,
+          'estimatedFare': estimatedFare,
+        }),
+      ).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+
+    // 2. Write to Firestore 'notifications' collection for in-app popups & audit log
     try {
       await FirebaseFirestore.instance.collection('notifications').add({
         'title': title,
@@ -308,7 +324,24 @@ class FCMNotificationService {
       'rideOtp': rideOtp ?? '',
     };
 
-    // 1. Write to Firestore 'notifications' collection
+    // 1. Relay to background notification_service worker if running (localhost:4000)
+    try {
+      await http.post(
+        Uri.parse('http://localhost:4000/api/notifications/booking-accepted'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'bookingId': bookingId,
+          'customerId': customerId,
+          'driverName': driverName,
+          'driverPhone': driverPhone,
+          'vehiclePlate': vehiclePlate,
+          'vehicleModel': vehicleModel,
+          'rideOtp': rideOtp,
+        }),
+      ).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+
+    // 2. Write to Firestore 'notifications' collection
     try {
       await FirebaseFirestore.instance.collection('notifications').add({
         'title': title,

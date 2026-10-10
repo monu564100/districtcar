@@ -5,6 +5,7 @@ import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/services/destinations_service.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import '../../widgets/floating_bottom_dock.dart';
+import '../../widgets/premium_empty_state.dart';
 
 class PopularDestinationsScreen extends ConsumerStatefulWidget {
   const PopularDestinationsScreen({super.key});
@@ -18,13 +19,13 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
 
-  final List<Map<String, String>> _categories = [
-    {'id': 'all', 'label': 'All Places', 'icon': '🌟'},
-    {'id': 'trending', 'label': 'Trending 🔥', 'icon': '🔥'},
-    {'id': 'waterfall', 'label': 'Waterfalls 🌊', 'icon': '🌊'},
-    {'id': 'temple', 'label': 'Temples 🛕', 'icon': '🛕'},
-    {'id': 'hill_station', 'label': 'Hill Stations 🌄', 'icon': '🌄'},
-    {'id': 'nature', 'label': 'Nature & Forest 🌿', 'icon': '🌿'},
+  final List<Map<String, dynamic>> _categories = [
+    {'id': 'all', 'label': 'All Places', 'icon': Icons.stars_rounded},
+    {'id': 'trending', 'label': 'Trending', 'icon': Icons.local_fire_department_rounded},
+    {'id': 'waterfall', 'label': 'Waterfalls', 'icon': Icons.water_rounded},
+    {'id': 'temple', 'label': 'Temples', 'icon': Icons.account_balance_rounded},
+    {'id': 'hill_station', 'label': 'Hill Stations', 'icon': Icons.terrain_rounded},
+    {'id': 'nature', 'label': 'Nature & Forest', 'icon': Icons.forest_rounded},
   ];
 
   @override
@@ -196,9 +197,15 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                           itemBuilder: (context, idx) {
                             final cat = _categories[idx];
                             final isSel = _selectedCategory == cat['id'];
+                            final icon = cat['icon'] as IconData;
                             return ChoiceChip(
+                              avatar: Icon(
+                                icon,
+                                size: 16,
+                                color: isSel ? Colors.white : AppColors.primary,
+                              ),
                               label: Text(
-                                cat['label']!,
+                                cat['label']! as String,
                                 style: TextStyle(
                                   color: isSel ? Colors.white : const Color(0xFF334155),
                                   fontWeight: FontWeight.w700,
@@ -216,7 +223,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                                   color: isSel ? AppColors.primary : Colors.grey.shade200,
                                 ),
                               ),
-                              onSelected: (_) => setState(() => _selectedCategory = cat['id']!),
+                              onSelected: (_) => setState(() => _selectedCategory = cat['id']! as String),
                             );
                           },
                         ),
@@ -233,8 +240,10 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                             children: [
                               Row(
                                 children: const [
+                                  Icon(Icons.local_fire_department_rounded, color: Color(0xFFEA580C), size: 20),
+                                  SizedBox(width: 6),
                                   Text(
-                                    '🔥 Trending Locations',
+                                    'Trending Locations',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w800,
@@ -243,8 +252,8 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                                   ),
                                   SizedBox(width: 6),
                                   Text(
-                                    'लोकप्रिय स्थल',
-                                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                    'Top Visited',
+                                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -283,16 +292,30 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                         padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                         child: Row(
                           children: [
+                            Icon(
+                              _selectedCategory == 'waterfall'
+                                  ? Icons.water_rounded
+                                  : _selectedCategory == 'temple'
+                                      ? Icons.account_balance_rounded
+                                      : _selectedCategory == 'hill_station'
+                                          ? Icons.terrain_rounded
+                                          : _selectedCategory == 'nature'
+                                              ? Icons.forest_rounded
+                                              : Icons.location_on_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
                             Text(
                               _selectedCategory == 'waterfall'
-                                  ? '🌊 Waterfalls of Jharkhand (जलप्रपात)'
+                                  ? 'Waterfalls of Jharkhand'
                                   : _selectedCategory == 'temple'
-                                      ? '🛕 Holy Temples & Pilgrimages (मंदिर)'
+                                      ? 'Holy Temples & Pilgrimages'
                                       : _selectedCategory == 'hill_station'
-                                          ? '🌄 Hill Stations (पर्वतीय स्थल)'
+                                          ? 'Hill Stations & Viewpoints'
                                           : _selectedCategory == 'nature'
-                                              ? '🌿 Wildlife & Sanctuaries (अभयारण्य)'
-                                              : '📍 All Popular Destinations (${filtered.length})',
+                                              ? 'Wildlife & Nature Sanctuaries'
+                                              : 'All Popular Destinations (${filtered.length})',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -307,19 +330,20 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     // 5. 2-COLUMN SQUARE GRID (1 row 2 square images as requested)
                     if (filtered.isEmpty)
                       SliverToBoxAdapter(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-                          alignment: Alignment.center,
-                          child: Column(
-                            children: const [
-                              Icon(Icons.travel_explore, size: 48, color: Colors.grey),
-                              SizedBox(height: 12),
-                              Text(
-                                'No destinations match your search',
-                                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
+                        child: PremiumEmptyState(
+                          title: 'No Destinations Found',
+                          subtitle: 'We couldn\'t find any destinations matching "$_searchQuery". Try searching for Ranchi, Netarhat, or waterfalls.',
+                          imageAsset: 'assets/images/empty_search_pulse.jpg',
+                          fallbackIcon: Icons.travel_explore_rounded,
+                          glowColor: const Color(0xFF0F766E),
+                          actionLabel: 'Reset All Filters',
+                          onAction: () {
+                            _searchCtrl.clear();
+                            setState(() {
+                              _searchQuery = '';
+                              _selectedCategory = 'all';
+                            });
+                          },
                         ),
                       )
                     else

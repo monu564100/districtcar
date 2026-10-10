@@ -9,6 +9,9 @@ import 'package:district_car_shared/services/fcm_notification_service.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import '../auth/auth_service.dart';
 import 'package:district_car_shared/widgets/location_picker_sheet.dart';
+import 'package:district_car_shared/services/location_search_service.dart';
+import 'package:district_car_shared/services/rural_fare_calculator.dart';
+import '../home/categories_provider.dart';
 
 class TourBookingScreen extends ConsumerStatefulWidget {
   final PopularDestinationModel destination;
@@ -24,42 +27,12 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
   late LocationModel _destinationLocation;
 
   String _tripType = 'round_trip'; // 'round_trip' or 'one_way'
-  int _stayHours = 4; // 2, 4, 6, 8, 24 (overnight)
+  int _stayHours = 1; // 1 (free), 2, 3, 4, 6, 8, 24 (overnight)
   String _selectedVehicle = 'car'; // Strictly: 'car', 'suv', 'auto'
   String _scheduledDate = 'Today';
   String _scheduledTime = '08:00 AM';
-  String _paymentMethod = 'cash'; // 'cash' or 'online'
+  final String _paymentMethod = 'cash'; // 'cash' or 'online'
   bool _isBooking = false;
-
-  final List<Map<String, dynamic>> _vehicles = [
-    {
-      'id': 'car',
-      'name': 'Prime Car (Sedan / Hatchback AC)',
-      'capacity': '4 Seater AC',
-      'icon': Icons.directions_car_filled_outlined,
-      'perKm': 13.0,
-      'baseRate': 200.0,
-      'waitingRatePerHour': 50.0,
-    },
-    {
-      'id': 'suv',
-      'name': 'Family SUV (Ertiga / Carens AC)',
-      'capacity': '6-7 Seater AC',
-      'icon': Icons.airport_shuttle,
-      'perKm': 18.0,
-      'baseRate': 300.0,
-      'waitingRatePerHour': 70.0,
-    },
-    {
-      'id': 'auto',
-      'name': 'Auto Rickshaw (Local & Rural Tour)',
-      'capacity': '3 Seater',
-      'icon': Icons.electric_rickshaw,
-      'perKm': 9.5,
-      'baseRate': 100.0,
-      'waitingRatePerHour': 35.0,
-    },
-  ];
 
   @override
   void initState() {
@@ -81,25 +54,40 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     );
 
     _detectExactDeviceLocation();
+    _fetchGoogleDistanceAndDuration();
+  }
+
+  // Real-time Google Maps Directions Distance & Duration
+  double _googleDistanceKm = 0.0;
+  int _googleDurationMinutes = 0;
+  String _googleDurationText = '';
+
+  void _fetchGoogleDistanceAndDuration() async {
+    try {
+      final res = await LocationSearchService().getDirectionsDistanceAndDuration(
+        originLat: _pickupLocation.latitude,
+        originLng: _pickupLocation.longitude,
+        destLat: _destinationLocation.latitude,
+        destLng: _destinationLocation.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _googleDistanceKm = (res['distanceKm'] as num).toDouble();
+          _googleDurationMinutes = (res['durationMinutes'] as num).toInt();
+          _googleDurationText = (res['durationText'] as String?) ?? '$_googleDurationMinutes mins';
+        });
+      }
+    } catch (_) {}
   }
 
   void _detectExactDeviceLocation() async {
     try {
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.whileInUse || perm == LocationPermission.always) {
-        final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-        if (mounted) {
-          setState(() {
-            _pickupLocation = LocationModel(
-              latitude: pos.latitude,
-              longitude: pos.longitude,
-              address: 'Current Location (${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)})',
-            );
-          });
-        }
+      final loc = await LocationSearchService().getCurrentDeviceLocation();
+      if (loc != null && mounted) {
+        setState(() {
+          _pickupLocation = loc.toLocationModel();
+        });
+        _fetchGoogleDistanceAndDuration();
       }
     } catch (_) {}
   }
@@ -113,6 +101,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     );
     if (picked != null) {
       setState(() => _pickupLocation = picked);
+      _fetchGoogleDistanceAndDuration();
     }
   }
 
@@ -125,10 +114,12 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     );
     if (picked != null) {
       setState(() => _destinationLocation = picked);
+      _fetchGoogleDistanceAndDuration();
     }
   }
 
   double _calculateDistanceKm() {
+    if (_googleDistanceKm > 0.0) return _googleDistanceKm;
     final distMeters = Geolocator.distanceBetween(
       _pickupLocation.latitude,
       _pickupLocation.longitude,
@@ -142,42 +133,90 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     return double.parse(oneWayKm.toStringAsFixed(1));
   }
 
-  double _calculateVehicleFare(Map<String, dynamic> veh) {
+  int _calculateDurationMinutes() {
+    if (_googleDurationMinutes > 0) return _googleDurationMinutes;
+    final km = _calculateDistanceKm();
+    return (km / 28.0 * 60.0).round().clamp(10, 720);
+  }
+
+  String _getVehicleIconAsset(String category) {
+    final lower = category.toLowerCase();
+    if (lower.contains('auto') || lower.contains('rick')) {
+      return 'assets/images/icon_vehicle_auto.jpg';
+    } else if (lower.contains('sedan')) {
+      return 'assets/images/icon_vehicle_sedan.jpg';
+    } else if (lower.contains('suv') || lower.contains('bolero') || lower.contains('scorpio')) {
+      return 'assets/images/icon_vehicle_suv.jpg';
+    } else if (lower.contains('bike') || lower.contains('moto') || lower.contains('two')) {
+      return 'assets/images/icon_vehicle_bike.jpg';
+    }
+    return 'assets/images/icon_vehicle_mini.jpg';
+  }
+
+  IconData _getIconForCategory(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('bike')) return Icons.two_wheeler_rounded;
+    if (lower.contains('auto') || lower.contains('rick')) return Icons.electric_rickshaw;
+    if (lower.contains('suv') || lower.contains('bolero')) return Icons.airport_shuttle;
+    return Icons.directions_car_filled_outlined;
+  }
+
+  String _getCapacityForCategory(VehicleCategoryModel cat) {
+    final lower = '${cat.id} ${cat.name} ${cat.displayName}'.toLowerCase();
+    if (lower.contains('bike')) return '1 Seater';
+    if (lower.contains('auto') || lower.contains('rick')) return '3 Seater';
+    if (lower.contains('suv') || lower.contains('bolero')) return '6-7 Seater AC';
+    return '4 Seater AC';
+  }
+
+  double _calculateDynamicVehicleFare(VehicleCategoryModel cat) {
     final oneWayKm = _calculateDistanceKm();
     final isRound = _tripType == 'round_trip';
-    final totalKm = isRound ? (oneWayKm * 2) : oneWayKm;
+    final isLong = oneWayKm >= 25.0;
 
-    final double perKm = (veh['perKm'] as num).toDouble();
-    final double baseRate = (veh['baseRate'] as num).toDouble();
-    final double waitingRate = (veh['waitingRatePerHour'] as num).toDouble();
+    final double shortRate = RuralFareCalculator.getRatePerKm(
+      categoryIdOrName: '${cat.id} ${cat.name} ${cat.displayName}',
+      oneWayDistanceKm: oneWayKm,
+      isRoundTrip: false,
+    );
+    final double longRoundRate = RuralFareCalculator.getRatePerKm(
+      categoryIdOrName: '${cat.id} ${cat.name} ${cat.displayName}',
+      oneWayDistanceKm: oneWayKm,
+      isRoundTrip: true,
+    );
+    final double ratePerKm = (isLong && isRound) ? longRoundRate : shortRate;
 
-    double distanceFare = baseRate + (totalKm * perKm);
+    // Formula:
+    // Round-trip: Target Distance * 2 * Price per km
+    // One-way:    Target Distance * Price per km
+    double distanceFare = isRound
+        ? (oneWayKm * 2.0 * ratePerKm)
+        : (oneWayKm * ratePerKm);
 
-    // Round trip discount on return journey
-    if (isRound) {
-      distanceFare = distanceFare * 0.90; // 10% round trip package discount
-    }
-
-    // Stay / Waiting duration fee
+    // 1 Hour Free Waiting included on Round Trips! User can increase waiting hours based on pricing.
     double waitingFee = 0.0;
-    if (isRound && _stayHours > 0) {
+    if (isRound && _stayHours > 1) {
       if (_stayHours == 24) {
-        // Overnight driver allowance
-        waitingFee = 500.0;
+        waitingFee = 500.0; // Overnight driver allowance
       } else {
-        waitingFee = _stayHours * waitingRate;
+        final double hourlyRate = cat.hourlyWaitingCharge > 0 ? cat.hourlyWaitingCharge : 60.0;
+        waitingFee = (_stayHours - 1) * hourlyRate;
       }
     }
 
-    return (distanceFare + waitingFee).roundToDouble();
+    final total = distanceFare + waitingFee;
+    return total < cat.minimumFare ? cat.minimumFare : total.roundToDouble();
   }
 
-  double _calculateTotalFare() {
-    final selectedVeh = _vehicles.firstWhere((v) => v['id'] == _selectedVehicle, orElse: () => _vehicles[0]);
-    return _calculateVehicleFare(selectedVeh);
+  double _calculateTotalFare(List<VehicleCategoryModel> categories) {
+    final selectedCat = categories.firstWhere(
+      (c) => c.id == _selectedVehicle,
+      orElse: () => categories.first,
+    );
+    return _calculateDynamicVehicleFare(selectedCat);
   }
 
-  void _confirmAndBookTourRide() async {
+  void _confirmAndBookTourRide(List<VehicleCategoryModel> categories) async {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,7 +230,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
     try {
       final oneWayKm = _calculateDistanceKm();
-      final totalFare = _calculateTotalFare();
+      final totalFare = _calculateTotalFare(categories);
       final readableId = 'TR-${100000 + Random().nextInt(900000)}';
       final rideOtp = (1000 + Random().nextInt(9000)).toString();
 
@@ -217,7 +256,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
         'pickup': _pickupLocation.toMap(),
         'destination': _destinationLocation.toMap(),
         'estimatedDistanceKm': _tripType == 'round_trip' ? (oneWayKm * 2) : oneWayKm,
-        'estimatedDurationMinutes': (oneWayKm / 35.0 * 60.0).round().toDouble(),
+        'estimatedDurationMinutes': (_googleDurationMinutes > 0 ? _googleDurationMinutes : (oneWayKm / 35.0 * 60.0).round()).toDouble(),
         'estimatedFare': totalFare,
         'finalFare': totalFare,
         'paymentMethod': _paymentMethod,
@@ -292,8 +331,10 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(vehicleCategoriesProvider);
+    final categories = categoriesAsync.asData?.value ?? defaultVehicleCategories;
     final oneWayKm = _calculateDistanceKm();
-    final totalFare = _calculateTotalFare();
+    final totalFare = _calculateTotalFare(categories);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -535,11 +576,13 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  _buildDurationChip(hours: 2, label: '2 Hours (दर्शन/झलक)'),
-                  _buildDurationChip(hours: 4, label: '4 Hours (पिकनिक व स्नान)'),
-                  _buildDurationChip(hours: 6, label: '6 Hours (आधा दिन)'),
-                  _buildDurationChip(hours: 8, label: '8 Hours (पूरा दिन)'),
-                  _buildDurationChip(hours: 24, label: 'Overnight Stay (रात भर)'),
+                  _buildDurationChip(hours: 1, label: '1 Hour (Free Waiting 🎁)'),
+                  _buildDurationChip(hours: 2, label: '2 Hours (+₹60)'),
+                  _buildDurationChip(hours: 3, label: '3 Hours (+₹120)'),
+                  _buildDurationChip(hours: 4, label: '4 Hours (+₹180)'),
+                  _buildDurationChip(hours: 6, label: '6 Hours (+₹300)'),
+                  _buildDurationChip(hours: 8, label: '8 Hours (+₹420)'),
+                  _buildDurationChip(hours: 24, label: 'Overnight (+₹500)'),
                 ],
               ),
               const SizedBox(height: 20),
@@ -594,7 +637,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Breakdown metrics in three columns
+                  // Breakdown metrics in four columns (Distance, Travel Time, Waiting Time, Package Benefit)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     decoration: BoxDecoration(
@@ -613,17 +656,19 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                         ),
                         Container(width: 1, height: 30, color: Colors.white24),
                         _buildCalculationMetric(
+                          icon: Icons.access_time_rounded,
+                          title: 'Travel Time',
+                          value: _googleDurationText.isNotEmpty
+                              ? (_tripType == 'round_trip' ? '${_calculateDurationMinutes() * 2} mins' : _googleDurationText)
+                              : '${_calculateDurationMinutes()} mins',
+                        ),
+                        Container(width: 1, height: 30, color: Colors.white24),
+                        _buildCalculationMetric(
                           icon: Icons.timer_outlined,
                           title: 'Waiting Time',
                           value: _tripType == 'round_trip'
                               ? (_stayHours == 24 ? 'Overnight (24h)' : '$_stayHours Hours')
                               : 'Direct Drop',
-                        ),
-                        Container(width: 1, height: 30, color: Colors.white24),
-                        _buildCalculationMetric(
-                          icon: Icons.local_offer_outlined,
-                          title: 'Package Benefit',
-                          value: _tripType == 'round_trip' ? '10% Return Off' : 'Standard Rate',
                         ),
                       ],
                     ),
@@ -720,9 +765,9 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
             ),
             const SizedBox(height: 10),
             Column(
-              children: _vehicles.map((v) {
-                final isSelected = _selectedVehicle == v['id'];
-                final vFare = _calculateVehicleFare(v);
+              children: categories.map((cat) {
+                final isSelected = _selectedVehicle == cat.id;
+                final vFare = _calculateDynamicVehicleFare(cat);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
@@ -734,17 +779,38 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                     ),
                   ),
                   child: ListTile(
-                    onTap: () => setState(() => _selectedVehicle = v['id']),
+                    onTap: () => setState(() => _selectedVehicle = cat.id),
                     leading: Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: Icon(v['icon'] as IconData, color: isSelected ? const Color(0xFF16A34A) : const Color(0xFF475569)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Image.asset(
+                          _getVehicleIconAsset('${cat.id} ${cat.name} ${cat.displayName}'),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: isSelected ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                            child: Icon(_getIconForCategory(cat.name), color: isSelected ? const Color(0xFF16A34A) : const Color(0xFF475569)),
+                          ),
+                        ),
+                      ),
                     ),
                     title: Text(
-                      v['name'] as String,
+                      cat.displayName.isNotEmpty ? cat.displayName : cat.name,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 13.5,
@@ -752,7 +818,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                       ),
                     ),
                     subtitle: Text(
-                      '${v['capacity']} · ₹${v['perKm']}/km',
+                      '${_getCapacityForCategory(cat)} · ₹${cat.perKmRate}/km',
                       style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
                     ),
                     trailing: Column(
@@ -862,7 +928,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 4,
             ),
-            onPressed: _isBooking ? null : _confirmAndBookTourRide,
+            onPressed: _isBooking ? null : () => _confirmAndBookTourRide(categories),
             child: _isBooking
                 ? const SizedBox(
                     width: 22,

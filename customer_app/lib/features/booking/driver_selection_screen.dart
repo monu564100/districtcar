@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/floating_bottom_dock.dart';
+import '../../widgets/premium_empty_state.dart';
 
 class DriverSelectionScreen extends StatefulWidget {
   const DriverSelectionScreen({super.key});
@@ -15,17 +17,17 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 12, bottom: 120),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // App Bar with back button & title matching Screen 3
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top App Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                  child: Row(
                     children: [
                       Container(
                         width: 42,
@@ -34,56 +36,97 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                           color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
                           ],
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary, size: 20),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 18),
                           onPressed: () => Navigator.maybePop(context),
                         ),
                       ),
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            'Choose a driver',
+                      const SizedBox(width: 14),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Available Drivers',
                             style: TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary,
                               letterSpacing: -0.3,
                             ),
                           ),
-                        ),
+                          Text(
+                            'Verified Partners Nearby',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 42), // Balance spacing
                     ],
                   ),
-                  const SizedBox(height: 24),
+                ),
 
-                  // Driver Card 1: Carlos Santos (Porsche Taycan / Blue Sports Car)
-                  _buildDriverCard(
-                    driverName: 'Carlos Santos',
-                    ratingTag: '99% Smooth Ride',
-                    ratePerHour: '₹300/h',
-                    vehicleModel: 'Porsche Taycan',
-                    durationArrival: '25 mins',
-                    imageAsset: 'assets/images/car_blue.jpg',
-                    onBookNow: () {},
-                  ),
-                  const SizedBox(height: 20),
+                // Live Drivers Stream
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('drivers')
+                        .where('isOnline', isEqualTo: true)
+                        .where('isBlocked', isEqualTo: false)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  // Driver Card 2: Lucas Martinez (Sedan)
-                  _buildDriverCard(
-                    driverName: 'Lucas Martinez',
-                    ratingTag: '93% Smooth Ride',
-                    ratePerHour: '₹350/h',
-                    vehicleModel: 'Porsche Taycan',
-                    durationArrival: '18 mins',
-                    imageAsset: 'assets/images/car_white.jpg',
-                    onBookNow: () {},
+                      final docs = snapshot.data?.docs ?? [];
+                      final availableDocs = docs.where((d) {
+                        final data = d.data() as Map<String, dynamic>;
+                        return data['isBusy'] != true && data['activeBookingId'] == null;
+                      }).toList();
+
+                      if (availableDocs.isEmpty) {
+                        return Center(
+                          child: PremiumEmptyState(
+                            title: 'No Drivers Nearby Right Now',
+                            subtitle: 'All partner drivers in your area are currently completing trips. Book instantly or check back in a few minutes.',
+                            imageAsset: 'assets/images/trip_radar_pulse.jpg',
+                            fallbackIcon: Icons.directions_car_filled_rounded,
+                            glowColor: const Color(0xFF384CF5),
+                            actionLabel: 'Return to Home',
+                            onAction: () => Navigator.maybePop(context),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                        itemCount: availableDocs.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final data = availableDocs[index].data() as Map<String, dynamic>;
+                          final name = data['name'] ?? 'District Partner Driver';
+                          final plate = data['vehiclePlate'] ?? 'JH Registered';
+                          final model = data['vehicleModel'] ?? 'District Sedan AC';
+                          final photo = data['profilePhotoUrl'] ?? data['photoUrl'];
+
+                          return _buildDriverCard(
+                            driverName: name,
+                            ratingTag: '4.9 ★ Top Rated Commute',
+                            ratePerHour: 'Available Now',
+                            vehicleModel: '$model · $plate',
+                            durationArrival: '~5-10 mins away',
+                            imageAsset: 'assets/images/car_blue.jpg',
+                            driverPhoto: photo,
+                            onBookNow: () => Navigator.maybePop(context),
+                          );
+                        },
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
@@ -109,6 +152,7 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
     required String vehicleModel,
     required String durationArrival,
     required String imageAsset,
+    String? driverPhoto,
     required VoidCallback onBookNow,
   }) {
     return Container(
@@ -117,7 +161,7 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -137,7 +181,15 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                   shape: BoxShape.circle,
                   color: AppColors.primaryLight,
                 ),
-                child: const Icon(Icons.person, color: AppColors.primary, size: 28),
+                child: driverPhoto != null && driverPhoto.isNotEmpty
+                    ? ClipOval(
+                        child: Image.network(
+                          driverPhoto,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.person, color: AppColors.primary, size: 28),
+                        ),
+                      )
+                    : const Icon(Icons.person, color: AppColors.primary, size: 28),
               ),
               const SizedBox(width: 12),
               Expanded(

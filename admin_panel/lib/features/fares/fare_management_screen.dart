@@ -11,6 +11,196 @@ class FareManagementScreen extends StatefulWidget {
 }
 
 class _FareManagementScreenState extends State<FareManagementScreen> {
+  void _createCategoryDialog() {
+    final idCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    final displayNameCtrl = TextEditingController();
+    final baseFareCtrl = TextEditingController(text: '0');
+    final perKmCtrl = TextEditingController(text: '15');
+    final minFareCtrl = TextEditingController(text: '60');
+    final roundTripDiscountCtrl = TextEditingController(text: '0');
+    final hourlyWaitingCtrl = TextEditingController(text: '60');
+    final commissionCtrl = TextEditingController(text: '10');
+    String selectedIcon = 'directions_car';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Add New Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: idCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Category ID (Unique key, e.g. "car", "suv", "auto", "premium")',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Short Name (e.g. Mini Cab, SUV)'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: displayNameCtrl,
+                    decoration: const InputDecoration(labelText: 'Display Name (e.g. Economy Mini Cab 4-Seater)'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedIcon,
+                    decoration: const InputDecoration(labelText: 'Vehicle Icon'),
+                    items: const [
+                      DropdownMenuItem(value: 'directions_car', child: Text('🚗 Car / Sedan')),
+                      DropdownMenuItem(value: 'directions_car_filled', child: Text('🚙 SUV / Bolero')),
+                      DropdownMenuItem(value: 'electric_rickshaw', child: Text('🛺 Auto / E-Rickshaw')),
+                      DropdownMenuItem(value: 'airport_shuttle', child: Text('🚐 Van / Shuttle')),
+                      DropdownMenuItem(value: 'two_wheeler', child: Text('🛵 Bike / Two Wheeler')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedIcon = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: perKmCtrl,
+                          decoration: const InputDecoration(labelText: 'Standard Rate / KM (₹)'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: minFareCtrl,
+                          decoration: const InputDecoration(labelText: 'Minimum Trip Fare (₹)'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: baseFareCtrl,
+                          decoration: const InputDecoration(labelText: 'Base Pickup (₹)'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: hourlyWaitingCtrl,
+                          decoration: const InputDecoration(labelText: 'Waiting Charge (₹/hr)'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: roundTripDiscountCtrl,
+                          decoration: const InputDecoration(labelText: 'Return Discount (%)'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: commissionCtrl,
+                          decoration: const InputDecoration(labelText: 'Commission (%)'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final id = idCtrl.text.trim().toLowerCase().replaceAll(' ', '_');
+                final name = nameCtrl.text.trim();
+                final displayName = displayNameCtrl.text.trim();
+                if (id.isEmpty || name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill Category ID and Name')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                await FirebaseFirestore.instance.collection('vehicleCategories').doc(id).set({
+                  'id': id,
+                  'name': name,
+                  'displayName': displayName.isNotEmpty ? displayName : name,
+                  'icon': selectedIcon,
+                  'image': '',
+                  'baseFare': double.tryParse(baseFareCtrl.text.trim()) ?? 0.0,
+                  'perKmRate': double.tryParse(perKmCtrl.text.trim()) ?? 15.0,
+                  'perMinuteRate': 0.0,
+                  'minimumFare': double.tryParse(minFareCtrl.text.trim()) ?? 60.0,
+                  'bookingFee': 0.0,
+                  'waitingCharge': 1.0,
+                  'cancellationFee': 30.0,
+                  'roundTripDiscountPercent': double.tryParse(roundTripDiscountCtrl.text.trim()) ?? 0.0,
+                  'hourlyWaitingCharge': double.tryParse(hourlyWaitingCtrl.text.trim()) ?? 60.0,
+                  'platformCommissionPercent': double.tryParse(commissionCtrl.text.trim()) ?? 10.0,
+                  'isActive': true,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Category "$displayName" added successfully!'), backgroundColor: const Color(0xFF16A34A)),
+                  );
+                }
+              },
+              child: const Text('Add Category Live'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _deleteCategoryDialog(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final name = data['displayName'] ?? data['name'] ?? doc.id;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Remove $name?', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+        content: Text('Are you sure you want to remove "$name" from Customer Home and Tours & Travels live app?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await FirebaseFirestore.instance.collection('vehicleCategories').doc(doc.id).delete();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Category "$name" removed successfully!'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('Delete Category'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editFareDialog(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final name = data['displayName'] ?? data['name'] ?? 'Vehicle';
@@ -214,16 +404,32 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
                           ),
                         ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: _syncDefaultCategories,
-                        icon: const Icon(Icons.sync, size: 16),
-                        label: const Text('Sync Landing Tariff Defaults', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0284C7),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _createCategoryDialog,
+                            icon: const Icon(Icons.add_circle_outline, size: 16),
+                            label: const Text('Add Vehicle Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _syncDefaultCategories,
+                            icon: const Icon(Icons.sync, size: 16),
+                            label: const Text('Sync Default Tariff', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0284C7),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -311,15 +517,26 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
                                           ),
                                         ],
                                       ),
-                                      OutlinedButton.icon(
-                                        onPressed: () => _editFareDialog(doc),
-                                        icon: const Icon(Icons.edit, size: 14),
-                                        label: const Text('Edit Rate Card', style: TextStyle(fontSize: 12)),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppColors.primary,
-                                          side: const BorderSide(color: AppColors.primary),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          OutlinedButton.icon(
+                                            onPressed: () => _editFareDialog(doc),
+                                            icon: const Icon(Icons.edit, size: 14),
+                                            label: const Text('Edit Rate Card', style: TextStyle(fontSize: 12)),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: AppColors.primary,
+                                              side: const BorderSide(color: AppColors.primary),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                                            tooltip: 'Remove Category',
+                                            onPressed: () => _deleteCategoryDialog(doc),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),

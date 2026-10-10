@@ -24,5 +24,8 @@ Thumbs.db
 # Binary artifacts
 *.apk
 *.aab
+*.zip
 build_outputs/
 landing/*.apk
+customer_playstore/*.aab
+notification_service/node_modules/

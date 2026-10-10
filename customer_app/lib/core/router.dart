@@ -7,6 +7,10 @@ import '../features/booking/active_trip_screen.dart';
 import '../features/booking/driver_selection_screen.dart';
 import '../features/trips/trips_history_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/profile/about_us_screen.dart';
+import '../features/profile/legal_policy_screen.dart';
+import '../features/profile/report_driver_screen.dart';
+import '../features/profile/delete_account_screen.dart';
 import '../features/tours/popular_destinations_screen.dart';
 import '../features/tours/destination_detail_screen.dart';
 import '../features/tours/tour_booking_screen.dart';
@@ -64,6 +68,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/about-us',
+        builder: (context, state) => const AboutUsScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        builder: (context, state) => const LegalPolicyScreen(initialTabIndex: 0),
+      ),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) => const LegalPolicyScreen(initialTabIndex: 1),
+      ),
+      GoRoute(
+        path: '/report-driver',
+        builder: (context, state) {
+          final booking = state.extra as BookingModel?;
+          return ReportDriverScreen(initialBooking: booking);
+        },
+      ),
+      GoRoute(
+        path: '/delete-account',
+        builder: (context, state) => const DeleteAccountScreen(),
       ),
     ],
   );

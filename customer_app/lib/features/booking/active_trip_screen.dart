@@ -346,64 +346,119 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
           // Animated Pulse / Searching Indicator
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFFDBA74), width: 1.5),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               children: [
+                // 3D Visual with soft radial halo
                 Stack(
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      width: 90,
-                      height: 90,
+                      width: 140,
+                      height: 140,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF97316).withOpacity(0.18),
                         shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(
-                      width: 65,
-                      height: 65,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 4,
-                        color: Color(0xFFEA580C),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/trip_radar_pulse.jpg',
+                        width: 110,
+                        height: 110,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 110,
+                          height: 110,
+                          color: const Color(0xFF1E293B),
+                          child: const Icon(Icons.radar_rounded, size: 48, color: Color(0xFF38BDF8)),
+                        ),
                       ),
                     ),
-                    const Icon(Icons.radar, size: 34, color: Color(0xFFEA580C)),
+                    // Floating live spinner ring
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                        ),
+                        child: const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF38BDF8),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.radar_rounded, size: 12, color: Color(0xFF38BDF8)),
+                      SizedBox(width: 5),
+                      Text(
+                        'CONNECTING WITH NEARBY DRIVERS',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: Color(0xFF38BDF8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
                 const Text(
-                  'BOOKING IS PENDING',
+                  'Matching Your Ride',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                    color: Color(0xFFC2410C),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'आपकी राइड पेंडिंग है...',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF7C2D12),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Searching for nearest drivers in your Jharkhand area. When a driver accepts, vehicle and driver details will appear immediately.',
+                  'Contacting verified drivers in your district. Once accepted, driver live tracking, plate number and vehicle photo will unlock automatically.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Color(0xFF9A3412), height: 1.4),
+                  style: TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8), height: 1.45),
                 ),
               ],
             ),

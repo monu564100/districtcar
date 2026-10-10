@@ -29,6 +29,41 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
 
   final List<Map<String, String>> _templates = [
     {
+      'name': '🌄 Chalo Netarhat Ghoom Ke Aatey Hai!',
+      'title': '🌄 Chalo Netarhat Ghoom Ke Aatey Hai!',
+      'body': 'Bhai, laptop band kar, Maggie aur pahadon ki hawa bula rahi hai! Netarhat Magnolia Sunset Point cab book karo.\n💡 "Ghar wale pooch rahe hain shaadi kab karoge? Humne bola: pehle Netarhat ka sunset dekh aane do!"',
+      'imageUrl': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop',
+      'audience': 'customers',
+    },
+    {
+      'name': '🚩 Har Har Mahadev! Deoghar Darshan',
+      'title': '🚩 Har Har Mahadev! Chalo Deoghar Darshan!',
+      'body': 'Peda khane aur Baba Dham ka darshan karne ka man hai? AC cab book karo - No tension, full aashirwad!\n💡 "Dost ne pucha: Itna tension kyu le rahe ho? Humne bola: Baidyanath Dham ghoom aao, sab theek ho jayega!"',
+      'imageUrl': 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=800&auto=format&fit=crop',
+      'audience': 'customers',
+    },
+    {
+      'name': '🏎️ Patratu Valley Romantic Drive',
+      'title': '🏎️ Patratu Valley ke Ghumavdaar Raaste!',
+      'body': 'Bollywood style scenic drive aur lake boating! Chai, pakode aur romantic roads ka trip planned!\n💡 "Traffic se tang aa chuke ho? Patratu ki hawaon me gaadi chalao, BP apne aap normal ho jayega!"',
+      'imageUrl': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
+      'audience': 'customers',
+    },
+    {
+      'name': '🌊 Hundru Falls Weekend Masti',
+      'title': '🌊 Weekend me Hundru Falls ka Dhamaka!',
+      'body': 'Jharna dekhna hai? Chalo Ranchi ke Hundru aur Jonha Fall! Friends group ke sath instant SUV book karo.\n💡 "Gym join karne ki sochi thi, par doston ne bola Hundru Falls ki seedhiyan chadh lo, cardio ho jayega!"',
+      'imageUrl': 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&auto=format&fit=crop',
+      'audience': 'customers',
+    },
+    {
+      'name': '🐅 Betla Jungle Safari',
+      'title': '🐅 Jungle Safari @ Betla National Park!',
+      'body': 'Hathi, hiran aur jungle safari ka thrill! Itihaasik Palamu kila aur jungle ka trip ready.\n💡 "Office boss tiger ki tarah daad raha ho, toh Betla aakar asli tiger dekh lo, darr nikal jayega!"',
+      'imageUrl': 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=800&auto=format&fit=crop',
+      'audience': 'customers',
+    },
+    {
       'name': '🎉 35% Round-Trip Saver',
       'title': '🎉 35% Off Round-Trip Return Discount!',
       'body': 'Book your village return trip with District Car. Save ₹200 to ₹800 on all return journeys across Jharkhand!',
@@ -36,25 +71,11 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
       'audience': 'customers',
     },
     {
-      'name': '🚀 App Update Announcement',
-      'title': '⚡ New District Car Update Available!',
-      'body': 'A brand new version is live with Jharkhand 24-district village selection and instant booking. Update now!',
-      'imageUrl': 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&auto=format&fit=crop',
-      'audience': 'all',
-    },
-    {
       'name': '🚗 Driver 3-Trip Bonus Alert',
       'title': '💰 Driver Partner Weekly Cashback Bonus!',
       'body': 'Complete 3 trips today with zero cancellations and get 100% platform commission cashback credited to wallet.',
       'imageUrl': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&auto=format&fit=crop',
       'audience': 'drivers',
-    },
-    {
-      'name': '🌾 Gramin Darshan Outstation',
-      'title': '🌾 Gramin Darshan & Long Tour Cabs!',
-      'body': 'Planning pilgrimage or family visits to Deoghar, Parasnath, or Netarhat? Book direct rural cabs now on WhatsApp or app.',
-      'imageUrl': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop',
-      'audience': 'customers',
     },
   ];
 
@@ -230,7 +251,24 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
         }
       }
 
-      // 4. If FCM Server Key is present, dispatch HTTP push to topics and device tokens!
+      // 4. Relay directly to Notification Service Worker if running (http://localhost:4000)
+      try {
+        await http.post(
+          Uri.parse('http://localhost:4000/api/notifications/admin-broadcast'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': title,
+            'body': body,
+            'imageUrl': imageUrl.isNotEmpty ? imageUrl : null,
+            'targetAudience': _targetAudience,
+            'extraData': {'notificationId': notifDoc.id},
+          }),
+        ).timeout(const Duration(seconds: 4));
+      } catch (workerErr) {
+        debugPrint('Notification worker relay notice: $workerErr');
+      }
+
+      // 5. If FCM Server Key is present, dispatch HTTP push to topics and device tokens!
       if (_fcmServerKey != null && _fcmServerKey!.isNotEmpty) {
         final topic = _targetAudience == 'drivers'
             ? 'drivers'

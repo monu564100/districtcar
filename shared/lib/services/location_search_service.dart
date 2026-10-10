@@ -358,7 +358,7 @@ class LocationSearchService {
 
             return LocationSearchResult(
               title: title.isNotEmpty ? title : 'Current Location',
-              subtitle: subtitle.isNotEmpty ? subtitle : 'Near ${position.latitude.toStringAsFixed(3)}, ${position.longitude.toStringAsFixed(3)}',
+              subtitle: subtitle.isNotEmpty ? subtitle : 'Ranchi District, Jharkhand',
               latitude: position.latitude,
               longitude: position.longitude,
             );
@@ -366,14 +366,87 @@ class LocationSearchService {
         }
       } catch (_) {}
 
+      // Fallback: Check nearest known Jharkhand hub to avoid displaying raw lat/long decimals
+      LocationSearchResult nearest = popularHubs.first;
+      double minDistance = double.infinity;
+      for (final hub in popularHubs) {
+        final d = Geolocator.distanceBetween(
+          position.latitude,
+          position.longitude,
+          hub.latitude,
+          hub.longitude,
+        );
+        if (d < minDistance) {
+          minDistance = d;
+          nearest = hub;
+        }
+      }
+
       return LocationSearchResult(
         title: 'Current Location',
-        subtitle: 'GPS (${position.latitude.toStringAsFixed(3)}, ${position.longitude.toStringAsFixed(3)})',
+        subtitle: nearest.subtitle.isNotEmpty ? nearest.subtitle : '${nearest.title}, Jharkhand',
         latitude: position.latitude,
         longitude: position.longitude,
       );
     } catch (_) {
       return popularHubs.first;
     }
+  }
+
+  /// Calculates real-time distance (in km) and travel duration (in minutes)
+  /// using Google Maps Directions / Distance Matrix API.
+  Future<Map<String, dynamic>> getDirectionsDistanceAndDuration({
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+  }) async {
+    // 1. Google Directions API
+    try {
+      final url =
+          'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destLat,$destLng&mode=driving&departure_time=now&key=$googleApiKey';
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'OK' && (data['routes'] as List).isNotEmpty) {
+          final legs = data['routes'][0]['legs'] as List;
+          if (legs.isNotEmpty) {
+            final leg = legs[0];
+            final distanceMeters = (leg['distance']?['value'] as num?)?.toDouble() ?? 0.0;
+            // Prefer duration_in_traffic if available, else standard duration
+            final durationSeconds = (leg['duration_in_traffic']?['value'] as num?)?.toDouble() ??
+                (leg['duration']?['value'] as num?)?.toDouble() ??
+                0.0;
+
+            final double km = distanceMeters / 1000.0;
+            final int minutes = (durationSeconds / 60.0).round();
+
+            return {
+              'distanceKm': km < 0.5 ? 1.0 : double.parse(km.toStringAsFixed(1)),
+              'durationMinutes': minutes < 1 ? 5 : minutes,
+              'durationText': leg['duration_in_traffic']?['text'] ?? leg['duration']?['text'] ?? '$minutes mins',
+              'distanceText': leg['distance']?['text'] ?? '${km.toStringAsFixed(1)} km',
+            };
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Fallback if network or quota unavailable: accurate Haversine calculation with rural speed model
+    final distMeters = Geolocator.distanceBetween(originLat, originLng, destLat, destLng);
+    final straightKm = distMeters / 1000.0;
+    // Road winding factor: roads are ~1.25x longer than straight-line distance
+    final roadKm = straightKm * 1.25;
+    final km = roadKm < 0.5 ? 1.0 : double.parse(roadKm.toStringAsFixed(1));
+    // Average vehicle speed in Jharkhand (28 km/h accounting for villages and town traffic)
+    final minutes = (km / 28.0 * 60.0).round().clamp(5, 480);
+
+    return {
+      'distanceKm': km,
+      'durationMinutes': minutes,
+      'durationText': '$minutes mins',
+      'distanceText': '$km km',
+    };
   }
 }
