@@ -1,8 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:district_car_shared/theme/app_theme.dart';
 
+/// Floating Bottom Dock with transparent white water blurry glassmorphism
+/// and a floating bubble capsule over the active selected page.
 class FloatingBottomDock extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTabSelected;
@@ -21,62 +22,62 @@ class FloatingBottomDock extends StatelessWidget {
         borderRadius: BorderRadius.circular(38),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.35),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-            spreadRadius: -2,
+            color: const Color(0xFF6A5CFF).withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(38),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xF2121727),
-              borderRadius: BorderRadius.circular(38),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.14),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildTabItem(
-                  index: 0,
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                ),
-                const SizedBox(width: 4),
-                _buildTabItem(
-                  index: 1,
-                  icon: Icons.explore_rounded,
-                  label: 'Tours',
-                ),
-                const SizedBox(width: 4),
-                _buildTabItem(
-                  index: 2,
-                  icon: Icons.receipt_long_rounded,
-                  label: 'My Trips',
-                ),
-                const SizedBox(width: 4),
-                _buildTabItem(
-                  index: 3,
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                ),
-              ],
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xEEFFFFFF), // Transparent water glass look
+          borderRadius: BorderRadius.circular(38),
+          border: Border.all(
+            color: const Color(0xFFE2E8F0),
+            width: 1.5,
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(15, 23, 42, 0.08),
+              blurRadius: 16,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildTabItem(
+              index: 0,
+              icon: Icons.home_rounded,
+              label: 'Home',
+            ),
+            const SizedBox(width: 4),
+            _buildTabItem(
+              index: 1,
+              icon: Icons.explore_rounded,
+              label: 'Explore',
+            ),
+            const SizedBox(width: 4),
+            _buildTabItem(
+              index: 2,
+              icon: Icons.receipt_long_rounded,
+              label: 'Trips',
+            ),
+            const SizedBox(width: 4),
+            _buildTabItem(
+              index: 3,
+              icon: Icons.person_rounded,
+              label: 'Profile',
+            ),
+          ],
         ),
       ),
     );
@@ -95,48 +96,53 @@ class FloatingBottomDock extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
+        duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 18 : 13,
-          vertical: 10,
+          horizontal: isSelected ? 18 : 12,
+          vertical: 8,
         ),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-                  colors: [Color(0xFF384CF5), Color(0xFF1E2BC9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isSelected ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: isSelected
-              ? [
+        decoration: isSelected
+            ? BoxDecoration(
+                color: Colors.white, // Elevated liquid water bubble (no blue overlay)
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5,
+                ),
+                boxShadow: const [
                   BoxShadow(
-                    color: const Color(0xFF2538E8).withValues(alpha: 0.45),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    color: Color.fromRGBO(15, 23, 42, 0.09),
+                    blurRadius: 10,
+                    offset: Offset(0, 3),
                   ),
-                ]
-              : null,
-        ),
+                  BoxShadow(
+                    color: Color.fromRGBO(255, 255, 255, 0.95),
+                    blurRadius: 2,
+                    offset: Offset(0, -1),
+                  ),
+                ],
+              )
+            : BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
+              ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
-              size: 21,
+              color: isSelected ? const Color(0xFF3D2FD6) : const Color(0xFF64748B),
+              size: 20,
             ),
             if (isSelected) ...[
-              const SizedBox(width: 7),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w800,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -147,4 +153,3 @@ class FloatingBottomDock extends StatelessWidget {
     );
   }
 }
-

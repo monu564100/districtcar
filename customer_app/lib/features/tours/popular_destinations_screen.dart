@@ -36,7 +36,11 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
 
   void _onDockTabSelected(int index) {
     if (index == 0) {
-      context.go('/');
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        context.go('/');
+      }
     } else if (index == 1) {
       // already on tours
     } else if (index == 2) {

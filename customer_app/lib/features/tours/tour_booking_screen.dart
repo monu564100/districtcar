@@ -142,15 +142,15 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
   String _getVehicleIconAsset(String category) {
     final lower = category.toLowerCase();
     if (lower.contains('auto') || lower.contains('rick')) {
-      return 'assets/images/icon_vehicle_auto.jpg';
+      return 'assets/images/icon_vehicle_auto.png';
     } else if (lower.contains('sedan')) {
-      return 'assets/images/icon_vehicle_sedan.jpg';
+      return 'assets/images/icon_vehicle_sedan.png';
     } else if (lower.contains('suv') || lower.contains('bolero') || lower.contains('scorpio')) {
-      return 'assets/images/icon_vehicle_suv.jpg';
+      return 'assets/images/icon_vehicle_suv.png';
     } else if (lower.contains('bike') || lower.contains('moto') || lower.contains('two')) {
-      return 'assets/images/icon_vehicle_bike.jpg';
+      return 'assets/images/icon_vehicle_bike.png';
     }
-    return 'assets/images/icon_vehicle_mini.jpg';
+    return 'assets/images/icon_vehicle_mini.png';
   }
 
   IconData _getIconForCategory(String name) {

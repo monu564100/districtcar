@@ -64,5 +64,20 @@
   ],
   "assets/images/trip_radar_pulse.jpg": [
     "assets/images/trip_radar_pulse.jpg"
+  ],
+  "assets/images/icon_vehicle_auto.png": [
+    "assets/images/icon_vehicle_auto.png"
+  ],
+  "assets/images/icon_vehicle_bike.png": [
+    "assets/images/icon_vehicle_bike.png"
+  ],
+  "assets/images/icon_vehicle_mini.png": [
+    "assets/images/icon_vehicle_mini.png"
+  ],
+  "assets/images/icon_vehicle_sedan.png": [
+    "assets/images/icon_vehicle_sedan.png"
+  ],
+  "assets/images/icon_vehicle_suv.png": [
+    "assets/images/icon_vehicle_suv.png"
   ]
 }
