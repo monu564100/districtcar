@@ -680,6 +680,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                       distanceFare: totalFare - (currentCat?.baseFare ?? 60.0),
                       returnAllowance: _isRoundTrip ? ((_roundTripStoppingHours - 1.0).clamp(0, 10) * 60.0) : 0.0,
                       isHindi: _isHindi,
+                      vehicleName: currentCat?.displayName ?? 'District Ride',
                     ),
                     const SizedBox(height: 14),
                   ],
