@@ -1209,6 +1209,265 @@ class JharkhandDistrictData {
     ],
   };
 
+  /// Comprehensive Blocks for Jharkhand Districts (Special Focus on Khunti, Ranchi & Neighboring Districts)
+  static final Map<String, List<String>> districtBlocks = {
+    'Khunti': [
+      'Khunti (Sadar)',
+      'Murhu',
+      'Torpa',
+      'Karra',
+      'Rania',
+      'Arki',
+    ],
+    'Ranchi': [
+      'Ranchi (Town)',
+      'Kanke',
+      'Namkum',
+      'Ratu',
+      'Bundu',
+      'Tamar',
+      'Ormanjhi',
+      'Angara',
+      'Bero',
+      'Itki',
+      'Mandar',
+      'Chanho',
+      'Burmu',
+      'Lapung',
+      'Silli',
+      'Sonahatu',
+      'Nagri',
+      'Khalari',
+    ],
+    'Ramgarh': [
+      'Ramgarh',
+      'Patratu',
+      'Gola',
+      'Mandu',
+      'Chitarpur',
+      'Dulmi',
+    ],
+    'East Singhbhum (Jamshedpur)': [
+      'Jamshedpur (Golmuri & Jugsalai)',
+      'Ghatshila',
+      'Potka',
+      'Patamda',
+      'Baharagora',
+      'Chakulia',
+      'Musabani',
+      'Dhalbhumgarh',
+      'Dumaria',
+      'Borasol',
+    ],
+    'West Singhbhum': [
+      'Chaibasa (Sadar)',
+      'Chakradharpur',
+      'Manoharpur',
+      'Jagannathpur',
+      'Jhinkpani',
+      'Khuntpani',
+      'Noamundi',
+      'Tonto',
+    ],
+    'Gumla': [
+      'Gumla (Sadar)',
+      'Ghaghra',
+      'Bishunpur',
+      'Chainpur',
+      'Raidih',
+      'Sisai',
+      'Kamdara',
+      'Basia',
+      'Palkot',
+      'Dumri',
+      'Albert Ekka (Jari)',
+    ],
+    'Simdega': [
+      'Simdega (Sadar)',
+      'Kolebira',
+      'Bano',
+      'Jaldega',
+      'Thethaitangar',
+      'Kurdeg',
+      'Bolba',
+      'Pakartanr',
+    ],
+    'Bokaro': [
+      'Chas',
+      'Bermo',
+      'Chandankiyari',
+      'Gomia',
+      'Jaridih',
+      'Kasmar',
+      'Nawadih',
+      'Petarwar',
+      'Chandrapura',
+    ],
+    'Dhanbad': [
+      'Dhanbad (Sadar)',
+      'Jharia',
+      'Baghmara',
+      'Govindpur',
+      'Nirsa',
+      'Tundi',
+      'Baliapur',
+      'Topchanchi',
+    ],
+    'Hazaribagh': [
+      'Hazaribagh (Sadar)',
+      'Barhi',
+      'Barkagaon',
+      'Chauparan',
+      'Ichak',
+      'Katkamsandi',
+      'Bishnugarh',
+      'Daroo',
+      'Churchu',
+    ],
+    'Latehar': [
+      'Latehar (Sadar)',
+      'Netarhat',
+      'Chandwa',
+      'Balumath',
+      'Manika',
+      'Barwadih',
+      'Garu',
+      'Mahuadanr',
+    ],
+    'Deoghar': [
+      'Deoghar (Sadar)',
+      'Madhupur',
+      'Sarath',
+      'Mohanpur',
+      'Palojori',
+      'Karon',
+      'Devipur',
+      'Sona Ray Thari',
+    ],
+  };
+
+  /// Returns blocks for a given district
+  static List<String> getBlocksForDistrict(String districtName) {
+    if (districtBlocks.containsKey(districtName)) {
+      return districtBlocks[districtName]!;
+    }
+    // Fallback default blocks
+    return ['Sadar Block', 'Town Central', 'North Block', 'South Block'];
+  }
+
+  /// Approximate center coordinates for key blocks (used when driver specifies block)
+  static final Map<String, LocationSearchResult> blockCoordinates = {
+    // Khunti Blocks
+    'khunti': const LocationSearchResult(
+      title: 'Khunti (Sadar Block)',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 23.0740,
+      longitude: 85.2780,
+    ),
+    'murhu': const LocationSearchResult(
+      title: 'Murhu Block & Lac Market',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 22.9660,
+      longitude: 85.2670,
+    ),
+    'torpa': const LocationSearchResult(
+      title: 'Torpa Block & Mission',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 22.9330,
+      longitude: 85.0830,
+    ),
+    'karra': const LocationSearchResult(
+      title: 'Karra Railway Station & Block',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 23.1500,
+      longitude: 85.1330,
+    ),
+    'rania': const LocationSearchResult(
+      title: 'Rania Block',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 22.7800,
+      longitude: 85.0300,
+    ),
+    'arki': const LocationSearchResult(
+      title: 'Arki Block',
+      subtitle: 'Khunti District, Jharkhand',
+      latitude: 22.9800,
+      longitude: 85.5200,
+    ),
+
+    // Ranchi Blocks
+    'ranchi': const LocationSearchResult(
+      title: 'Ranchi Town / Albert Ekka Chowk',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.3700,
+      longitude: 85.3250,
+    ),
+    'kanke': const LocationSearchResult(
+      title: 'Kanke Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.4312,
+      longitude: 85.3204,
+    ),
+    'namkum': const LocationSearchResult(
+      title: 'Namkum Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.3360,
+      longitude: 85.3850,
+    ),
+    'ratu': const LocationSearchResult(
+      title: 'Ratu Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.4022,
+      longitude: 85.2014,
+    ),
+    'bundu': const LocationSearchResult(
+      title: 'Bundu Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.1755,
+      longitude: 85.5847,
+    ),
+    'tamar': const LocationSearchResult(
+      title: 'Tamar Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.0500,
+      longitude: 85.6500,
+    ),
+    'ormanjhi': const LocationSearchResult(
+      title: 'Ormanjhi Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.4862,
+      longitude: 85.4746,
+    ),
+    'bero': const LocationSearchResult(
+      title: 'Bero Block',
+      subtitle: 'Ranchi, Jharkhand',
+      latitude: 23.2840,
+      longitude: 85.0120,
+    ),
+  };
+
+  /// Retrieve block center coordinate or fallback to district center
+  static LocationSearchResult getBlockLocation(String district, String block) {
+    final blockKey = block.toLowerCase().split('(').first.trim();
+    for (final entry in blockCoordinates.entries) {
+      if (blockKey.contains(entry.key) || entry.key.contains(blockKey)) {
+        return entry.value;
+      }
+    }
+
+    // Fallback to first location of district
+    final list = getLocationsForDistrict(district);
+    if (list.isNotEmpty) return list.first;
+
+    // Fallback Khunti center
+    return const LocationSearchResult(
+      title: 'Khunti District Center',
+      subtitle: 'Jharkhand',
+      latitude: 23.0740,
+      longitude: 85.2780,
+    );
+  }
+
   /// Returns sorted list of 24 District Names
   static List<String> get allDistricts => districtLocations.keys.toList()..sort();
 
@@ -1239,3 +1498,4 @@ class JharkhandDistrictData {
     return matched;
   }
 }
+

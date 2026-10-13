@@ -28,4 +28,8 @@ Thumbs.db
 build_outputs/
 landing/*.apk
 customer_playstore/*.aab
+driver_playstore/*.aab
 notification_service/node_modules/
+*.jks
+*.keystore
+*.bak

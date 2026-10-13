@@ -78,6 +78,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:319163006406:android:a3e17ed6331b8200fa46c7",
+        "android_client_info": {
+          "package_name": "com.solostackdev.pashuraksha"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "319163006406-lg3olsc2i0ujlvq5ujq2uenk05nj7dj5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.solostackdev.pashuraksha",
+            "certificate_hash": "ad07d17b76371ddbe795828772b3ae2353a4bae5"
+          }
+        },
+        {
+          "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "319163006406-6dna5gvr9or0chh3ceghgusf421ospto.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

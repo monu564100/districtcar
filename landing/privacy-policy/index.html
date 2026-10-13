@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - District Car Jharkhand</title>
+  <meta name="description" content="Official Privacy Policy and Data Safety Disclosures for District Car Customer and Driver Partner Mobile Applications in Jharkhand.">
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #1E3A8A;
+      --primary-dark: #0F172A;
+      --secondary: #16A34A;
+      --accent: #D97706;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    .nav-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-size: 10.5px;
+      color: var(--secondary);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: block;
+    }
+
+    .back-home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .back-home-btn:hover {
+      background: #E2E8F0;
+    }
+
+    /* Main Content Container */
+    .content-wrapper {
+      max-width: 960px;
+      margin: 32px auto 60px auto;
+      padding: 0 20px;
+    }
+
+    .policy-header {
+      background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+      color: #FFFFFF;
+      padding: 40px 32px;
+      border-radius: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+    }
+
+    .policy-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+
+    .policy-title {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .policy-meta {
+      font-size: 13.5px;
+      color: #94A3B8;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* Location Disclosure Highlight Card */
+    .disclosure-box {
+      background: #EFF6FF;
+      border: 1.5px solid #93C5FD;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .disclosure-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #1E3A8A;
+      margin-bottom: 10px;
+    }
+
+    .disclosure-text {
+      font-size: 14px;
+      color: #1E40AF;
+      line-height: 1.6;
+    }
+
+    /* Policy Card Sections */
+    .policy-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    }
+
+    .policy-card h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .policy-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #334155;
+      margin: 18px 0 8px 0;
+    }
+
+    .policy-card p {
+      font-size: 14.5px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    .policy-card ul {
+      margin-left: 20px;
+      margin-bottom: 14px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .policy-card li {
+      margin-bottom: 6px;
+    }
+
+    /* Account Deletion Steps Box */
+    .deletion-box {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 14px;
+    }
+
+    .deletion-box h4 {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #991B1B;
+      margin-bottom: 8px;
+    }
+
+    .deletion-box ol {
+      margin-left: 20px;
+      color: #B91C1C;
+      font-size: 13.5px;
+    }
+
+    .deletion-box li {
+      margin-bottom: 6px;
+    }
+
+    /* Contact Table */
+    .contact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 13.5px;
+    }
+
+    .contact-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .contact-table td:first-child {
+      font-weight: 700;
+      color: #334155;
+      width: 35%;
+    }
+
+    .contact-table td:last-child {
+      color: #475569;
+    }
+
+    /* Footer */
+    .footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      padding: 32px 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 640px) {
+      .policy-header {
+        padding: 28px 20px;
+      }
+      .policy-title {
+        font-size: 24px;
+      }
+      .policy-card {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="nav-header">
+    <div class="nav-container">
+      <a href="../" class="brand-link">
+        <img src="../apple-touch-icon.png" alt="District Car Logo" class="brand-logo" onerror="this.src='https://placehold.co/40x40/1e3a8a/ffffff?text=DC'">
+        <div>
+          <span class="brand-title">District Car</span>
+          <span class="brand-sub">JHARKHAND MOBILITY</span>
+        </div>
+      </a>
+      <a href="../" class="back-home-btn">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back to Home</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Content Container -->
+  <main class="content-wrapper">
+
+    <!-- Header Section -->
+    <div class="policy-header">
+      <div class="policy-badge">GOOGLE PLAY COMPLIANT DATA SAFETY POLICY</div>
+      <h1 class="policy-title">Privacy Policy & User Data Protection</h1>
+      <div class="policy-meta">
+        <span><i class="fa-solid fa-calendar-check"></i> Last Updated: October 11, 2026</span>
+        <span><i class="fa-solid fa-shield-halved"></i> District Car Mobility Private Limited</span>
+        <span><i class="fa-solid fa-location-dot"></i> Khunti & Ranchi, Jharkhand</span>
+      </div>
+    </div>
+
+    <!-- Background Location Notice (Crucial for Google Play Console Approval) -->
+    <div class="disclosure-box">
+      <div class="disclosure-title">
+        <i class="fa-solid fa-location-crosshairs fa-lg"></i>
+        <span>Important Location Tracking Disclosure (Passengers & Driver Partners)</span>
+      </div>
+      <div class="disclosure-text">
+        <p><strong>For Passengers (Customer App):</strong> District Car accesses your device location in the foreground solely while the app is actively in use to set accurate pickup/drop points and calculate rural route fares.</p>
+        <p style="margin-top:8px;"><strong>For Driver Partners (Driver App):</strong> District Car collects and accesses real-time location data (including <em>background location</em> when the driver marks status as <strong>"Online"</strong>) to enable nearby passenger ride matching within a 10–25 km radius, calculate accurate distance fares, and provide continuous passenger safety tracking during ongoing trips even when the app is minimized, closed, or running behind navigation tools.</p>
+      </div>
+    </div>
+
+    <!-- Section 1 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-building" style="color:var(--primary);"></i> 1. About District Car Mobility</h2>
+      <p>District Car Mobility is Jharkhand’s indigenous district and rural transportation platform founded by <strong>Monu Kumar</strong> (CEO) and <strong>Sonu Kumar</strong> (Co-Founder) to solve doorstep transportation challenges across Khunti, Murhu, Torpa, Ranchi, and all 24 districts of Jharkhand.</p>
+      <p>We are committed to operating in full compliance with the Information Technology Act (2000), Digital Personal Data Protection (DPDP) Act of India, and Google Play Store User Data Safety Policies.</p>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-database" style="color:var(--secondary);"></i> 2. Information We Collect</h2>
+      <p>We strictly collect only information necessary to deliver seamless mobility services:</p>
+
+      <h3>A. Customer App (Passenger Information)</h3>
+      <ul>
+        <li><strong>Profile Data:</strong> Full Name, Email address (via Google Sign-In or direct login), Mobile Phone Number.</li>
+        <li><strong>Optional Emergency Details:</strong> Date of Birth, Blood Group (for emergency SOS assistance).</li>
+        <li><strong>Trip Information:</strong> Pickup address, Destination address, Ride Date/Time, and Ride OTP.</li>
+        <li><strong>Device Identifiers:</strong> Firebase Cloud Messaging (FCM) tokens solely for push alerts regarding driver assignment and ride arrival.</li>
+      </ul>
+
+      <h3>B. Driver App (Driver Partner Information)</h3>
+      <ul>
+        <li><strong>Identity & Contact:</strong> Full Name, Phone Number, Email, Profile Photograph.</li>
+        <li><strong>Vehicle & Stand Details:</strong> Vehicle Category (Car/Sedan, SUV, Auto), Registration Plate Number, Operating District, Block (e.g. Khunti Sadar, Murhu, Torpa), and stand/chowk address.</li>
+        <li><strong>GPS Telemetry:</strong> Real-time latitude and longitude coordinates during on-duty sessions.</li>
+      </ul>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-lock" style="color:#059669;"></i> 3. How We Use Your Data & Zero-Sale Commitment</h2>
+      <p>Your data is used strictly for core transit purposes:</p>
+      <ul>
+        <li>Dispatching ride requests to nearby drivers within a 10–12 km immediate radius or 20–25 km expanded boost range.</li>
+        <li>Calculating transparent, standardized rural tariffs without predatory surge algorithms.</li>
+        <li>Displaying real-time trip progress and estimated time of arrival (ETA).</li>
+        <li>Providing 24/7 helpline assistance via our central Jharkhand control room (+91 87896 01387).</li>
+      </ul>
+      <p><strong>Zero Data Selling:</strong> We NEVER sell, rent, monetize, or disclose your personal data, trip histories, or contact numbers to third-party advertising brokers or data aggregators.</p>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-money-bill-transfer" style="color:var(--accent);"></i> 4. Transparent Payment & Peer-to-Peer Model</h2>
+      <p>District Car operates under a transparent, direct driver payment model. Customers pay the driver directly at trip completion via Cash or direct UPI. District Car does not retain sensitive payment credentials, credit card details, or banking PINs on its servers.</p>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> 5. Account Deletion & Right to Erasure (Google Play Compliant)</h2>
+      <p>In accordance with the Google Play Store Data Safety Policy, both passengers and driver partners retain the right to request permanent deletion of their account and all associated personal data at any time.</p>
+
+      <div class="deletion-box">
+        <h4>How to Delete Your Account In-App:</h4>
+        <ol>
+          <li>Open the <strong>District Car Customer App</strong> or <strong>Driver Partner App</strong>.</li>
+          <li>Navigate to the <strong>Profile</strong> tab in the bottom dock.</li>
+          <li>Tap <strong>Delete Account</strong> (खाता हमेशा के लिए हटाएं).</li>
+          <li>Select your reason and confirm deletion.</li>
+        </ol>
+        <p style="margin-top:10px; font-size:12.5px; color:#7F1D1D;">
+          Upon submission, your profile, active listings, vehicle details, and personal records are permanently erased from our active databases. You may also request deletion via email to <a href="mailto:support@districtcar.in" style="color:#991B1B; font-weight:700;">support@districtcar.in</a> or by calling our helpline.
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-shield-virus" style="color:#2563EB;"></i> 6. Data Security & Storage</h2>
+      <p>All application communications with our cloud backend use TLS/HTTPS encryption. Data is securely hosted on Google Cloud Platform (Firebase Firestore) with strict role-based access rules preventing unauthorized access.</p>
+    </div>
+
+    <!-- Section 7 -->
+    <div class="policy-card">
+      <h2><i class="fa-solid fa-phone" style="color:var(--secondary);"></i> 7. Grievance Redressal & Contact Information</h2>
+      <p>If you have any questions, compliance requests, or data privacy concerns, please contact our designated Grievance & Data Protection Officers:</p>
+
+      <table class="contact-table">
+        <tr>
+          <td>Company Name</td>
+          <td>District Car Mobility Private Limited</td>
+        </tr>
+        <tr>
+          <td>Founders / Grievance Officers</td>
+          <td>Monu Kumar (CEO) & Sonu Kumar (Co-Founder)</td>
+        </tr>
+        <tr>
+          <td>Operational Office</td>
+          <td>Nichey Chowk, Khunti, Jharkhand - 835210</td>
+        </tr>
+        <tr>
+          <td>Central Control Room</td>
+          <td>Albert Ekka Chowk, Main Road, Ranchi, Jharkhand</td>
+        </tr>
+        <tr>
+          <td>24/7 Helpline</td>
+          <td><a href="tel:+918789601387" style="color:var(--primary); font-weight:700;">+91 87896 01387</a></td>
+        </tr>
+        <tr>
+          <td>Official Email</td>
+          <td><a href="mailto:support@districtcar.in" style="color:var(--primary); font-weight:700;">support@districtcar.in</a> / <a href="mailto:contact@projectmarket.in" style="color:var(--primary); font-weight:700;">contact@projectmarket.in</a></td>
+        </tr>
+        <tr>
+          <td>Official Website</td>
+          <td><a href="https://notification.projectmarket.in" target="_blank" style="color:var(--primary); font-weight:700;">https://notification.projectmarket.in</a></td>
+        </tr>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 District Car Mobility Private Limited. All rights reserved.</p>
+    <p style="margin-top:6px;">Doorstep cabs, village rides & tour packages across all 24 districts of Jharkhand.</p>
+  </footer>
+
+</body>
+</html>

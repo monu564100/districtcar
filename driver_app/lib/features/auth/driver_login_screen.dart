@@ -41,6 +41,27 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
     }
   }
 
+  void _signInAsTestReviewer() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(driverServiceProvider).signInAsPlayStoreReviewer();
+      if (mounted) {
+        context.go('/driver-home');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Reviewer sign-in error: $e';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,7 +187,44 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 24),
+
+                // Play Store Review Section
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        'OR PLAY STORE REVIEW ACCESS',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F172A),
+                      side: const BorderSide(color: Color(0xFF94A3B8), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    icon: const Icon(Icons.rate_review_outlined, size: 20, color: Color(0xFF059669)),
+                    label: const Text(
+                      'Play Store Team Demo Login (Test Account)',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                    ),
+                    onPressed: _isLoading ? null : _signInAsTestReviewer,
+                  ),
+                ),
+                const SizedBox(height: 32),
 
                 // Trust badge
                 const Row(

@@ -105,7 +105,11 @@ class AuthService {
           userCred = await _auth.signInWithProvider(googleProvider);
         } catch (providerError) {
           debugPrint('Provider Google Sign-In error: $providerError');
-          throw Exception('Google Sign-In failed: $nativeError | $providerError');
+          final errStr = nativeError.toString();
+          if (errStr.contains('canceled') || errStr.contains('cancelled') || errStr.contains('12501')) {
+            throw Exception('Sign in was cancelled.');
+          }
+          throw Exception('Google Sign-In failed. Please verify your Google account or connection.');
         }
       }
     }
@@ -132,6 +136,41 @@ class AuthService {
         'email': fbUser.email,
         'name': user.displayName,
         'role': 'customer',
+        'lastLoginAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    return user;
+  }
+
+  /// 1-Click Instant Sign-In for Google Play Store Review Team
+  Future<DistrictUser> signInAsPlayStoreReviewer() async {
+    const reviewerUid = 'playstore_customer_reviewer_01';
+    final user = DistrictUser(
+      uid: reviewerUid,
+      email: 'playstore.review@districtcar.com',
+      displayName: 'Google Play Reviewer',
+      phoneNumber: '+91 87896 01387',
+      profilePhotoUrl: null,
+    );
+    _localUser = user;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('district_user_uid', reviewerUid);
+      await prefs.setString('district_user_email', 'playstore.review@districtcar.com');
+      await prefs.setString('district_user_name', 'Google Play Reviewer');
+      await prefs.setString('district_user_phone', '+91 87896 01387');
+    } catch (_) {}
+
+    try {
+      await _firestore.collection('users').doc(reviewerUid).set({
+        'uid': reviewerUid,
+        'email': 'playstore.review@districtcar.com',
+        'name': 'Google Play Reviewer',
+        'phone': '+91 87896 01387',
+        'role': 'customer',
+        'isVerified': true,
         'lastLoginAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (_) {}

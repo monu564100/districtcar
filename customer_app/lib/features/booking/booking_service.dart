@@ -24,6 +24,7 @@ class BookingService {
     double roundTripStoppingHours = 1.0,
     String? scheduledDate,
     String? scheduledTimeSlot,
+    double? maxSearchRadiusKm,
   }) async {
     // 1. Try Firebase Cloud Functions
     try {
@@ -107,9 +108,14 @@ class BookingService {
 
       // Broadcast ride request ONLY to available (non-busy, non-blocked) drivers of that particular category
       try {
-        final List<String> matchingDriverTokens = [];
+        // Radius logic:
+        // Short distance: default 12.0 km (or 25.0 km if extended fare).
+        // Long distance / Tours: up to 35.0 km.
+        final bool isLongDistance = distanceKm >= 30.0 || isRoundTrip;
+        final double searchRadiusKm = maxSearchRadiusKm ?? (isLongDistance ? 35.0 : 12.0);
+        final String requestedCategory = categoryId.trim().toLowerCase();
         final List<String> matchingDriverIds = [];
-        final requestedCategory = categoryId.trim().toLowerCase();
+        final List<String> matchingDriverTokens = [];
 
         final driversSnapshot = await _firestore.collection('drivers').get();
         for (final driverDoc in driversSnapshot.docs) {
@@ -118,35 +124,70 @@ class BookingService {
           final isBlocked = dData['isBlocked'] == true;
           final driverCategory = (dData['vehicleCategoryId'] ?? dData['category'] ?? 'car').toString().trim().toLowerCase();
 
-          // Only send request if the driver is NOT busy on another ride, NOT blocked, and category matches
+          // Only send request if the driver is NOT busy, NOT blocked, and category matches
           if (!isBusy && !isBlocked && driverCategory == requestedCategory) {
-            matchingDriverIds.add(driverDoc.id);
-            final token = dData['fcmToken'] as String?;
-            if (token != null && token.isNotEmpty) {
-              matchingDriverTokens.add(token);
+            // Extract driver coordinates (from currentLocation, location, or defaults)
+            double driverLat = 23.0740;
+            double driverLng = 85.2780;
+            if (dData['currentLocation'] != null && dData['currentLocation']['latitude'] != null) {
+              driverLat = (dData['currentLocation']['latitude'] as num).toDouble();
+              driverLng = (dData['currentLocation']['longitude'] as num).toDouble();
+            } else if (dData['location'] != null && dData['location']['latitude'] != null) {
+              driverLat = (dData['location']['latitude'] as num).toDouble();
+              driverLng = (dData['location']['longitude'] as num).toDouble();
+            } else if (dData['latitude'] != null) {
+              driverLat = (dData['latitude'] as num).toDouble();
+              driverLng = (dData['longitude'] as num).toDouble();
             }
 
-            await _firestore.collection('bookingRequests').add({
-              'bookingId': bookingRef.id,
-              'driverId': driverDoc.id,
-              'vehicleCategoryId': requestedCategory,
-              'status': 'offered',
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+            final distToDriverMeters = Geolocator.distanceBetween(
+              pickup.latitude,
+              pickup.longitude,
+              driverLat,
+              driverLng,
+            );
+            final distToDriverKm = distToDriverMeters / 1000.0;
+
+            // Only notify drivers within the search radius (e.g. 10-12 km short, 20-25 km expanded, 35 km long tour)
+            if (distToDriverKm <= searchRadiusKm) {
+              matchingDriverIds.add(driverDoc.id);
+              final token = dData['fcmToken'] as String?;
+              if (token != null && token.isNotEmpty) {
+                matchingDriverTokens.add(token);
+              }
+
+              await _firestore.collection('bookingRequests').add({
+                'bookingId': bookingRef.id,
+                'driverId': driverDoc.id,
+                'vehicleCategoryId': requestedCategory,
+                'pickupDistanceKm': double.parse(distToDriverKm.toStringAsFixed(1)),
+                'status': 'offered',
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            }
           }
         }
 
+        // Update booking document with search radius and found drivers count
+        await bookingRef.update({
+          'searchRadiusKm': searchRadiusKm,
+          'matchedDriversCount': matchingDriverIds.length,
+          'hasNearDrivers': matchingDriverIds.isNotEmpty,
+        }).catchError((_) {});
+
         // Dispatch High-Priority System Push Notification to all matching drivers (Background & Closed App delivery)
-        await FCMNotificationService.sendBookingOfferedNotificationToDrivers(
-          bookingId: bookingRef.id,
-          readableId: readableId,
-          categoryId: requestedCategory,
-          pickupAddress: pickup.address,
-          destinationAddress: destination.address,
-          estimatedFare: fare,
-          driverTokens: matchingDriverTokens,
-          driverIds: matchingDriverIds,
-        );
+        if (matchingDriverIds.isNotEmpty) {
+          await FCMNotificationService.sendBookingOfferedNotificationToDrivers(
+            bookingId: bookingRef.id,
+            readableId: readableId,
+            categoryId: requestedCategory,
+            pickupAddress: pickup.address,
+            destinationAddress: destination.address,
+            estimatedFare: fare,
+            driverTokens: matchingDriverTokens,
+            driverIds: matchingDriverIds,
+          );
+        }
       } catch (err) {
         debugPrint('Driver push notification dispatch notice: $err');
       }
@@ -160,6 +201,96 @@ class BookingService {
         'scheduledDate': scheduledDate,
         'scheduledTimeSlot': scheduledTimeSlot,
       };
+    }
+  }
+
+  /// Expand Search to 20-25km with increased fare for long range drivers
+  Future<void> expandSearchRadiusWithHigherFare({
+    required String bookingId,
+    required double additionalFare,
+    required double newTotalFare,
+  }) async {
+    try {
+      final docRef = _firestore.collection('bookings').doc(bookingId);
+      final snap = await docRef.get();
+      if (!snap.exists) return;
+
+      final data = snap.data()!;
+      final pickupMap = data['pickup'] as Map<String, dynamic>;
+      final pickupLat = (pickupMap['latitude'] as num).toDouble();
+      final pickupLng = (pickupMap['longitude'] as num).toDouble();
+      final categoryId = (data['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+
+      // Update booking with expanded fare and 25km radius
+      await docRef.update({
+        'searchRadiusKm': 25.0,
+        'estimatedFare': newTotalFare,
+        'finalFare': newTotalFare,
+        'fareBoost': additionalFare,
+        'expandedSearchAt': FieldValue.serverTimestamp(),
+      });
+
+      // Search drivers in 20-25km radius
+      final driversSnapshot = await _firestore.collection('drivers').get();
+      final List<String> newDriverTokens = [];
+      final List<String> newDriverIds = [];
+
+      for (final driverDoc in driversSnapshot.docs) {
+        final dData = driverDoc.data();
+        final isBusy = dData['isBusy'] == true || dData['activeBookingId'] != null;
+        final isBlocked = dData['isBlocked'] == true;
+        final driverCategory = (dData['vehicleCategoryId'] ?? dData['category'] ?? 'car').toString().trim().toLowerCase();
+
+        if (!isBusy && !isBlocked && driverCategory == categoryId) {
+          double driverLat = 23.0740;
+          double driverLng = 85.2780;
+          if (dData['currentLocation'] != null && dData['currentLocation']['latitude'] != null) {
+            driverLat = (dData['currentLocation']['latitude'] as num).toDouble();
+            driverLng = (dData['currentLocation']['longitude'] as num).toDouble();
+          } else if (dData['location'] != null && dData['location']['latitude'] != null) {
+            driverLat = (dData['location']['latitude'] as num).toDouble();
+            driverLng = (dData['location']['longitude'] as num).toDouble();
+          }
+
+          final distToDriverKm = Geolocator.distanceBetween(
+            pickupLat,
+            pickupLng,
+            driverLat,
+            driverLng,
+          ) / 1000.0;
+
+          if (distToDriverKm <= 25.0) {
+            newDriverIds.add(driverDoc.id);
+            final tok = dData['fcmToken'] as String?;
+            if (tok != null && tok.isNotEmpty) newDriverTokens.add(tok);
+
+            await _firestore.collection('bookingRequests').add({
+              'bookingId': bookingId,
+              'driverId': driverDoc.id,
+              'vehicleCategoryId': categoryId,
+              'pickupDistanceKm': double.parse(distToDriverKm.toStringAsFixed(1)),
+              'isLongRangeBoost': true,
+              'status': 'offered',
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+      }
+
+      if (newDriverIds.isNotEmpty) {
+        await FCMNotificationService.sendBookingOfferedNotificationToDrivers(
+          bookingId: bookingId,
+          readableId: data['readableId'] ?? bookingId,
+          categoryId: categoryId,
+          pickupAddress: pickupMap['address'] ?? 'Pickup Point',
+          destinationAddress: (data['destination']?['address']) ?? 'Destination',
+          estimatedFare: newTotalFare,
+          driverTokens: newDriverTokens,
+          driverIds: newDriverIds,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error expanding search radius: $e');
     }
   }
 
@@ -213,14 +344,13 @@ class BookingService {
         .snapshots()
         .map((snapshot) {
       if (snapshot.docs.isEmpty) return null;
-      // Filter in memory for active statuses
+      // Filter in memory for confirmed active statuses only (no pending searching)
       final activeDocs = snapshot.docs.where((doc) {
         final data = doc.data();
         final status = data['status'] as String? ?? '';
         return status == 'driver_assigned' ||
             status == 'driver_arrived' ||
-            status == 'trip_started' ||
-            status == 'searching_driver';
+            status == 'trip_started';
       }).toList();
 
       if (activeDocs.isEmpty) return null;

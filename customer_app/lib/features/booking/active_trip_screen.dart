@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,61 @@ class ActiveTripScreen extends ConsumerStatefulWidget {
 
 class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   String? _previousStatus;
+  Timer? _searchTimer;
+  int _searchElapsedSeconds = 0;
+  bool _isBoostingInProgress = false;
+  int _boostElapsedSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startSearchTimer();
+  }
+
+  @override
+  void dispose() {
+    _searchTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _searchElapsedSeconds++;
+          if (_isBoostingInProgress) {
+            _boostElapsedSeconds++;
+          }
+        });
+        if (_searchElapsedSeconds % 10 == 0) {
+          _checkBookingTimeout();
+        }
+      }
+    });
+  }
+
+  void _checkBookingTimeout() async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final status = data['status'] as String? ?? '';
+      if (status != 'searching_driver') return;
+
+      final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+      // If regular booking is searching for more than 10 mins without acceptance, mark as no_driver_found
+      final bool isTimedOut = createdAt != null && DateTime.now().difference(createdAt).inMinutes >= 10;
+
+      if (isTimedOut) {
+        await FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).update({
+          'status': 'no_driver_found',
+          'closedReason': 'No driver accepted before departure threshold',
+          'closedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (_) {}
+  }
 
   Widget _buildVehicleImage(String? imagePath) {
     if (imagePath == null || imagePath.isEmpty) {
@@ -210,10 +266,12 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).snapshots(),
       builder: (context, snapshot) {
+        final Map<String, dynamic> rawData = (snapshot.hasData && snapshot.data?.data() != null)
+            ? snapshot.data!.data() as Map<String, dynamic>
+            : <String, dynamic>{};
         BookingModel booking;
-        if (snapshot.hasData && snapshot.data?.data() != null) {
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          booking = BookingModel.fromMap(data, widget.bookingId);
+        if (rawData.isNotEmpty) {
+          booking = BookingModel.fromMap(rawData, widget.bookingId);
         } else {
           // Fallback initial booking representation
           booking = BookingModel(
@@ -330,20 +388,60 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             ),
           ),
           body: isSearching
-              ? _buildPendingSearchingView(booking)
+              ? _buildPendingSearchingView(booking, rawData)
               : _buildBookingAcceptedView(booking),
         );
       },
     );
   }
 
-  /// 1. DEDICATED PENDING SEARCHING PAGE
-  Widget _buildPendingSearchingView(BookingModel booking) {
+  /// 1. DEDICATED PENDING SEARCHING PAGE (WITH FINDING -> BOOST -> URGENT BOOKING FLOW)
+  Widget _buildPendingSearchingView(BookingModel booking, Map<String, dynamic> rawData) {
+    // Check if booking has timed out or expired
+    if (booking.status == 'no_driver_found' || booking.status == 'expired') {
+      return _buildNoRideFoundView(booking);
+    }
+
+    final double searchRadius = (rawData['searchRadiusKm'] as num?)?.toDouble() ?? 12.0;
+    final int matchedDrivers = (rawData['matchedDriversCount'] as num?)?.toInt() ?? 0;
+    final bool isFareBoosted = rawData['fareBoost'] != null || _isBoostingInProgress;
+
+    // Check if initial finding stage is active (first 6 seconds after booking)
+    final bool isInitialFinding = _searchElapsedSeconds < 6;
+
+    // Check if boosted finding stage is active (first 6 seconds after boosting)
+    final bool isBoostFinding = _isBoostingInProgress && _boostElapsedSeconds < 6;
+
+    // Phase 1: Show Finding (either initial search or boosted search)
+    if (isInitialFinding || isBoostFinding) {
+      return _buildFindingView(
+        booking: booking,
+        isBoosted: isFareBoosted,
+        searchRadius: isFareBoosted ? 25.0 : searchRadius,
+      );
+    }
+
+    // Phase 2: If no drivers found in 10-12 km and NOT yet boosted:
+    // Show unserviceable image + Boost Fare Button (+₹80)
+    if (!isFareBoosted && (matchedDrivers == 0 || _searchElapsedSeconds >= 6)) {
+      return _buildUnserviceableWithBoostButtonView(booking, searchRadius);
+    }
+
+    // Phase 3: If boosted AND still no drivers found after boosted finding:
+    // HIDE boost button and show Urgent Booking with direct Call number!
+    return _buildUrgentBookingView(booking);
+  }
+
+  /// Phase 1: Finding Drivers Radar View
+  Widget _buildFindingView({
+    required BookingModel booking,
+    required bool isBoosted,
+    required double searchRadius,
+  }) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
         children: [
-          // Animated Pulse / Searching Indicator
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -364,7 +462,6 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
             ),
             child: Column(
               children: [
-                // 3D Visual with soft radial halo
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -396,7 +493,6 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                         ),
                       ),
                     ),
-                    // Floating live spinner ring
                     Positioned(
                       bottom: 4,
                       right: 4,
@@ -427,14 +523,16 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.radar_rounded, size: 12, color: Color(0xFF38BDF8)),
-                      SizedBox(width: 5),
+                      const Icon(Icons.radar_rounded, size: 12, color: Color(0xFF38BDF8)),
+                      const SizedBox(width: 5),
                       Text(
-                        'CONNECTING WITH NEARBY DRIVERS',
-                        style: TextStyle(
+                        isBoosted
+                            ? 'EXPANDED 20-25 KM DRIVER RADAR ACTIVE'
+                            : 'SEARCHING ${searchRadius.toInt()} KM NEARBY RADIUS',
+                        style: const TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8,
@@ -445,9 +543,9 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Matching Your Ride',
-                  style: TextStyle(
+                Text(
+                  isBoosted ? 'Broadcasting to Outlying Drivers' : 'Finding Drivers Nearby...',
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
@@ -455,21 +553,19 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Contacting verified drivers in your district. Once accepted, driver live tracking, plate number and vehicle photo will unlock automatically.',
+                Text(
+                  isBoosted
+                      ? 'Fare boosted by ₹80! Connecting to drivers across outer blocks up to 25 km.'
+                      : 'Searching for available cabs within 10-12 km of your pickup in Khunti / Murhu...',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8), height: 1.45),
+                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8), height: 1.45),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-
-          // Trip summary card
           _buildTripSummaryCard(booking),
           const SizedBox(height: 24),
-
-          // Cancel button
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -480,6 +576,455 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
               ),
               onPressed: _showCancelDialog,
               child: const Text('Cancel Ride', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Phase 2: Unserviceable In Immediate Radius + Boost Fare Button (+₹80)
+  Widget _buildUnserviceableWithBoostButtonView(BookingModel booking, double searchRadius) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        children: [
+          // 3D Illustration
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/images/unserviceable_area_3d.jpg',
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.location_off_rounded, size: 70, color: Color(0xFF64748B)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: const Text(
+              'NO DRIVERS WITHIN 10-12 KM',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFB45309),
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'No Drivers Nearby in 10-12 km',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'निकटवर्ती 10-12 किमी में कोई चालक उपलब्ध नहीं है',
+            style: TextStyle(fontSize: 13, color: Color(0xFFB45309), fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'All nearby drivers in your immediate village/block are currently busy. You can boost fare (+₹80) to find drivers in 20-25 km radius.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.45),
+          ),
+          const SizedBox(height: 20),
+
+          // Boost Fare Button Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Expand Search to 20-25 km',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF92400E)),
+                          ),
+                          Text(
+                            'Fare Boost: +₹80 (covers driver arrival distance)',
+                            style: TextStyle(fontSize: 11.5, color: Colors.amber.shade900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD97706),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                    label: const Text(
+                      'Boost Fare (+₹80) & Find Drivers',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                    ),
+                    onPressed: () async {
+                      final currentFare = booking.estimatedFare;
+                      const boostAmount = 80.0;
+                      final newFare = currentFare + boostAmount;
+
+                      setState(() {
+                        _isBoostingInProgress = true;
+                        _boostElapsedSeconds = 0;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fare boosted! Expanding search to 20-25 km radius... 🚀'),
+                          backgroundColor: Color(0xFFD97706),
+                        ),
+                      );
+
+                      await ref.read(bookingServiceProvider).expandSearchRadiusWithHigherFare(
+                        bookingId: widget.bookingId,
+                        additionalFare: boostAmount,
+                        newTotalFare: newFare,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          _buildTripSummaryCard(booking),
+          const SizedBox(height: 20),
+
+          // Cancel Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.error),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: _showCancelDialog,
+              child: const Text('Cancel Ride', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: () => context.go('/'),
+            child: const Text('Back to Home Screen', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Phase 3: Boosted but Still Not Found -> Hide Boost Button, Show Urgent Booking & Call Number!
+  Widget _buildUrgentBookingView(BookingModel booking) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 3D Illustration
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/images/unserviceable_area_3d.jpg',
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.location_off_rounded, size: 70, color: Color(0xFF64748B)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFEF4444)),
+            ),
+            child: const Text(
+              'UNSERVICEABLE IN THIS RADIUS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFB91C1C),
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'All Online Cabs Are Currently Busy',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'इस क्षेत्र में कोई भी ऑनलाइन कैब उपलब्ध नहीं है',
+            style: TextStyle(fontSize: 13, color: Color(0xFFB91C1C), fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'We checked all drivers up to 25 km in nearby blocks. You can arrange an offline vehicle via our 24/7 Control Room helpline.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.45),
+          ),
+          const SizedBox(height: 20),
+
+          // URGENT BOOKING CALL DESK CARD (BOOST BUTTON IS HIDDEN)
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF16A34A),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Need Urgent Ride? / जरूरी बुकिंग',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF14532D)),
+                          ),
+                          Text(
+                            'District Car Central Dispatch Desk',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF166534), fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Call our Jharkhand control room directly. Our dispatcher will connect you with available stand drivers offline.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF166534), height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.call, size: 20),
+                    label: const Text(
+                      'Call Helpline: +91 87896 01387',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                    onPressed: () => _callDriver('+91 87896 01387'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Return Home Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () => context.go('/'),
+              child: const Text('Back to Home Screen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: _showCancelDialog,
+            child: const Text('Cancel Ride Request', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// No Ride Found View (If Not Accepted Before Scheduled Time)
+  Widget _buildNoRideFoundView(BookingModel booking) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/images/unserviceable_area_3d.jpg',
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.event_busy_rounded, size: 70, color: Color(0xFF64748B)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFEF4444)),
+            ),
+            child: const Text(
+              'NO RIDE FOUND BEFORE SCHEDULED TIME',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFB91C1C),
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'No Ride Found',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'समय से पूर्व कोई चालक उपलब्ध नहीं मिला',
+            style: TextStyle(fontSize: 13, color: Color(0xFFB91C1C), fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We could not find an available driver before your scheduled departure time (${booking.scheduledDate ?? "Today"} - ${booking.scheduledTimeSlot ?? "Now"}). No fare was charged.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.45),
+          ),
+          const SizedBox(height: 24),
+          // Urgent Helpline Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF16A34A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.phone, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Need Immediate Assistance?',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF14532D)),
+                      ),
+                      Text(
+                        'Call Helpline: +91 87896 01387',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF166534), fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () => context.go('/'),
+              child: const Text('Back to Home Screen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             ),
           ),
         ],

@@ -65,7 +65,9 @@ class DriverProfileScreen extends ConsumerWidget {
                 _buildInfoTile('Vehicle Category', data['vehicleCategoryId'] ?? 'Car'),
                 _buildInfoTile('Total Trips', '${data['totalTrips'] ?? 0}'),
                 _buildInfoTile('Average Rating', '${data['rating'] ?? 5.0} ★'),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+
+                // Edit Profile Button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -79,7 +81,43 @@ class DriverProfileScreen extends ConsumerWidget {
                     onPressed: () => context.push('/driver-onboarding'),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+
+                // Play Store Mandatory Pages Menu
+                _buildMenuTile(
+                  icon: Icons.policy_rounded,
+                  iconColor: const Color(0xFF2563EB),
+                  title: 'Privacy Policy & Driver Agreement',
+                  subtitle: 'Background location and data disclosure',
+                  onTap: () => context.push('/driver-legal'),
+                ),
+                _buildMenuTile(
+                  icon: Icons.headset_mic_rounded,
+                  iconColor: const Color(0xFF059669),
+                  title: 'Help & 24/7 Support Desk',
+                  subtitle: 'Call control room or chat on WhatsApp',
+                  onTap: () => context.push('/driver-support'),
+                ),
+                _buildMenuTile(
+                  icon: Icons.delete_outline_rounded,
+                  iconColor: AppColors.error,
+                  title: 'Delete Driver Account',
+                  subtitle: 'Permanently erase driver profile & vehicle',
+                  onTap: () => context.push('/driver-delete-account'),
+                ),
+
+                const SizedBox(height: 20),
+
+                // App Version info
+                const Center(
+                  child: Text(
+                    'District Car Partner · Version 1.0.0 (Build 8)\nJharkhand Rural & District Mobility',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -99,6 +137,37 @@ class DriverProfileScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildMenuTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
+        onTap: onTap,
       ),
     );
   }

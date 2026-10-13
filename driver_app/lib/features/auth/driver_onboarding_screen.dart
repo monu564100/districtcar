@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
+import 'package:district_car_shared/services/jharkhand_district_data.dart';
 import '../../services/driver_service.dart';
 
 class DriverOnboardingScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,10 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
   final _phoneCtrl = TextEditingController();
   final _plateCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
+  final _locationAddressCtrl = TextEditingController(text: 'Murhu Chowk / Lac Market, Khunti');
 
+  String _selectedDistrict = 'Khunti';
+  String _selectedBlock = 'Murhu';
   String _selectedCategory = 'car';
   String _selectedDriverPhoto = 'avatar_1';
   Uint8List? _driverPhotoBytes;
@@ -36,6 +40,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     _phoneCtrl.dispose();
     _plateCtrl.dispose();
     _modelCtrl.dispose();
+    _locationAddressCtrl.dispose();
     super.dispose();
   }
 
@@ -86,6 +91,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     });
 
     try {
+      final blockLoc = JharkhandDistrictData.getBlockLocation(_selectedDistrict, _selectedBlock);
       await ref.read(driverServiceProvider).saveDriverOnboarding(
         name: name,
         phoneNumber: phone,
@@ -94,6 +100,13 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
         vehicleModel: model,
         vehicleImage: _selectedVehicleImage,
         driverPhoto: _selectedDriverPhoto,
+        district: _selectedDistrict,
+        block: _selectedBlock,
+        locationAddress: _locationAddressCtrl.text.trim().isNotEmpty
+            ? _locationAddressCtrl.text.trim()
+            : '$_selectedBlock, $_selectedDistrict, Jharkhand',
+        latitude: blockLoc.latitude,
+        longitude: blockLoc.longitude,
       );
 
       if (mounted) {
@@ -316,6 +329,123 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   filled: true,
                   fillColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Operational District & Block Selection Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.location_on, color: Color(0xFF059669), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'OPERATIONAL LOCATION (कार्य क्षेत्र)',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Select your primary operating district and block so you receive nearby ride requests.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // District Selector Dropdown
+                    const Text('Select District (ज़िला चुनें)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedDistrict,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                          items: JharkhandDistrictData.allDistricts.map((d) {
+                            return DropdownMenuItem<String>(
+                              value: d,
+                              child: Text(d, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (newDist) {
+                            if (newDist != null) {
+                              final blocks = JharkhandDistrictData.getBlocksForDistrict(newDist);
+                              setState(() {
+                                _selectedDistrict = newDist;
+                                _selectedBlock = blocks.isNotEmpty ? blocks.first : 'Sadar';
+                                _locationAddressCtrl.text = '$_selectedBlock, $_selectedDistrict, Jharkhand';
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Block Selector Dropdown
+                    const Text('Select Block / Tehsil (प्रखंड चुनें)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedBlock,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                          items: JharkhandDistrictData.getBlocksForDistrict(_selectedDistrict).map((b) {
+                            return DropdownMenuItem<String>(
+                              value: b,
+                              child: Text(b, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (newBlock) {
+                            if (newBlock != null) {
+                              setState(() {
+                                _selectedBlock = newBlock;
+                                _locationAddressCtrl.text = '$_selectedBlock, $_selectedDistrict, Jharkhand';
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Exact Location / Landmark
+                    const Text('Exact Stand / Chowk / Landmark (सटीक स्थान/चौक)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _locationAddressCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Murhu Chowk / Bus Stand, Khunti',
+                        prefixIcon: const Icon(Icons.pin_drop_outlined, color: AppColors.primary, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        isDense: true,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 28),

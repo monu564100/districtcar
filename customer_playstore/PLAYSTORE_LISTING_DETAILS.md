@@ -1,79 +1,50 @@
-# District Car — Google Play Store Listing & Data Safety Compliance
+# Google Play Console Submission Details - Customer App
 
-## 1. App Store Identification
-- **App Name**: District Car — Cab & Tour Ride
-- **Package Name (Application ID)**: `com.districtcarcustomerd.app`
-- **Category**: Maps & Navigation / Travel & Local
-- **Target Audience**: General Public (13+)
-- **Primary Language**: English (United States), Hindi (India)
-- **Version Code**: `6`
-- **Version Name**: `1.0.0`
-- **AAB File**: [`DistrictCar_Customer_Release_v6.aab`](DistrictCar_Customer_Release_v6.aab) (51.5 MB)
+## 1. App Identifiers & Build Specs
+* **App Name**: District Car - Cab Booking
+* **Package / Application ID**: `com.districtcarcustomerd.app`
+* **Version Name**: `1.0.0`
+* **Version Code**: `8`
+* **App Bundle File**: `customer_playstore/DistrictCar_Customer_Release.aab`
+* **Target Android SDK**: `34` (Android 14) / Min SDK: `21` (Android 5.0)
 
 ---
 
-## 2. Store Listing Metadata
+## 2. Store Listing Texts
 
-### Short Description (Up to 80 characters)
-> Jharkhand's 1st rural & district cab network with guaranteed round-trip savings.
+### Short Description (80 Characters max):
+> Book local cabs, village stand rides, and tour travel in Jharkhand.
 
-### Full Description (Up to 4000 characters)
-```text
-District Car (districtcar.in) is Jharkhand's pioneering rural and district cab booking service, built to connect village communities, remote tolas, Sadar Hospitals, and district headquarters across all 24 districts of Jharkhand with transparent, dignified, and safe mobility.
+### Full Description:
+District Car is an on-demand cab and regional mobility application connecting passengers across blocks, towns, and district locations in Jharkhand.
 
-WHY COMMUTERS CHOOSE DISTRICT CAR:
-• ZERO SURGE PRICING: Fixed, transparent per-km rates with zero arbitrary rain or peak surges.
-• 1-TAP ROUND-TRIP PACKAGE: Need to visit Sadar Hospital, a medical checkup, court hearings, or mandi? Book a Round Trip with an automatic return discount and 1 hour of waiting included for free!
-• REAL-TIME GOOGLE GPS ACCURACY: Accurate doorstep village and chowk pick-ups powered by Google Maps Directions & Distance Matrix, showing exact travel duration and live traffic.
-• VEHICLE CHOICES FOR EVERY NEED:
-  - Economy Mini Cab (Hatchback/Sedan AC) — ₹15/km (One-way) / ₹17.5/km (Round-trip)
-  - Auto Rickshaw (Local & Rural Routes) — ₹11/km
-  - Comfort Sedan AC — ₹23/km (One-way) / ₹25/km (Round-trip)
-  - SUV / Bolero / Ertiga (6-7 Seater AC) — ₹21/km
-• TOURS & TRAVELS PACKAGES: Explore famous Jharkhand destinations including Hundru Falls, Jonha Falls, Baba Baidyanath Dham Deoghar, Parasnath, Betla National Park, and Patratu Valley with dedicated sightseeing drivers.
-• VERIFIED SARATHI DRIVER PARTNERS: Police-verified drivers with local route familiarity and safe rural driving records.
-• 24x7 INCIDENT & GRIEVANCE SUPPORT: In-app reporting for ride concerns, overcharging, and lost property handled directly by our customer care team within 2 hours.
+The app enables commuters to book doorstep pickups and outstation rides with local drivers across Khunti, Ranchi, and surrounding districts.
 
-CORPORATE & REGISTRATION CREDENTIALS:
-• Company: District Car Mobility Private Limited
-• Registered Headquarters: Nichey Chowk, Khunti, Jharkhand - 835210
-• Leadership: Monu Kumar (CEO) & Sonu Kumar (Co-Founder)
-• Support Helpline: +91 87896 01387
-• Support Email: support@districtcar.in
-• Official Website: https://districtcar.in
-```
+Key Features:
+• Transparent Pricing: View distance-based fare estimates before booking.
+• Doorstep & Stand Pickups: Book rides from village stands, towns, or home locations.
+• Multiple Vehicle Types: Choose from auto-rickshaws, hatchbacks, sedans, or SUVs based on availability.
+• Outstation & Day Trips: Plan point-to-point and round-trip journeys across districts.
+• Direct Driver Settlements: Pay drivers directly using Cash or UPI upon trip completion.
+• In-App Support: Direct access to support helpline (+91 87896 01387) for trip assistance.
+• Account Management: Manage profile details and request account deletion anytime directly within the app.
 
 ---
 
-## 3. Google Play Store Data Safety Questionnaire Answers
+## 3. Play Console "App Access" (For Google Review Team)
+In Play Console > Policy and programs > App access, select **"All or some functionality is restricted"** and add this instruction:
 
-Google Play Console requires exact declarations regarding data collection, encryption, and deletion. Use these exact answers:
-
-| Data Type | Collected? | Shared? | Purpose | Ephemeral? | User Can Delete? |
-|---|---|---|---|---|---|
-| **Approximate Location** | Yes | No | App functionality, fraud prevention, driver dispatch | No | Yes (via account deletion) |
-| **Precise Location** | Yes | No | Real-time ride navigation, accurate pickup/drop navigation, driver assignment | Active session only | Yes (via account deletion) |
-| **Name** | Yes | No | Account management, driver identification | No | Yes (Profile ➔ Delete Account) |
-| **Email Address** | Yes | No | Account management, ride receipts | No | Yes |
-| **Phone Number** | Yes | No | Account authentication, driver trip coordination | No | Yes |
-| **User IDs (Firebase UID)** | Yes | No | App functionality, analytics | No | Yes |
-| **Crash Logs & Diagnostics** | Yes | No | App stability, performance improvement | No | Automatic retention |
-
-### Data Safety Declarations:
-1. **Is data encrypted in transit?** 
-   - **Yes**, all network traffic uses HTTPS / TLS 1.3 to Google Cloud Firebase servers.
-2. **Do you provide a way for users to request that their data is deleted?** 
-   - **Yes**. Users can delete their account and all personal data inside the app under:
-     `Profile ➔ Delete Account (खाता हटाएँ)`
-   - Web deletion request URL: `https://districtcar.in/#terms` (Email request to `support@districtcar.in`).
+* **Instruction Name**: Play Store Review Test Access
+* **Username / Email**: `playstore.review@districtcar.com`
+* **Password / Credentials**: `No password required. Tap the "Play Store Team Demo Login (Test Account)" button located directly below Google Sign-In.`
+* **Explanation for Reviewers**:
+> Reviewers can instantly log into the customer app without a physical Google/Gmail account by tapping the "Play Store Team Demo Login (Test Account)" button on the sign-in screen. It preloads a verified test profile and opens the main booking dashboard immediately.
 
 ---
 
-## 4. Play Store Contact & Policy URLs
-
-- **Privacy Policy URL**: `https://districtcar.in/#terms`
-- **Account Deletion Request URL**: `https://districtcar.in/#terms`
-- **Support Email**: `support@districtcar.in`
-- **Support Phone**: `+918789601387`
-- **Developer Website**: `https://districtcar.in`
-- **Physical Address**: `Nichey Chowk, Khunti, Jharkhand - 835210, India`
+## 4. Privacy Policy & Support Contact
+* **Privacy Policy URL**: `https://notification.projectmarket.in/privacy-policy` (or `https://notification.projectmarket.in/privacy-policy/`)
+* **Account & Data Deletion URL**: `https://notification.projectmarket.in/delete-account` (or `https://notification.projectmarket.in/delete-account/`)
+* **Support Email**: `contact@projectmarket.in` / `support@districtcar.in`
+* **Support Phone**: `+91 87896 01387`
+* **Category**: Maps & Navigation / Travel & Local

@@ -132,6 +132,62 @@ class DriverService {
     return user;
   }
 
+  /// 1-Click Instant Sign-In for Google Play Store Review Team
+  Future<DistrictUser> signInAsPlayStoreReviewer() async {
+    const reviewerUid = 'playstore_driver_reviewer_01';
+    final user = DistrictUser(
+      uid: reviewerUid,
+      email: 'playstore.driver@districtcar.com',
+      displayName: 'Play Store Demo Driver',
+      phoneNumber: '+91 87896 01387',
+      profilePhotoUrl: null,
+    );
+    _localUser = user;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('district_user_uid', reviewerUid);
+      await prefs.setString('district_user_email', 'playstore.driver@districtcar.com');
+      await prefs.setString('district_user_name', 'Play Store Demo Driver');
+      await prefs.setString('district_user_phone', '+91 87896 01387');
+      await prefs.setBool('driver_is_onboarded', true);
+    } catch (_) {}
+
+    try {
+      await _firestore.collection('drivers').doc(reviewerUid).set({
+        'uid': reviewerUid,
+        'email': 'playstore.driver@districtcar.com',
+        'name': 'Play Store Demo Driver',
+        'phoneNumber': '+91 87896 01387',
+        'vehicleCategoryId': 'car',
+        'category': 'car',
+        'vehicleModel': 'Maruti Dzire',
+        'vehiclePlate': 'JH 01 BZ 1234',
+        'district': 'Khunti',
+        'block': 'Murhu',
+        'currentAddress': 'Murhu Chowk Stand, Khunti, Jharkhand',
+        'location': {
+          'latitude': 22.9667,
+          'longitude': 85.2833,
+        },
+        'currentLocation': {
+          'latitude': 22.9667,
+          'longitude': 85.2833,
+        },
+        'verificationStatus': 'approved',
+        'isOnline': true,
+        'isAvailable': true,
+        'isBusy': false,
+        'isBlocked': false,
+        'totalTrips': 24,
+        'rating': 4.9,
+        'lastLoginAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    return user;
+  }
+
   /// Instant Direct Email Sign In without OTP delay
   Future<DistrictUser> signInWithEmailDirectly(String email) async {
     final cleanEmail = email.trim().toLowerCase();
@@ -323,8 +379,21 @@ class DriverService {
     required String vehicleModel,
     String? vehicleImage,
     String? driverPhoto,
+    String? district,
+    String? block,
+    String? locationAddress,
+    double? latitude,
+    double? longitude,
   }) async {
     final uid = currentUser?.uid ?? 'driver_demo';
+    final dist = district ?? 'Khunti';
+    final blk = block ?? 'Murhu';
+    final lat = latitude ?? (dist == 'Khunti' && blk == 'Murhu' ? 22.9660 : 23.0740);
+    final lng = longitude ?? (dist == 'Khunti' && blk == 'Murhu' ? 85.2670 : 85.2780);
+    final addr = (locationAddress != null && locationAddress.isNotEmpty)
+        ? locationAddress
+        : '$blk, $dist, Jharkhand';
+
     final data = {
       'uid': uid,
       'name': name,
@@ -336,10 +405,31 @@ class DriverService {
       'vehicleModel': vehicleModel,
       'vehicleImage': vehicleImage ?? 'car_blue.jpg',
       'driverPhoto': driverPhoto ?? 'avatar_1',
+      'district': dist,
+      'block': blk,
+      'currentAddress': addr,
+      'location': {
+        'latitude': lat,
+        'longitude': lng,
+        'address': addr,
+        'district': dist,
+        'block': blk,
+      },
+      'currentLocation': {
+        'latitude': lat,
+        'longitude': lng,
+        'address': addr,
+      },
       'isProfileCompleted': true,
       'verificationStatus': 'approved',
       'isOnline': true,
-      'driverStatus': 'available',
+      'isBusy': false,
+      'isActive': true,
+      'isBlocked': false,
+      'driverStatus': 'idle',
+      'rating': 4.9,
+      'totalTrips': 14,
+      'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
@@ -357,6 +447,9 @@ class DriverService {
       await prefs.setString('driver_user_vehicle_model', vehicleModel);
       await prefs.setString('driver_user_vehicle_image', vehicleImage ?? 'car_blue.jpg');
       await prefs.setString('driver_user_photo', driverPhoto ?? 'avatar_1');
+      await prefs.setString('driver_district', dist);
+      await prefs.setString('driver_block', blk);
+      await prefs.setString('driver_address', addr);
       await prefs.setBool('driver_is_online', true);
     } catch (_) {}
   }

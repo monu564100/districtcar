@@ -79,7 +79,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'customer_app',
-        currentBuildNumber: 6,
+        currentBuildNumber: 10,
       );
       final user = ref.read(authServiceProvider).currentUser;
       FCMNotificationService.initFCM(
@@ -454,9 +454,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
         final status = booking.status;
         final isAccepted = status == 'driver_assigned' || status == 'driver_arrived' || status == 'trip_started';
-        final isSearching = status == 'searching_driver';
 
-        if (!isAccepted && !isSearching) return const SizedBox.shrink();
+        // Strictly do not show pending/searching bookings on home screen
+        if (!isAccepted) return const SizedBox.shrink();
 
         String statusLabel = 'DRIVER ACCEPTED';
         IconData statusIcon = Icons.check_circle_rounded;
@@ -469,10 +469,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           statusLabel = 'TRIP IN PROGRESS';
           statusIcon = Icons.directions_car_rounded;
           statusBg = const Color(0xFF7C3AED);
-        } else if (isSearching) {
-          statusLabel = 'CONNECTING DRIVER';
-          statusIcon = Icons.radar_rounded;
-          statusBg = const Color(0xFFD97706);
         }
 
         return Positioned(
@@ -892,6 +888,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 
   /// 100% Dynamic & Editable Journey Details Card (From and To)
+  String _formatDuration(int minutes) {
+    if (minutes < 60) {
+      return '$minutes min${minutes > 1 ? "s" : ""}';
+    }
+    final int hours = minutes ~/ 60;
+    final int remainingMins = minutes % 60;
+    if (remainingMins == 0) {
+      return '$hours hr${hours > 1 ? "s" : ""}';
+    }
+    return '$hours hr $remainingMins min';
+  }
+
   Widget _buildJourneyDetailsCard(
     double distanceKm,
     int durationMinutes,
@@ -908,282 +916,117 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       }
     });
 
+    // Dynamic calculation: on Round Trip, distance and travel time double + waiting hours are included
+    final effectiveDistanceKm = _isRoundTrip ? (distanceKm * 2.0) : distanceKm;
+    final baseDuration = _isRoundTrip ? (durationMinutes * 2) : durationMinutes;
+    final waitingMins = _isRoundTrip ? (_roundTripStoppingHours * 60).round() : 0;
+    final totalDurationMinutes = baseDuration + waitingMins;
+
     final totalFare = _calculateFare(currentCat, distanceKm);
+    final formattedDuration = _formatDuration(totalDurationMinutes);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 14),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF0F172A).withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // From & To Dual Editable Sections with Swap Button
-          Row(
-            children: [
-              // FROM (PICKUP) - Fully Interactive & Typeable
-              Expanded(
-                child: InkWell(
-                  onTap: _openPickupLocationPicker,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.trip_origin, size: 14, color: Color(0xFF10B981)),
-                            const SizedBox(width: 4),
-                            const Text('Pickup (From)', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
-                            const Spacer(),
-                            Tooltip(
-                              message: 'Use current GPS location',
-                              child: InkWell(
-                                onTap: _setCurrentGpsForPickup,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(2.0),
-                                  child: Icon(Icons.my_location, size: 14, color: Color(0xFF10B981)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.edit, size: 13, color: AppColors.primary),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _pickupLocation.address.split(',').first,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          _pickupLocation.address.split(',').length > 1
-                              ? _pickupLocation.address.split(',')[1].trim()
-                              : 'Tap to type address',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Swap Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: InkWell(
-                  onTap: _swapLocations,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.swap_horiz, color: AppColors.primary, size: 18),
-                  ),
-                ),
-              ),
-
-              // TO (DESTINATION) - Fully Interactive & Typeable
-              Expanded(
-                child: InkWell(
-                  onTap: _openDestinationLocationPicker,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 14, color: AppColors.error),
-                            const SizedBox(width: 4),
-                            const Text('Drop (To)', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
-                            const Spacer(),
-                            Tooltip(
-                              message: 'Use current GPS location',
-                              child: InkWell(
-                                onTap: _setCurrentGpsForDestination,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(2.0),
-                                  child: Icon(Icons.my_location, size: 14, color: AppColors.error),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.edit, size: 13, color: AppColors.primary),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _destinationLocation.address.split(',').first,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          _destinationLocation.address.split(',').length > 1
-                              ? _destinationLocation.address.split(',')[1].trim()
-                              : 'Tap to type address',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-          // Dynamic Metrics Strip: Distance, Duration, Price in INR ₹
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    const Text('Distance', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('$distanceKm km', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary)),
-                  ],
-                ),
-                Container(height: 20, width: 1, color: AppColors.borderLight),
-                Column(
-                  children: [
-                    const Text('Duration', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('$durationMinutes mins', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary)),
-                  ],
-                ),
-                Container(height: 20, width: 1, color: AppColors.borderLight),
-                Column(
-                  children: [
-                    Text(_isRoundTrip ? 'Round Trip' : 'One-Way', style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('₹${totalFare.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.primary)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 14),
-          // 1. Departure Schedule Container (Placed directly above Round Trip container)
-          _buildEmbeddedScheduleContainer(),
-
-          const SizedBox(height: 14),
-          // 2. Round Trip Button & Waiting Hour Selection (Directly above Book Ride button)
+          // 1. Sleek Route Pickup & Destination Section (Uber / Grab style timeline)
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _isRoundTrip ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: _isRoundTrip ? const Color(0xFF22C55E) : const Color(0xFFE2E8F0),
-                width: 1.5,
-              ),
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Round Trip Toggle Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                // Visual Timeline Indicators (Green dot -> dashed line -> Red pin)
+                Column(
                   children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          setState(() => _isRoundTrip = !_isRoundTrip);
-                        },
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059669),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF059669).withOpacity(0.35),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 2,
+                      height: 38,
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: const Color(0xFFCBD5E1),
+                    ),
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFDC2626).withOpacity(0.35),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+
+                // From & To Address Fields
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Pickup Location Row
+                      InkWell(
+                        onTap: _openPickupLocationPicker,
                         borderRadius: BorderRadius.circular(12),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: _isRoundTrip ? const Color(0xFF22C55E) : const Color(0xFFE2E8F0),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.sync_alt_rounded,
-                                color: _isRoundTrip ? Colors.white : AppColors.textSecondary,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Wrap(
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    spacing: 6,
-                                    runSpacing: 2,
-                                    children: [
-                                      const Text(
-                                        'Round Trip',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 13.5,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFDCFCE7),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text(
-                                          '1 Hr Free 🎁',
-                                          style: TextStyle(
-                                            color: Color(0xFF15803D),
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  const Text(
+                                    'PICKUP LOCATION',
+                                    style: TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _isRoundTrip
-                                        ? 'Driver stays & returns with you'
-                                        : 'Book return trip with same driver',
+                                    _pickupLocation.address.split(',').first,
                                     style: const TextStyle(
-                                      fontSize: 10.5,
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: Color(0xFF0F172A),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1191,14 +1034,295 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                 ],
                               ),
                             ),
+                            Tooltip(
+                              message: 'Use current GPS location',
+                              child: InkWell(
+                                onTap: _setCurrentGpsForPickup,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.my_location_rounded,
+                                    size: 15,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      ),
+
+                      // Destination Location Row
+                      InkWell(
+                        onTap: _openDestinationLocationPicker,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'DROP DESTINATION',
+                                    style: TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _destinationLocation.address.split(',').first,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Tooltip(
+                              message: 'Use current GPS location',
+                              child: InkWell(
+                                onTap: _setCurrentGpsForDestination,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.my_location_rounded,
+                                    size: 15,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Swap Button
+                InkWell(
+                  onTap: _swapLocations,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 6,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Switch(
+                    child: const Icon(
+                      Icons.swap_vert_rounded,
+                      color: Color(0xFF059669),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 2. Journey Metrics Banner (Distance, Duration & Est. Fare)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                // Distance Metric
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'DISTANCE',
+                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 9.5, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${effectiveDistanceKm.toStringAsFixed(1)} km',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  height: 24,
+                  width: 1,
+                  color: Colors.white.withOpacity(0.15),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+
+                // Duration Metric (Formatted: e.g. 1 hr 15 mins)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'DURATION',
+                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 9.5, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formattedDuration,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  height: 24,
+                  width: 1,
+                  color: Colors.white.withOpacity(0.15),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+
+                // Fare Estimate
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _isRoundTrip ? 'ROUND TRIP' : 'EST. FARE',
+                      style: const TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '₹${totalFare.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 3. Departure Schedule Container (Professional, clean without instant tags or Hindi text)
+          _buildEmbeddedScheduleContainer(),
+
+          const SizedBox(height: 14),
+
+          // 4. Round Trip Option Container with High Polish
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _isRoundTrip ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: _isRoundTrip ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _isRoundTrip ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.sync_alt_rounded,
+                        color: _isRoundTrip ? Colors.white : const Color(0xFF64748B),
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'Round Trip Booking',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  '1 Hr Free Waiting',
+                                  style: TextStyle(
+                                    color: Color(0xFF15803D),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _isRoundTrip
+                                ? 'Same driver stays with you and returns'
+                                : 'Return back with the same cab and driver',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
                       value: _isRoundTrip,
-                      activeColor: const Color(0xFF22C55E),
+                      activeColor: const Color(0xFF059669),
                       onChanged: (val) {
                         setState(() => _isRoundTrip = val);
                       },
@@ -1206,57 +1330,51 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   ],
                 ),
 
-                // If Round Trip selected: show 1hr free and user can increase waiting hours based on pricing increase
                 if (_isRoundTrip) ...[
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(height: 1),
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(height: 1, color: Color(0xFFE2E8F0)),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Driver Waiting Hours',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                                color: AppColors.textPrimary,
-                              ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Driver Waiting Allowance',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                              color: Color(0xFF0F172A),
                             ),
-                            Text(
-                              _roundTripStoppingHours <= 1.0
-                                  ? '1st Hour is 100% Free'
-                                  : '+₹${((_roundTripStoppingHours - 1.0) * 60.0).toStringAsFixed(0)} (+₹60/hr extra)',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                color: _roundTripStoppingHours <= 1.0
-                                    ? const Color(0xFF16A34A)
-                                    : const Color(0xFFD97706),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            _roundTripStoppingHours <= 1.0
+                                ? 'First 60 minutes included free'
+                                : '+₹${((_roundTripStoppingHours - 1.0) * 60.0).toStringAsFixed(0)} (at standard ₹60/hr)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _roundTripStoppingHours <= 1.0
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFD97706),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
                       Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.remove, size: 15),
-                              splashRadius: 16,
+                              icon: const Icon(Icons.remove_rounded, size: 16),
                               padding: const EdgeInsets.all(4),
                               constraints: const BoxConstraints(),
                               onPressed: _roundTripStoppingHours > 1.0
@@ -1268,19 +1386,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                   : null,
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 '${_roundTripStoppingHours.toInt()} hr${_roundTripStoppingHours > 1 ? "s" : ""}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                  color: Color(0xFF0F172A),
                                 ),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add, size: 15, color: AppColors.primary),
-                              splashRadius: 16,
+                              icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF059669)),
                               padding: const EdgeInsets.all(4),
                               constraints: const BoxConstraints(),
                               onPressed: () {
@@ -1299,18 +1416,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
-          // Book Ride Action Button
+          const SizedBox(height: 18),
+
+          // 5. High-Impact Call to Action Book Ride Button
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 54,
             child: ElevatedButton(
               onPressed: _isBookingLoading ? null : () => _handleBookingSearch(totalFare),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
-                elevation: 3,
-                shadowColor: const Color(0xFF059669).withOpacity(0.35),
+                elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
               child: _isBookingLoading
@@ -1322,11 +1439,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.local_taxi_rounded, size: 20, color: Colors.white),
+                        const Icon(Icons.directions_car_rounded, size: 20, color: Colors.white),
                         const SizedBox(width: 8),
                         Text(
                           'Book Ride • ₹${totalFare.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2),
                         ),
                       ],
                     ),
@@ -1337,68 +1454,30 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  /// Compact & Luxury Embedded Departure Schedule Container (Placed directly above Round Trip container)
+  /// Modern Clean Departure Schedule Container
   Widget _buildEmbeddedScheduleContainer() {
     final dayDateMonth = DateFormat('EEE, d MMM').format(_selectedDate);
-    final isInstant = _selectedTimeSlot.contains('Now');
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.calendar_month_rounded, size: 15, color: Color(0xFF059669)),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Departure Schedule (प्रस्थान समय)',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isInstant ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isInstant ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isInstant ? Icons.bolt_rounded : Icons.schedule_rounded,
-                      size: 12,
-                      color: isInstant ? const Color(0xFF059669) : const Color(0xFFD97706),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isInstant ? 'Instant' : 'Scheduled',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: isInstant ? const Color(0xFF047857) : const Color(0xFFB45309),
-                      ),
-                    ),
-                  ],
+            children: const [
+              Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF059669)),
+              SizedBox(width: 8),
+              Text(
+                'Departure Schedule',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: Color(0xFF0F172A),
                 ),
               ),
             ],
@@ -1412,70 +1491,75 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   onTap: _pickDate,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.today_rounded, size: 15, color: Color(0xFF059669)),
-                        const SizedBox(width: 7),
+                        const Icon(Icons.today_rounded, size: 16, color: Color(0xFF059669)),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('TRAVEL DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                              const SizedBox(height: 1),
+                              const Text(
+                                'DATE',
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                              ),
                               Text(
                                 dayDateMonth,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_drop_down, size: 18, color: Color(0xFF64748B)),
+                        const Icon(Icons.arrow_drop_down_rounded, size: 20, color: Color(0xFF64748B)),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
+
               // Time Slot Picker
               Expanded(
                 child: InkWell(
                   onTap: _selectTimeSlotModal,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFF059669)),
-                        const SizedBox(width: 7),
+                        const Icon(Icons.access_time_rounded, size: 16, color: Color(0xFF059669)),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('TIME SLOT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                              const SizedBox(height: 1),
+                              const Text(
+                                'TIME',
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                              ),
                               Text(
                                 _selectedTimeSlot.split('(').first.trim(),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
+                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_drop_down, size: 18, color: Color(0xFF64748B)),
+                        const Icon(Icons.arrow_drop_down_rounded, size: 20, color: Color(0xFF64748B)),
                       ],
                     ),
                   ),

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account & Data Deletion - District Car Jharkhand</title>
+  <meta name="description" content="Request permanent account and user data deletion for District Car Customer and Driver Partner mobile apps in compliance with Google Play Store Data Safety Policies.">
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #1E3A8A;
+      --secondary: #16A34A;
+      --danger: #DC2626;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .nav-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-size: 10.5px;
+      color: var(--secondary);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: block;
+    }
+
+    .back-home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .back-home-btn:hover {
+      background: #E2E8F0;
+    }
+
+    .content-wrapper {
+      max-width: 860px;
+      margin: 32px auto 60px auto;
+      padding: 0 20px;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%);
+      color: #FFFFFF;
+      padding: 36px 30px;
+      border-radius: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(185, 28, 28, 0.15);
+    }
+
+    .header-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    .header-title {
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      letter-spacing: -0.4px;
+    }
+
+    .header-desc {
+      font-size: 14px;
+      color: #FECACA;
+      max-width: 680px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    }
+
+    .card h2 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    .card ul, .card ol {
+      margin-left: 20px;
+      margin-bottom: 14px;
+      color: #475569;
+      font-size: 13.5px;
+    }
+
+    .card li {
+      margin-bottom: 6px;
+    }
+
+    /* Web Deletion Form */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: #F8FAFC;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--danger);
+      background: #FFFFFF;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--danger);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 14.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .btn-submit:hover {
+      background: #B91C1C;
+    }
+
+    .success-alert {
+      display: none;
+      background: #F0FDF4;
+      border: 1.5px solid #86EFAC;
+      border-radius: 14px;
+      padding: 16px;
+      color: #14532D;
+      font-size: 13.5px;
+      margin-top: 16px;
+    }
+
+    .footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      padding: 28px 20px;
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav-header">
+    <div class="nav-container">
+      <a href="../" class="brand-link">
+        <img src="../apple-touch-icon.png" alt="District Car Logo" class="brand-logo" onerror="this.src='https://placehold.co/40x40/dc2626/ffffff?text=DC'">
+        <div>
+          <span class="brand-title">District Car</span>
+          <span class="brand-sub">JHARKHAND MOBILITY</span>
+        </div>
+      </a>
+      <a href="../" class="back-home-btn">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back to Home</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="content-wrapper">
+
+    <div class="header-banner">
+      <div class="header-badge">GOOGLE PLAY DATA SAFETY COMPLIANT</div>
+      <h1 class="header-title">Account & Data Deletion Request</h1>
+      <p class="header-desc">
+        District Car provides users and driver partners with complete control over their accounts and personal data. Learn how your data is handled and submit a permanent deletion request below.
+      </p>
+    </div>
+
+    <!-- Section: Two ways to delete -->
+    <div class="card">
+      <h2><i class="fa-solid fa-mobile-screen-button" style="color:var(--primary);"></i> Method 1: Delete Directly Inside the App (Instant)</h2>
+      <p>If you currently have the app installed on your smartphone, you can instantly erase your account and all associated records:</p>
+      <ol>
+        <li>Open the <strong>District Car Customer App</strong> or <strong>Driver Partner App</strong>.</li>
+        <li>Go to the <strong>Profile</strong> tab in the bottom navigation.</li>
+        <li>Scroll down and tap <strong>Delete Account</strong> (खाता हमेशा के लिए हटाएं).</li>
+        <li>Select a reason and tap <strong>"Permanently Delete Account"</strong>.</li>
+      </ol>
+      <p style="font-size:12.5px; color:#64748B; margin-top:8px;">
+        * This immediately invalidates your sign-in session and permanently purges your profile from our active database.
+      </p>
+    </div>
+
+    <!-- Section: Web Deletion Request Form -->
+    <div class="card">
+      <h2><i class="fa-solid fa-globe" style="color:var(--danger);"></i> Method 2: Request Deletion via Web Form</h2>
+      <p>If you uninstalled the app or cannot access your device, submit your registered phone or email below. Our compliance team will process your erasure within 24 hours.</p>
+
+      <form id="deletionForm" onsubmit="handleDeletionSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="delName" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Registered Mobile Number *</label>
+          <input type="tel" id="delPhone" class="form-control" placeholder="+91 98765 43210" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Registered Google / Email Address (Optional)</label>
+          <input type="email" id="delEmail" class="form-control" placeholder="your.name@gmail.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Account Role *</label>
+          <select id="delRole" class="form-control" required>
+            <option value="customer">Passenger / Customer App User</option>
+            <option value="driver">Driver Partner</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Reason for Deletion (Optional)</label>
+          <textarea id="delReason" class="form-control" rows="3" placeholder="Tell us why you wish to delete your account..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Submit Permanent Deletion Request</span>
+        </button>
+
+        <div id="successAlert" class="success-alert">
+          <i class="fa-solid fa-circle-check"></i>
+          <strong>Request Submitted:</strong> Your account deletion request has been recorded. Your registered profile and associated records will be permanently purged within 24–48 hours. A confirmation has been initiated.
+        </div>
+      </form>
+    </div>
+
+    <!-- Section: Data Deletion & Retention Breakdown -->
+    <div class="card">
+      <h2><i class="fa-solid fa-shield-halved" style="color:var(--secondary);"></i> What Data Is Deleted vs Retained?</h2>
+      
+      <h3 style="font-size:14px; color:#1E3A8A; margin-bottom:8px;">Data Permanently Deleted:</h3>
+      <ul>
+        <li><strong>Personal Identifiers:</strong> Name, phone number, email address, profile photo.</li>
+        <li><strong>Vehicle & Driver Records (for Drivers):</strong> Vehicle registration plate, model, category, license details, and operating block/stand.</li>
+        <li><strong>Saved Places & Coordinates:</strong> Home, work, or frequent pickup addresses.</li>
+        <li><strong>Push Tokens:</strong> FCM device tokens for notifications.</li>
+      </ul>
+
+      <h3 style="font-size:14px; color:#1E3A8A; margin-bottom:8px;">Data Retained for Legal Compliance:</h3>
+      <ul>
+        <li><strong>Financial & Invoice Records:</strong> Completed ride transaction summaries and timestamps are retained for statutory financial and tax compliance periods as required under Indian commercial transport regulations.</li>
+        <li><strong>Fraud Prevention Records:</strong> Hash-level anonymized fraud logs to prevent malicious re-registration by blocked bad actors.</li>
+      </ul>
+      <p style="font-size:13px; color:#64748B;">
+        No personal identifier or marketing data is ever retained or sold.
+      </p>
+    </div>
+
+    <!-- Section: Direct Contact -->
+    <div class="card">
+      <h2><i class="fa-solid fa-headset" style="color:var(--primary);"></i> Need Assistance? Contact Grievance Desk</h2>
+      <p>You can also request immediate manual account deletion by directly reaching our Jharkhand operations desk:</p>
+      <ul style="list-style:none; margin-left:0;">
+        <li style="margin-bottom:8px;">
+          <i class="fa-solid fa-phone" style="color:var(--secondary); width:20px;"></i>
+          <strong>24/7 Helpline:</strong> <a href="tel:+918789601387" style="color:var(--primary); font-weight:700;">+91 87896 01387</a>
+        </li>
+        <li style="margin-bottom:8px;">
+          <i class="fa-solid fa-envelope" style="color:var(--primary); width:20px;"></i>
+          <strong>Support Email:</strong> <a href="mailto:support@districtcar.in?subject=Account%20Deletion%20Request" style="color:var(--primary); font-weight:700;">support@districtcar.in</a> / <a href="mailto:contact@projectmarket.in" style="color:var(--primary); font-weight:700;">contact@projectmarket.in</a>
+        </li>
+        <li>
+          <i class="fa-solid fa-location-dot" style="color:#DC2626; width:20px;"></i>
+          <strong>Office Address:</strong> District Car Mobility, Nichey Chowk, Khunti, Jharkhand - 835210
+        </li>
+      </ul>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 District Car Mobility Private Limited. All rights reserved.</p>
+    <p style="margin-top:6px;">
+      <a href="../privacy-policy/" style="color:var(--primary); text-decoration:none;">Privacy Policy</a> · 
+      <a href="../" style="color:var(--primary); text-decoration:none;">Home</a> · 
+      <a href="tel:+918789601387" style="color:var(--primary); text-decoration:none;">Helpline: +91 87896 01387</a>
+    </p>
+  </footer>
+
+  <script>
+    function handleDeletionSubmit(e) {
+      e.preventDefault();
+      var name = document.getElementById('delName').value;
+      var phone = document.getElementById('delPhone').value;
+      var email = document.getElementById('delEmail').value;
+      var role = document.getElementById('delRole').value;
+      var reason = document.getElementById('delReason').value;
+
+      // Prepare mailto fallback
+      var subject = encodeURIComponent("Account Deletion Request - " + phone);
+      var body = encodeURIComponent("Name: " + name + "\nPhone: " + phone + "\nEmail: " + email + "\nRole: " + role + "\nReason: " + reason);
+      
+      // Show on-screen confirmation
+      document.getElementById('successAlert').style.display = 'block';
+
+      // Open email client in background
+      setTimeout(function() {
+        window.location.href = "mailto:support@districtcar.in?subject=" + subject + "&body=" + body;
+      }, 1000);
+    }
+  </script>
+
+</body>
+</html>

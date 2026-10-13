@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 
 class LocationSearchResult {
@@ -293,29 +294,62 @@ class LocationSearchService {
     return null;
   }
 
-  /// Exact GPS auto-detection with Google Reverse Geocoding API
-  Future<LocationSearchResult?> getCurrentDeviceLocation() async {
+  /// Exact GPS auto-detection with Google Reverse Geocoding API and 1-hour smart caching
+  Future<LocationSearchResult?> getCurrentDeviceLocation({bool forceRefresh = false}) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Check cached location if less than 1 hour old and not force refreshed
+      if (!forceRefresh) {
+        final lastFetched = prefs.getInt('cached_loc_timestamp') ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final diffHours = (now - lastFetched) / (1000 * 60 * 60);
+
+        if (diffHours < 1.0) {
+          final cachedTitle = prefs.getString('cached_loc_title');
+          final cachedSub = prefs.getString('cached_loc_subtitle');
+          final cachedLat = prefs.getDouble('cached_loc_lat');
+          final cachedLng = prefs.getDouble('cached_loc_lng');
+
+          if (cachedTitle != null && cachedLat != null && cachedLng != null) {
+            return LocationSearchResult(
+              title: cachedTitle,
+              subtitle: cachedSub ?? '',
+              latitude: cachedLat,
+              longitude: cachedLng,
+            );
+          }
+        }
+      }
+
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        return popularHubs.first;
+        return _getCachedOrFallback(prefs);
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        // Check if we already prompted the user recently (within 1 hour)
+        final lastPrompt = prefs.getInt('last_loc_permission_prompt') ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (!forceRefresh && (now - lastPrompt) < (60 * 60 * 1000)) {
+          return _getCachedOrFallback(prefs);
+        }
+
+        await prefs.setInt('last_loc_permission_prompt', now);
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          return popularHubs.first;
+          return _getCachedOrFallback(prefs);
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        return popularHubs.first;
+        return _getCachedOrFallback(prefs);
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 8),
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 6),
       );
 
       // Google Reverse Geocoding for accurate landmark, mohalla, chowk, village
@@ -356,12 +390,14 @@ class LocationSearchService {
               subtitle = formatted;
             }
 
-            return LocationSearchResult(
+            final resolved = LocationSearchResult(
               title: title.isNotEmpty ? title : 'Current Location',
               subtitle: subtitle.isNotEmpty ? subtitle : 'Ranchi District, Jharkhand',
               latitude: position.latitude,
               longitude: position.longitude,
             );
+            _saveToCache(prefs, resolved);
+            return resolved;
           }
         }
       } catch (_) {}
@@ -382,15 +418,45 @@ class LocationSearchService {
         }
       }
 
-      return LocationSearchResult(
+      final fallbackLoc = LocationSearchResult(
         title: 'Current Location',
         subtitle: nearest.subtitle.isNotEmpty ? nearest.subtitle : '${nearest.title}, Jharkhand',
         latitude: position.latitude,
         longitude: position.longitude,
       );
+      _saveToCache(prefs, fallbackLoc);
+      return fallbackLoc;
     } catch (_) {
       return popularHubs.first;
     }
+  }
+
+  void _saveToCache(SharedPreferences prefs, LocationSearchResult loc) {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      prefs.setInt('cached_loc_timestamp', now);
+      prefs.setString('cached_loc_title', loc.title);
+      prefs.setString('cached_loc_subtitle', loc.subtitle);
+      prefs.setDouble('cached_loc_lat', loc.latitude);
+      prefs.setDouble('cached_loc_lng', loc.longitude);
+    } catch (_) {}
+  }
+
+  LocationSearchResult _getCachedOrFallback(SharedPreferences prefs) {
+    final cachedTitle = prefs.getString('cached_loc_title');
+    final cachedSub = prefs.getString('cached_loc_subtitle');
+    final cachedLat = prefs.getDouble('cached_loc_lat');
+    final cachedLng = prefs.getDouble('cached_loc_lng');
+
+    if (cachedTitle != null && cachedLat != null && cachedLng != null) {
+      return LocationSearchResult(
+        title: cachedTitle,
+        subtitle: cachedSub ?? '',
+        latitude: cachedLat,
+        longitude: cachedLng,
+      );
+    }
+    return popularHubs.first;
   }
 
   /// Calculates real-time distance (in km) and travel duration (in minutes)

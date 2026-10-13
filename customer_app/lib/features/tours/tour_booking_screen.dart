@@ -265,17 +265,19 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
         'rideOtp': rideOtp,
         'scheduledDate': _scheduledDate,
         'scheduledTimeSlot': _scheduledTime,
+        'searchRadiusKm': 35.0,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       await bookingRef.set(bookingData);
 
-      // Notify matching available drivers strictly of this selected vehicle category
+      // Notify matching available drivers strictly of this selected vehicle category within 30-35km radius
       try {
         final categoryQuery = _selectedVehicle;
         final driversSnapshot = await FirebaseFirestore.instance.collection('drivers').get();
         final List<String> tokens = [];
         final List<String> driverIds = [];
+        const double maxSearchRadiusKm = 35.0;
 
         for (final doc in driversSnapshot.docs) {
           final data = doc.data();
@@ -285,20 +287,52 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
 
           // Strictly filter drivers matching the booked vehicle category (car, suv, auto)
           if (!isBusy && !isBlocked && cat == categoryQuery) {
-            driverIds.add(doc.id);
-            final tok = data['fcmToken'] as String?;
-            if (tok != null && tok.isNotEmpty) tokens.add(tok);
+            // Extract driver coordinates (currentLocation, location, or defaults)
+            double driverLat = 23.0740;
+            double driverLng = 85.2780;
+            if (data['currentLocation'] != null && data['currentLocation']['latitude'] != null) {
+              driverLat = (data['currentLocation']['latitude'] as num).toDouble();
+              driverLng = (data['currentLocation']['longitude'] as num).toDouble();
+            } else if (data['location'] != null && data['location']['latitude'] != null) {
+              driverLat = (data['location']['latitude'] as num).toDouble();
+              driverLng = (data['location']['longitude'] as num).toDouble();
+            } else if (data['latitude'] != null) {
+              driverLat = (data['latitude'] as num).toDouble();
+              driverLng = (data['longitude'] as num).toDouble();
+            }
 
-            await FirebaseFirestore.instance.collection('bookingRequests').add({
-              'bookingId': bookingRef.id,
-              'driverId': doc.id,
-              'vehicleCategoryId': cat,
-              'status': 'offered',
-              'isTourBooking': true,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+            final distToDriverMeters = Geolocator.distanceBetween(
+              _pickupLocation.latitude,
+              _pickupLocation.longitude,
+              driverLat,
+              driverLng,
+            );
+            final distToDriverKm = distToDriverMeters / 1000.0;
+
+            // Only notify drivers within up to 35 km for tours & travels
+            if (distToDriverKm <= maxSearchRadiusKm) {
+              driverIds.add(doc.id);
+              final tok = data['fcmToken'] as String?;
+              if (tok != null && tok.isNotEmpty) tokens.add(tok);
+
+              await FirebaseFirestore.instance.collection('bookingRequests').add({
+                'bookingId': bookingRef.id,
+                'driverId': doc.id,
+                'vehicleCategoryId': cat,
+                'pickupDistanceKm': double.parse(distToDriverKm.toStringAsFixed(1)),
+                'status': 'offered',
+                'isTourBooking': true,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            }
           }
         }
+
+        await bookingRef.update({
+          'searchRadiusKm': maxSearchRadiusKm,
+          'matchedDriversCount': driverIds.length,
+          'hasNearDrivers': driverIds.isNotEmpty,
+        }).catchError((_) {});
 
         await FCMNotificationService.sendBookingOfferedNotificationToDrivers(
           bookingId: bookingRef.id,

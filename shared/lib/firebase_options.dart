@@ -29,10 +29,10 @@ class DefaultFirebaseOptions {
     storageBucket: 'districtcar-4b880.firebasestorage.app',
   );
 
-  /// Official Android configuration for Customer App (com.districtcarcustomerd.app)
+  /// Official Android configuration for Customer App
   static const FirebaseOptions customerAndroid = FirebaseOptions(
     apiKey: 'AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM',
-    appId: '1:319163006406:android:79e09e87d733ac7afa46c7',
+    appId: '1:319163006406:android:a3e17ed6331b8200fa46c7',
     messagingSenderId: '319163006406',
     projectId: 'districtcar-4b880',
     storageBucket: 'districtcar-4b880.firebasestorage.app',

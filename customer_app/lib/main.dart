@@ -13,9 +13,11 @@ import 'package:district_car_shared/services/fcm_notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(
-      options: kIsWeb ? DefaultFirebaseOptions.web : DefaultFirebaseOptions.customerAndroid,
-    );
+    if (kIsWeb) {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.web);
+    } else {
+      await Firebase.initializeApp();
+    }
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     }

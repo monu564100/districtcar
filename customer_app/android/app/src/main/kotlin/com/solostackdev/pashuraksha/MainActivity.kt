@@ -1,4 +1,4 @@
-package com.districtcarcustomerd.app
+package com.solostackdev.pashuraksha
 
 import io.flutter.embedding.android.FlutterActivity
 

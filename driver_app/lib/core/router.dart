@@ -8,6 +8,9 @@ import '../features/requests/incoming_request_dialog.dart';
 import '../features/trip/driver_active_trip_screen.dart';
 import '../features/earnings/driver_earnings_screen.dart';
 import '../features/profile/driver_profile_screen.dart';
+import '../features/profile/driver_legal_screen.dart';
+import '../features/profile/driver_support_screen.dart';
+import '../features/profile/driver_delete_account_screen.dart';
 
 final driverRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -39,6 +42,18 @@ final driverRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/driver-profile',
         builder: (context, state) => const DriverProfileScreen(),
+      ),
+      GoRoute(
+        path: '/driver-legal',
+        builder: (context, state) => const DriverLegalScreen(),
+      ),
+      GoRoute(
+        path: '/driver-support',
+        builder: (context, state) => const DriverSupportScreen(),
+      ),
+      GoRoute(
+        path: '/driver-delete-account',
+        builder: (context, state) => const DriverDeleteAccountScreen(),
       ),
     ],
   );
