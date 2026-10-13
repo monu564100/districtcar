@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../auth/auth_service.dart';
+import '../../widgets/floating_bottom_dock.dart';
+import '../../widgets/profile/ghost_profile_preview.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -259,42 +261,94 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _onDockTabSelected(int index) {
+    if (index == 3) return;
+    if (index == 0) {
+      context.go('/');
+    } else if (index == 1) {
+      context.go('/destinations');
+    } else if (index == 2) {
+      context.go('/trips');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = ref.watch(authServiceProvider);
     final user = authService.currentUser;
 
-    if (user == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () => context.push('/login'),
-            child: const Text('Sign In to view profile'),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'My Profile & Settings',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A)),
-        ),
-        elevation: 0,
+        automaticallyImplyLeading: false, // Match Home and Trips style, remove stray back arrow
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                image: const DecorationImage(
+                  image: AssetImage('assets/images/app_logo.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'My Profile',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                Text(
+                  'District Car • Jharkhand',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            tooltip: 'Call Support Helpline',
-            icon: const Icon(Icons.headset_mic_rounded, color: Color(0xFF059669)),
+            tooltip: 'Support Hotline',
+            icon: const Icon(Icons.headset_mic_rounded, color: Color(0xFF3D2FD6)),
             onPressed: () => _makeCall('+918789601387'),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: FutureBuilder<DocumentSnapshot>(
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        child: user == null
+            ? GhostProfilePreview(
+                key: const ValueKey('logged_out_profile_preview'),
+                onSignInSuccess: () => setState(() {}),
+              )
+            : _buildLoggedInProfile(user, authService),
+      ),
+      bottomNavigationBar: FloatingBottomDock(
+        currentIndex: 3,
+        onTabSelected: _onDockTabSelected,
+      ),
+    );
+  }
+
+  Widget _buildLoggedInProfile(DistrictUser user, AuthService authService) {
+    return FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
         builder: (context, snapshot) {
           final data = (snapshot.hasData && snapshot.data!.exists)
@@ -645,8 +699,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _build3DActionTile({
