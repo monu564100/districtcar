@@ -59,7 +59,7 @@ class AppTokens {
   static const double radiusChips = 14.0;
   static const double radiusInputs = 16.0;
   static const double radiusButtons = 18.0;
-  static const double radiusCards = 20.0;
+  static const double radiusCards = 24.0;
   static const double radiusSheets = 28.0;
 
   // Touch & Heights

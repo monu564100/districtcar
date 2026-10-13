@@ -1,85 +1,126 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:district_car_shared/theme/app_theme.dart';
-import 'auth_service.dart';
+import 'package:district_car_shared/models/models.dart';
+import '../../services/haptic_service.dart';
+import '../../theme/theme.dart';
+import '../../widgets/auth/hero_illustration.dart';
+import '../../widgets/auth/value_carousel.dart';
+import '../../widgets/auth/login_sheet.dart';
+import 'auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? redirectPath;
+  const LoginScreen({super.key, this.redirectPath});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _isLoading = false;
-  String? _errorMessage;
+class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
+  bool _isHindi = false;
+  late final AnimationController _entryController;
+  late final Animation<double> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
 
-  void _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  // Remote config flag simulation (can be driven remotely)
+  final bool _allowSkip = true;
 
-    try {
-      final user = await ref.read(authServiceProvider).signInWithGoogle();
-      final profileExists = await ref.read(authServiceProvider).doesCustomerProfileExist(user.uid);
-      if (mounted) {
-        if (!profileExists) {
-          context.go('/profile-setup');
-        } else {
-          context.go('/');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Google Sign-In failed: $e';
-        });
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+
+    _slideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
+    );
+
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  void _onLoginSuccess(DistrictUser user) async {
+    HapticService.success();
+
+    // Show welcoming toast
+    if (mounted) {
+      final firstName = user.displayName?.split(' ').first ?? 'Citizen';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                _isHindi ? 'स्वागत है, $firstName!' : 'Welcome, $firstName!',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // Check profile exist
+    final profileExists = await ref.read(authRepositoryProvider).doesCustomerProfileExist(user.uid);
+    if (!mounted) return;
+
+    if (!profileExists) {
+      context.go('/profile-setup');
+    } else {
+      // Return user to EXACTLY where they came from
+      if (widget.redirectPath != null && widget.redirectPath!.isNotEmpty) {
+        context.go(widget.redirectPath!);
+      } else if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        context.go('/');
       }
     }
   }
 
-  void _signInAsTestReviewer() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await ref.read(authServiceProvider).signInAsPlayStoreReviewer();
-      if (mounted) {
-        context.go('/');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Reviewer sign-in error: $e';
-        });
-      }
+  void _handleSkip() {
+    HapticService.selection();
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      context.go('/');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF6F7FB),
       body: Stack(
         children: [
-          // Ambient decorative background gradients
+          // Ambient Indigo & Green radial glows
           Positioned(
-            top: -100,
-            left: -80,
+            top: -40,
+            left: -40,
             child: Container(
-              width: 320,
-              height: 320,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF384CF5).withValues(alpha: 0.16),
+                    const Color(0xFF6A5CFF).withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                 ),
@@ -90,13 +131,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             bottom: -60,
             right: -60,
             child: Container(
-              width: 280,
-              height: 280,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF10B981).withValues(alpha: 0.12),
+                    const Color(0xFF16A34A).withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -105,181 +146,211 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
 
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // District Car App Logo Badge with Floating Shadow
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
-                        image: const DecorationImage(
-                          image: AssetImage('assets/images/app_logo.jpg'),
-                          fit: BoxFit.cover,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            blurRadius: 28,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'District Car',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0E7FF),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'RURAL & DISTRICT MOBILITY',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF3730A3),
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Safe, transparent doorstep rides and long tour travel across all 24 districts of Jharkhand.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 13.5,
-                        height: 1.45,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Inset Grouped Glass Login Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Sign In or Create Account',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
+            child: Column(
+              children: [
+                // A. Top Bar: Optional Skip for now (left) + Language toggle (right)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Skip for now (Browse first)
+                      if (_allowSkip)
+                        TextButton.icon(
+                          onPressed: _handleSkip,
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: Color(0xFF5B6478)),
+                          label: Text(
+                            _isHindi ? 'बाद में करें' : 'Skip for now',
+                            style: const TextStyle(
+                              color: Color(0xFF5B6478),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'One tap sign-in with your Google account',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           ),
-                          const SizedBox(height: 20),
+                        )
+                      else
+                        const SizedBox.shrink(),
 
-                          // Error Message if any
-                          if (_errorMessage != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFFECACA)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage!,
-                                      style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
+                      // Language Toggle Chip (हिं / EN)
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color.fromRGBO(15, 23, 42, 0.04),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                if (!_isHindi) {
+                                  HapticService.selection();
+                                  setState(() => _isHindi = true);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _isHindi ? const Color(0xFF3D2FD6) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  'हिं',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: _isHindi ? Colors.white : const Color(0xFF5B6478),
                                   ),
-                                ],
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                if (_isHindi) {
+                                  HapticService.selection();
+                                  setState(() => _isHindi = false);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: !_isHindi ? const Color(0xFF3D2FD6) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  'EN',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: !_isHindi ? Colors.white : const Color(0xFF5B6478),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-                          // High-polish Google Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0F172A),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
+                // Main Scrollable Area
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // B. Hero (top ~45%): Stylized Jharkhand Landscape + Driving Auto + Glass Logo
+                        const HeroJharkhandIllustration(
+                          height: 250,
+                          heroImageAsset: 'assets/images/hero_jharkhand_landscape.jpg',
+                        ),
+
+                        // Branding title & pill
+                        Center(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 12),
+                              const Text(
+                                'District Car',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0B1020),
+                                  letterSpacing: -0.6,
                                 ),
                               ),
-                              onPressed: _isLoading ? null : _signInWithGoogle,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: const [
-                                        Icon(Icons.g_mobiledata_rounded, size: 28, color: Colors.white),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Continue with Google',
-                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2),
-                                        ),
-                                      ],
-                                    ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF2FF),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                                ),
+                                child: const Text(
+                                  'RURAL & DISTRICT MOBILITY',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF3730A3),
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 28),
+                                child: Text(
+                                  _isHindi
+                                      ? 'झारखंड के सभी 24 जिलों में सुरक्षित, भरोसेमंद और पारदर्शी आवागमन सेवा'
+                                      : 'Doorstep cabs, autos & bikes across all 24 districts of Jharkhand',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Color(0xFF5B6478),
+                                    fontSize: 12.5,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // C. Value Carousel (Auto-advancing 3s, swipeable, 3 slides)
+                        ValueCarousel(isHindi: _isHindi),
+
+                        const SizedBox(height: 16),
+
+                        // D. Login Card (Bottom-sheet style, 28 top radius, animated slide-up)
+                        AnimatedBuilder(
+                          animation: _entryController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, _slideAnimation.value),
+                              child: Opacity(
+                                opacity: _fadeAnimation.value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color.fromRGBO(16, 24, 40, 0.08),
+                                  blurRadius: 24,
+                                  offset: Offset(0, -6),
+                                ),
+                              ],
+                            ),
+                            child: LoginSheet(
+                              isHindi: _isHindi,
+                              onLoginSuccess: _onLoginSuccess,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Trust Note
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF059669)),
-                        SizedBox(width: 6),
-                        Text(
-                          'Encrypted & Verified Citizen Mobility',
-                          style: TextStyle(fontSize: 11.5, color: Color(0xFF059669), fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],

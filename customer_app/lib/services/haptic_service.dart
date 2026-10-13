@@ -45,6 +45,12 @@ class HapticService {
     HapticFeedback.lightImpact();
   }
 
+  /// Booking confirmed or sign-in success pattern
+  static void success() {
+    if (!isEnabled) return;
+    HapticFeedback.mediumImpact();
+  }
+
   /// Booking confirmed success pattern
   static void bookingConfirmed() {
     if (!isEnabled) return;

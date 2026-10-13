@@ -9,6 +9,9 @@ import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../auth/auth_service.dart';
 import '../../widgets/premium_empty_state.dart';
+import '../../widgets/trips/ghost_trip_preview.dart';
+import '../../widgets/floating_bottom_dock.dart';
+import '../../services/haptic_service.dart';
 
 class TripsHistoryScreen extends ConsumerStatefulWidget {
   const TripsHistoryScreen({super.key});
@@ -468,69 +471,99 @@ class _TripsHistoryScreenState extends ConsumerState<TripsHistoryScreen> with Si
     );
   }
 
+  void _onDockTabSelected(int index) {
+    HapticService.selection();
+    if (index == 0) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        context.go('/');
+      }
+    } else if (index == 1) {
+      context.push('/tours');
+    } else if (index == 2) {
+      // Already on trips
+    } else if (index == 3) {
+      context.push('/profile');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authServiceProvider).currentUser;
 
-    if (user == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: const Text('My Trips', style: TextStyle(fontWeight: FontWeight.w900)),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF0F172A),
-          elevation: 0,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(color: Color(0xFFEFF6FF), shape: BoxShape.circle),
-                child: const Icon(Icons.lock_outline_rounded, size: 48, color: AppColors.primary),
-              ),
-              const SizedBox(height: 18),
-              const Text('Sign in to view your rides', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF0F172A))),
-              const SizedBox(height: 6),
-              const Text('Track past receipts, upcoming tour packages and live rides', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: const Icon(Icons.login_rounded, size: 18),
-                onPressed: () => context.push('/login'),
-                label: const Text('Sign In Now', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'My Trips & Invoices',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A)),
-        ),
+        automaticallyImplyLeading: false, // Match Home screen style, remove stray back arrow
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                image: const DecorationImage(
+                  image: AssetImage('assets/images/app_logo.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'My Trips',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                Text(
+                  'District Car • Jharkhand',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Support Hotline',
-            icon: const Icon(Icons.headset_mic_rounded, color: AppColors.primary),
+            icon: const Icon(Icons.headset_mic_rounded, color: Color(0xFF3D2FD6)),
             onPressed: () => _makeCall('+918789601387'),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Column(
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        child: user == null
+            ? GhostTripPreview(
+                key: const ValueKey('logged_out_preview'),
+                onSignInSuccess: () => setState(() {}),
+              )
+            : _buildLoggedInBody(user),
+      ),
+      bottomNavigationBar: FloatingBottomDock(
+        currentIndex: 2,
+        onTabSelected: _onDockTabSelected,
+      ),
+    );
+  }
+
+  Widget _buildLoggedInBody(DistrictUser user) {
+    return Column(
         children: [
           // Top Professional Banner with Quick Stats & Search
           Container(
@@ -658,8 +691,7 @@ class _TripsHistoryScreenState extends ConsumerState<TripsHistoryScreen> with Si
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildFilterChip(String id, String label, IconData icon) {

@@ -159,7 +159,7 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
               ],
             ),
 
-            // Vehicle Image (Compact 32px height)
+            // Vehicle Image (High-polish 38px height with bulletproof web & asset fallbacks)
             Center(
               child: AnimatedBuilder(
                 animation: _floatAnim,
@@ -170,20 +170,8 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
                   );
                 },
                 child: SizedBox(
-                  height: 32,
-                  child: Image.asset(
-                    widget.imageAsset,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      widget.imageAsset.replaceAll('.png', '.jpg'),
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.directions_car_filled_rounded,
-                        size: 26,
-                        color: Color(0xFF6A5CFF),
-                      ),
-                    ),
-                  ),
+                  height: 38,
+                  child: _buildVehicleImage(),
                 ),
               ),
             ),
@@ -232,5 +220,52 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
         ),
       ),
     );
+  }
+
+  Widget _buildVehicleImage() {
+    if (widget.imageAsset.startsWith('http://') || widget.imageAsset.startsWith('https://')) {
+      return Image.network(
+        widget.imageAsset,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _buildFallbackIcon(),
+      );
+    }
+
+    return Image.asset(
+      widget.imageAsset,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Image.asset(
+        widget.imageAsset.replaceAll('.png', '.jpg'),
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.network(
+          'assets/${widget.imageAsset}',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Image.network(
+            'assets/${widget.imageAsset.replaceAll(".png", ".jpg")}',
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _buildFallbackIcon(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackIcon() {
+    final lower = widget.name.toLowerCase();
+    IconData iconData = Icons.directions_car_filled_rounded;
+    Color iconColor = const Color(0xFF3D2FD6);
+
+    if (lower.contains('auto') || lower.contains('rick')) {
+      iconData = Icons.electric_rickshaw_rounded;
+      iconColor = const Color(0xFFF59E0B);
+    } else if (lower.contains('bike') || lower.contains('moto')) {
+      iconData = Icons.two_wheeler_rounded;
+      iconColor = const Color(0xFF16A34A);
+    } else if (lower.contains('suv') || lower.contains('bolero')) {
+      iconData = Icons.airport_shuttle_rounded;
+      iconColor = const Color(0xFF2A1FA8);
+    }
+
+    return Icon(iconData, size: 28, color: iconColor);
   }
 }
