@@ -299,7 +299,11 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
             if (_currentStep > 0) {
               setState(() => _currentStep--);
             } else {
-              context.pop();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.pop();
+              }
             }
           },
         ),

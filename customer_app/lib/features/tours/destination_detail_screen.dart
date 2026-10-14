@@ -7,6 +7,7 @@ import '../../theme/theme.dart';
 import '../../services/haptic_service.dart';
 import '../../widgets/tours/branded_destination_placeholder.dart';
 import 'tour_pricing_service.dart';
+import 'tour_booking_screen.dart';
 
 /// Redesigned Destination Detail Screen
 /// Editorial layout: Hero photo pager, 2x3 quick facts, season bar, bilingual about,
@@ -773,7 +774,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           ElevatedButton(
             onPressed: () {
               HapticService.buttonPress();
-              context.push('/book-tour', extra: dest);
+              try {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TourBookingScreen(destination: dest),
+                  ),
+                );
+              } catch (_) {
+                context.push('/book-tour?id=${dest.id}', extra: dest);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTokens.primary,
