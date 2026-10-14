@@ -90,13 +90,13 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
           color: widget.isSelected ? Colors.white : const Color(0xFFFAFAFC),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: widget.isSelected ? const Color(0xFF6A5CFF) : const Color(0xFFE2E8F0),
+            color: widget.isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
             width: widget.isSelected ? 1.8 : 1.0,
           ),
           boxShadow: widget.isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF6A5CFF).withValues(alpha: 0.18),
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.12),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -122,19 +122,15 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                       decoration: BoxDecoration(
-                        color: widget.badgeTag == 'Cheapest' || widget.badgeTag == 'सबसे सस्ता'
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFFEF3C7),
+                        color: const Color(0xFFFEF3C7),
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         widget.badgeTag!,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 7.5,
                           fontWeight: FontWeight.w800,
-                          color: widget.badgeTag == 'Cheapest' || widget.badgeTag == 'सबसे सस्ता'
-                              ? const Color(0xFF15803D)
-                              : const Color(0xFFB45309),
+                          color: Color(0xFFB45309),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -151,7 +147,7 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
                     width: 14,
                     height: 14,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3D2FD6),
+                      color: Color(0xFF0F172A),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.check_rounded, color: Colors.white, size: 9),
@@ -253,17 +249,17 @@ class _VehicleCardState extends State<VehicleCard> with SingleTickerProviderStat
   Widget _buildFallbackIcon() {
     final lower = widget.name.toLowerCase();
     IconData iconData = Icons.directions_car_filled_rounded;
-    Color iconColor = const Color(0xFF3D2FD6);
+    Color iconColor = const Color(0xFF0F172A);
 
     if (lower.contains('auto') || lower.contains('rick')) {
       iconData = Icons.electric_rickshaw_rounded;
-      iconColor = const Color(0xFFF59E0B);
+      iconColor = const Color(0xFFD97706);
     } else if (lower.contains('bike') || lower.contains('moto')) {
       iconData = Icons.two_wheeler_rounded;
-      iconColor = const Color(0xFF16A34A);
+      iconColor = const Color(0xFFD97706);
     } else if (lower.contains('suv') || lower.contains('bolero')) {
       iconData = Icons.airport_shuttle_rounded;
-      iconColor = const Color(0xFF2A1FA8);
+      iconColor = const Color(0xFF0F172A);
     }
 
     return Icon(iconData, size: 28, color: iconColor);

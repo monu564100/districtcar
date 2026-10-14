@@ -243,11 +243,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  gradient: AppTokens.primaryGradient,
+                  color: const Color(0xFF0F172A),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF6A5CFF).withValues(alpha: 0.35),
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.30),
                       blurRadius: 18,
                       offset: const Offset(0, 6),
                     ),
@@ -399,7 +399,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3D2FD6),
+              primary: Color(0xFF0F172A),
               onPrimary: Colors.white,
               onSurface: AppTokens.ink,
             ),
@@ -447,16 +447,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                       return ListTile(
                         leading: Icon(
                           index == 0 ? Icons.flash_on : Icons.access_time_rounded,
-                          color: isSelected ? const Color(0xFF3D2FD6) : AppTokens.secondary,
+                          color: isSelected ? const Color(0xFF0F172A) : AppTokens.secondary,
                         ),
                         title: Text(
                           slot,
                           style: TextStyle(
                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: isSelected ? const Color(0xFF3D2FD6) : AppTokens.ink,
+                            color: isSelected ? const Color(0xFF0F172A) : AppTokens.ink,
                           ),
                         ),
-                        trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF3D2FD6)) : null,
+                        trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF0F172A)) : null,
                         onTap: () {
                           HapticService.selection();
                           setState(() => _selectedTimeSlot = slot);
@@ -629,7 +629,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               height: 240,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6A5CFF).withValues(alpha: 0.06),
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -753,7 +753,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6A5CFF).withValues(alpha: 0.18),
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.12),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -804,7 +804,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF3D2FD6), size: 18),
+              child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF0F172A), size: 18),
             ),
             tooltip: _isHindi ? 'सफर' : 'My Trips',
             onPressed: () {
@@ -939,15 +939,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   onPressed: () => _openWhatsApp(
                     message: 'Hello District Car Helpline, I need a long-distance ride outside regular service range.',
                   ),
-                  icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF16A34A)),
+                  icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF0F172A)),
                   label: const Text(
                     'WhatsApp',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w700, fontSize: 12.5),
+                    style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 12.5),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF16A34A)),
+                    side: const BorderSide(color: Color(0xFF0F172A)),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -1022,7 +1022,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF3D2FD6)),
+                        const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF0F172A)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1094,7 +1094,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                         child: Icon(
                           Icons.add_rounded,
                           size: 15,
-                          color: _passengerCount < 6 ? const Color(0xFF3D2FD6) : AppTokens.hint,
+                          color: _passengerCount < 6 ? const Color(0xFF0F172A) : AppTokens.hint,
                         ),
                       ),
                     ),
@@ -1115,21 +1115,21 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.payments_rounded, size: 13, color: Color(0xFF16A34A)),
+                      const Icon(Icons.payments_rounded, size: 13, color: Color(0xFF0F172A)),
                       const SizedBox(width: 3),
                       Text(
                         _paymentMethod == 'Cash / UPI' ? 'Cash/UPI' : _paymentMethod,
                         style: const TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF15803D),
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                     ],
@@ -1145,10 +1145,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: _isRoundTrip ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+              color: _isRoundTrip ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(AppTokens.radiusChips),
               border: Border.all(
-                color: _isRoundTrip ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                color: _isRoundTrip ? const Color(0xFFD97706) : const Color(0xFFE2E8F0),
               ),
             ),
             child: Row(
@@ -1156,7 +1156,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 Icon(
                   Icons.sync_alt_rounded,
                   size: 16,
-                  color: _isRoundTrip ? const Color(0xFF16A34A) : AppTokens.secondary,
+                  color: _isRoundTrip ? const Color(0xFFD97706) : AppTokens.secondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1179,13 +1179,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFDCFCE7),
+                              color: const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
                               _isHindi ? '1 घंटा फ्री' : '1 hr free wait',
                               style: const TextStyle(
-                                color: Color(0xFF15803D),
+                                color: Color(0xFFB45309),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1202,7 +1202,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 ),
                 Switch.adaptive(
                   value: _isRoundTrip,
-                  activeColor: const Color(0xFF16A34A),
+                  activeColor: const Color(0xFF0F172A),
                   onChanged: (val) {
                     HapticService.toggle(value: val);
                     setState(() => _isRoundTrip = val);
@@ -1222,10 +1222,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   _roundTripStoppingHours <= 1.0
                       ? (_isHindi ? 'पहला 1 घंटा फ्री' : 'First 60 mins included free')
                       : '+₹${((_roundTripStoppingHours - 1.0) * 60.0).toStringAsFixed(0)} (₹60/hr waiting)',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: _roundTripStoppingHours <= 1.0 ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                    color: Color(0xFFD97706),
                   ),
                 ),
                 Row(
@@ -1250,7 +1250,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF16A34A)),
+                      icon: const Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF0F172A)),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
@@ -1274,16 +1274,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBBF7D0), width: 1.2),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
-              color: Color(0xFF16A34A),
+              color: Color(0xFF0F172A),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 16),
@@ -1297,7 +1297,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
-                color: Color(0xFF14532D),
+                color: AppTokens.ink,
               ),
             ),
           ),
@@ -1312,7 +1312,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             borderRadius: BorderRadius.circular(20),
             child: const Padding(
               padding: EdgeInsets.all(5),
-              child: Icon(Icons.chat_bubble_rounded, color: Color(0xFF16A34A), size: 19),
+              child: Icon(Icons.chat_bubble_rounded, color: Color(0xFF0F172A), size: 19),
             ),
           ),
           InkWell(
@@ -1323,7 +1323,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             borderRadius: BorderRadius.circular(20),
             child: const Padding(
               padding: EdgeInsets.all(5),
-              child: Icon(Icons.call_rounded, color: Color(0xFF15803D), size: 19),
+              child: Icon(Icons.call_rounded, color: Color(0xFF0F172A), size: 19),
             ),
           ),
         ],
@@ -1486,7 +1486,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.verified_user_outlined, color: Color(0xFF3D2FD6), size: 18),
+          const Icon(Icons.verified_user_outlined, color: Color(0xFFD97706), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1529,15 +1529,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
         String statusLabel = 'DRIVER ACCEPTED';
         IconData statusIcon = Icons.check_circle_rounded;
-        Color statusBg = const Color(0xFF15803D);
+        Color statusBg = const Color(0xFF0F172A);
         if (status == 'driver_arrived') {
           statusLabel = 'DRIVER AT PICKUP';
           statusIcon = Icons.near_me_rounded;
-          statusBg = const Color(0xFF0284C7);
+          statusBg = const Color(0xFF334155);
         } else if (status == 'trip_started') {
           statusLabel = 'TRIP IN PROGRESS';
           statusIcon = Icons.directions_car_rounded;
-          statusBg = const Color(0xFF7C3AED);
+          statusBg = const Color(0xFF1E293B);
         }
 
         return Positioned(
@@ -1557,7 +1557,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: isAccepted ? const Color(0xFF22C55E) : const Color(0xFFFBBF24),
+                    color: isAccepted ? const Color(0xFF0F172A) : const Color(0xFFFBBF24),
                     width: 1.5,
                   ),
                 ),
@@ -1594,21 +1594,21 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
                             ),
                             child: Text(
                               'OTP: ${booking.rideOtp}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
-                                color: Color(0xFF1D4ED8),
+                                color: Color(0xFF0F172A),
                               ),
                             ),
                           ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFF3D2FD6)),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFF0F172A)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -1658,7 +1658,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF059669),
+                            color: Color(0xFF0F172A),
                           ),
                         ),
                       ],

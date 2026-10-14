@@ -87,10 +87,10 @@ class _StickyBookBarState extends State<StickyBookBar> with SingleTickerProvider
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: canBook ? const Color(0xFF3D2FD6) : const Color(0xFFCBD5E1),
+                    backgroundColor: canBook ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
                     foregroundColor: Colors.white,
                     elevation: canBook ? 4 : 0,
-                    shadowColor: const Color(0xFF3D2FD6).withValues(alpha: 0.4),
+                    shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.35),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTokens.radiusButtons),
                     ),
@@ -212,7 +212,7 @@ class _StickyBookBarState extends State<StickyBookBar> with SingleTickerProvider
             Icon(
               icon,
               size: 19,
-              color: isSelected ? const Color(0xFF3D2FD6) : const Color(0xFF94A3B8),
+              color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
             ),
             const SizedBox(height: 2),
             Text(

@@ -28,13 +28,13 @@ class TrustStrip extends StatelessWidget {
           Container(height: 14, width: 1, color: const Color(0xFFCBD5E1)),
           _buildPill(
             icon: Icons.verified_user_rounded,
-            iconColor: AppTokens.success,
+            iconColor: const Color(0xFFD97706),
             label: isHindi ? 'सत्यापित ड्राइवर' : 'Verified Drivers',
           ),
           Container(height: 14, width: 1, color: const Color(0xFFCBD5E1)),
           _buildPill(
             icon: Icons.support_agent_rounded,
-            iconColor: const Color(0xFF3D2FD6),
+            iconColor: const Color(0xFF0F172A),
             label: isHindi ? '24x7 हेल्पलाइन' : '24x7 Helpline',
           ),
         ],

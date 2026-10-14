@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -177,19 +176,19 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF16A34A).withValues(alpha: 0.22),
+                                    color: const Color(0xFFFEF3C7),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.4)),
+                                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.print_rounded, size: 10, color: Color(0xFF4ADE80)),
+                                      const Icon(Icons.print_rounded, size: 10, color: Color(0xFFB45309)),
                                       const SizedBox(width: 4),
                                       Text(
                                         widget.isHindi ? 'रसीद देखें' : 'View Fare Slip',
                                         style: const TextStyle(
-                                          color: Color(0xFF4ADE80),
+                                          color: Color(0xFFB45309),
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w800,
                                         ),
@@ -222,12 +221,12 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
                               color: _isExpanded
-                                  ? const Color(0xFF6A5CFF).withValues(alpha: 0.3)
+                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
                                   : Colors.white.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: _isExpanded
-                                    ? const Color(0xFF6A5CFF).withValues(alpha: 0.6)
+                                    ? const Color(0xFFF59E0B).withValues(alpha: 0.5)
                                     : Colors.white12,
                                 width: 1.2,
                               ),
@@ -426,7 +425,7 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                         style: const TextStyle(
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF3D2FD6),
+                                          color: Color(0xFFD97706),
                                         ),
                                       ),
                                     ],
@@ -471,7 +470,7 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                         ? 'गाँव वापसी गारंटी (Return Guarantee)'
                                         : 'Village Return Guarantee',
                                     value: 'FREE (100% Accepted)',
-                                    valueColor: const Color(0xFF16A34A),
+                                    valueColor: const Color(0xFFD97706),
                                     isBold: true,
                                   ),
                                   if (widget.isRoundTrip && widget.returnAllowance > 0) ...[
@@ -485,7 +484,7 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                   _buildReceiptRow(
                                     title: widget.isHindi ? 'पीक / सर्ज शुल्क (Surge Pricing)' : 'Surge & Peak Surcharge',
                                     value: '₹0.00 (Zero Surge Always)',
-                                    valueColor: const Color(0xFF16A34A),
+                                    valueColor: const Color(0xFFD97706),
                                   ),
                                   const SizedBox(height: 6),
                                   _buildReceiptRow(
@@ -554,21 +553,21 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Verified Stamp Badge
+                                  // Verified Stamp Badge (Amber / Onyx)
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF0FDF4),
+                                      color: const Color(0xFFFEF3C7),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: const Color(0xFF16A34A).withValues(alpha: 0.4),
+                                        color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
                                         width: 1,
                                       ),
                                     ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF16A34A)),
+                                        const Icon(Icons.verified_rounded, size: 14, color: Color(0xFFD97706)),
                                         const SizedBox(width: 6),
                                         Text(
                                           widget.isHindi
@@ -577,7 +576,7 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                           style: const TextStyle(
                                             fontSize: 9.5,
                                             fontWeight: FontWeight.w800,
-                                            color: Color(0xFF16A34A),
+                                            color: Color(0xFFB45309),
                                             letterSpacing: 0.2,
                                           ),
                                         ),
@@ -643,15 +642,15 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                               gradient: const LinearGradient(
                                 colors: [
                                   Colors.transparent,
-                                  Color(0xFF10B981),
-                                  Color(0xFF06B6D4),
-                                  Color(0xFF10B981),
+                                  Color(0xFFF59E0B),
+                                  Color(0xFFFBBF24),
+                                  Color(0xFFF59E0B),
                                   Colors.transparent,
                                 ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.6),
                                   blurRadius: 6,
                                   spreadRadius: 1,
                                 ),

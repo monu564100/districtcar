@@ -110,16 +110,16 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                     padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
                     child: Row(
                       children: [
-                        // Green Dot
+                        // Pickup Dot (Sleek Onyx)
                         Container(
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: AppTokens.success,
+                            color: const Color(0xFF0F172A),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppTokens.success.withValues(alpha: 0.4),
+                                color: const Color(0xFF0F172A).withValues(alpha: 0.3),
                                 blurRadius: 4,
                               ),
                             ],
@@ -165,14 +165,14 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                             child: Container(
                               padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFECFDF5),
+                                color: const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFA7F3D0)),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: const Icon(
                                 Icons.my_location_rounded,
                                 size: 15,
-                                color: AppTokens.success,
+                                color: Color(0xFF0F172A),
                               ),
                             ),
                           ),
@@ -219,7 +219,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                             ),
                             child: const Icon(
                               Icons.swap_vert_rounded,
-                              color: Color(0xFF3D2FD6),
+                              color: Color(0xFF0F172A),
                               size: 16,
                             ),
                           ),
@@ -296,10 +296,10 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                             child: Container(
                               padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2FF),
+                                color: const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.mic_rounded, color: Color(0xFF6A5CFF), size: 16),
+                              child: const Icon(Icons.mic_rounded, color: Color(0xFF0F172A), size: 16),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -311,7 +311,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.search_rounded, size: 16, color: Color(0xFF3D2FD6)),
+                          child: const Icon(Icons.search_rounded, size: 16, color: Color(0xFF0F172A)),
                         ),
                       ],
                     ),
@@ -347,7 +347,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(chip['icon'] as IconData, size: 12, color: const Color(0xFF3D2FD6)),
+                          Icon(chip['icon'] as IconData, size: 12, color: const Color(0xFF0F172A)),
                           const SizedBox(width: 4),
                           Text(
                             chip['label'] as String,

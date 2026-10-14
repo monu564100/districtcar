@@ -1,17 +1,20 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../../services/haptic_service.dart';
+import 'map_web_checker.dart';
 
 /// Top Map Header on Home Screen (Ola / Uber Style)
 /// Renders above From and To container with:
-/// - Realistic interactive map with streets and landmarks
-/// - User's live pickup pin (pulsing beacon + vertical pole + green pickup ring)
-/// - Top-down live vehicles roaming nearby with headings (Cars, Bikes, Autos)
+/// - Real Google Maps view centered at exact pickup location
+/// - User's live pickup pin (Onyx/Amber beacon + vertical pole + pickup ring)
+/// - Top-down live animated vehicles roaming nearby with headings (Cars, Bikes, Autos)
 /// - Unserviceable 3D graphic overlay when out of bounds
 /// - Smooth entrance animation on app open
+/// - Zero blue and zero green colors (Sleek Carbon Onyx & Warm Amber palette)
 class HomeMapHeader extends StatefulWidget {
   final LocationModel pickupLocation;
   final bool isServiceable;
@@ -40,7 +43,9 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
   late AnimationController _pulseController;
   late AnimationController _driftController;
 
-  // Pan offset for interactive map dragging
+  GoogleMapController? _googleMapController;
+
+  // Pan offset for interactive vehicle canvas layer
   Offset _mapPanOffset = Offset.zero;
 
   // Vehicles simulated around pickup point
@@ -87,7 +92,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
     // Top-down vehicles positioned relative to user location
     // Matching the user's reference image with cars, bike, auto at realistic road angles
     _vehicles = [
-      // 1. White Sedan north-west (heading north-west ~ -45°)
+      // 1. White Sedan north-west (heading north-west ~ -40°)
       _SimulatedVehicle(
         type: _VehicleType.car,
         initialOffset: const Offset(-85, -55),
@@ -101,37 +106,37 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
         headingDeg: 35,
         driftSpeed: 0.9,
       ),
-      // 3. Green Scooter / Bike north (heading ~ -25°)
+      // 3. Sporty Commuter Bike north (heading ~ -25°)
       _SimulatedVehicle(
         type: _VehicleType.bike,
         initialOffset: const Offset(-38, -80),
         headingDeg: -25,
         driftSpeed: 1.6,
       ),
-      // 4. Yellow-Green Auto Rickshaw east (heading ~ 65°)
+      // 4. Yellow-Amber Auto Rickshaw east (heading ~ 70°)
       _SimulatedVehicle(
         type: _VehicleType.auto,
         initialOffset: const Offset(62, -85),
         headingDeg: 70,
         driftSpeed: 1.0,
       ),
-      // 5. White Sedan south-east (heading ~ 130°)
+      // 5. White Sedan south-east (heading ~ 125°)
       _SimulatedVehicle(
         type: _VehicleType.car,
         initialOffset: const Offset(42, 65),
         headingDeg: 125,
         driftSpeed: 1.1,
       ),
-      // 6. Another White Sedan south-east cluster (heading ~ 110°)
+      // 6. Another White Sedan south-east cluster (heading ~ 105°)
       _SimulatedVehicle(
         type: _VehicleType.car,
         initialOffset: const Offset(28, 48),
         headingDeg: 105,
         driftSpeed: 0.8,
       ),
-      // 7. Greenish Car south (heading ~ 170°)
+      // 7. Compact Silver/White Car south (heading ~ 165°)
       _SimulatedVehicle(
-        type: _VehicleType.carGreen,
+        type: _VehicleType.carSilver,
         initialOffset: const Offset(-45, 85),
         headingDeg: 165,
         driftSpeed: 1.0,
@@ -140,10 +145,24 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
   }
 
   @override
+  void didUpdateWidget(covariant HomeMapHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pickupLocation.latitude != oldWidget.pickupLocation.latitude ||
+        widget.pickupLocation.longitude != oldWidget.pickupLocation.longitude) {
+      _googleMapController?.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(widget.pickupLocation.latitude, widget.pickupLocation.longitude),
+        ),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _entranceController.dispose();
     _pulseController.dispose();
     _driftController.dispose();
+    _googleMapController?.dispose();
     super.dispose();
   }
 
@@ -152,6 +171,11 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
     setState(() {
       _mapPanOffset = Offset.zero;
     });
+    _googleMapController?.animateCamera(
+      CameraUpdate.newLatLng(
+        LatLng(widget.pickupLocation.latitude, widget.pickupLocation.longitude),
+      ),
+    );
     if (widget.onRecenter != null) {
       widget.onRecenter!();
     }
@@ -159,6 +183,11 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final targetLatLng = LatLng(
+      widget.pickupLocation.latitude,
+      widget.pickupLocation.longitude,
+    );
+
     return SizeTransition(
       sizeFactor: _expandAnimation,
       axisAlignment: -1.0,
@@ -185,35 +214,35 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
             borderRadius: BorderRadius.circular(22),
             child: Stack(
               children: [
-                // 1. Interactive Road Network Canvas Layer
-                Positioned.fill(
-                  child: GestureDetector(
-                    onPanUpdate: (details) {
-                      setState(() {
-                        _mapPanOffset += details.delta;
-                        // Limit dragging boundary
-                        _mapPanOffset = Offset(
-                          _mapPanOffset.dx.clamp(-120.0, 120.0),
-                          _mapPanOffset.dy.clamp(-90.0, 90.0),
-                        );
-                      });
-                    },
-                    child: AnimatedBuilder(
-                      animation: _driftController,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          painter: _RoadMapCanvasPainter(
-                            panOffset: _mapPanOffset,
-                            pulseValue: _pulseController.value,
-                          ),
-                          child: const SizedBox.expand(),
-                        );
+                // 1. Exact Google Maps Layer (Centered at Pickup Location)
+                if (!kIsWeb || isGoogleMapsJsReady())
+                  Positioned.fill(
+                    child: GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: targetLatLng,
+                        zoom: 15.8,
+                      ),
+                      onMapCreated: (controller) {
+                        _googleMapController = controller;
+                        controller.animateCamera(CameraUpdate.newLatLng(targetLatLng));
                       },
+                      myLocationEnabled: false,
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: false,
+                      mapToolbarEnabled: false,
+                      compassEnabled: false,
+                      rotateGesturesEnabled: true,
+                      scrollGesturesEnabled: true,
+                      tiltGesturesEnabled: false,
+                      zoomGesturesEnabled: true,
                     ),
+                  )
+                else
+                  Positioned.fill(
+                    child: _buildVectorMapPlaceholder(targetLatLng),
                   ),
-                ),
 
-                // 2. Live Top-Down Animated Vehicles Layer (Shown ONLY if serviceable)
+                // 2. Interactive Gesture Layer & Animated Top-Down Vehicles (Shown ONLY if serviceable)
                 if (widget.isServiceable)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -222,7 +251,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                         builder: (context, child) {
                           return Stack(
                             children: _vehicles.map((v) {
-                              // Calculate subtle idle vehicle movement along its heading
+                              // Subtle idle vehicle movement along its heading
                               final driftPhase = (_driftController.value * 2 * math.pi) + v.driftSpeed;
                               final forwardDrift = math.sin(driftPhase) * 4.0;
                               final lateralDrift = math.cos(driftPhase) * 1.5;
@@ -251,7 +280,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                     ),
                   ),
 
-                // 3. User Pickup Pin (Pulse blue dot + vertical pole + green ring marker)
+                // 3. User Pickup Pin (Pulse aura + vertical pole + Carbon Onyx/Amber marker)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Center(
@@ -263,15 +292,15 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Floating ETA / "You are here" Tooltip
+                                // Floating ETA / "Pickup Location" Tooltip
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF0F172A),
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: const [
                                       BoxShadow(
-                                        color: Color.fromRGBO(0, 0, 0, 0.25),
+                                        color: Color.fromRGBO(0, 0, 0, 0.3),
                                         blurRadius: 8,
                                         offset: Offset(0, 2),
                                       ),
@@ -281,12 +310,12 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        width: 6,
-                                        height: 6,
+                                        width: 6.5,
+                                        height: 6.5,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: widget.isServiceable
-                                              ? const Color(0xFF22C55E)
+                                              ? const Color(0xFFF59E0B)
                                               : const Color(0xFFEF4444),
                                         ),
                                       ),
@@ -306,17 +335,17 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                 ),
                                 const SizedBox(height: 2),
 
-                                // Green Pickup Ring Marker (Ola / Uber style)
+                                // Top Marker: Carbon Onyx ring with Amber center (Ola/Uber style)
                                 Container(
                                   width: 22,
                                   height: 22,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: const Color(0xFF16A34A),
+                                    color: const Color(0xFF0F172A),
                                     border: Border.all(color: Colors.white, width: 2.5),
                                     boxShadow: const [
                                       BoxShadow(
-                                        color: Color.fromRGBO(0, 0, 0, 0.2),
+                                        color: Color.fromRGBO(0, 0, 0, 0.25),
                                         blurRadius: 6,
                                         offset: Offset(0, 2),
                                       ),
@@ -328,7 +357,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                       height: 6,
                                       decoration: const BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: Colors.white,
+                                        color: Color(0xFFF59E0B),
                                       ),
                                     ),
                                   ),
@@ -341,32 +370,32 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                   color: const Color(0xFF0F172A),
                                 ),
 
-                                // Ground Level: Blue pulsing beacon dot
+                                // Ground Level: Pulsing beacon dot
                                 Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    // Expanding aura wave
+                                    // Expanding aura wave (Amber / Onyx)
                                     Container(
                                       width: 14 + (_pulseController.value * 22),
                                       height: 14 + (_pulseController.value * 22),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: const Color(0xFF3B82F6).withValues(
-                                          alpha: (1.0 - _pulseController.value) * 0.45,
+                                        color: const Color(0xFF0F172A).withValues(
+                                          alpha: (1.0 - _pulseController.value) * 0.35,
                                         ),
                                       ),
                                     ),
-                                    // Solid Blue Ground Dot
+                                    // Solid Ground Dot (Carbon Onyx)
                                     Container(
                                       width: 14,
                                       height: 14,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: const Color(0xFF2563EB),
+                                        color: const Color(0xFF0F172A),
                                         border: Border.all(color: Colors.white, width: 2),
                                         boxShadow: const [
                                           BoxShadow(
-                                            color: Color.fromRGBO(37, 99, 235, 0.4),
+                                            color: Color.fromRGBO(15, 23, 42, 0.4),
                                             blurRadius: 6,
                                             offset: Offset(0, 2),
                                           ),
@@ -384,7 +413,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 4. Top-Left Status Badge ("Vehicles Nearby" or "Service Unavailable")
+                // 4. Top-Left Status Badge ("Vehicles Nearby" in Amber or "Service Unavailable" in Red)
                 Positioned(
                   top: 12,
                   left: 12,
@@ -395,8 +424,8 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: widget.isServiceable
-                            ? const Color(0xFF16A34A).withValues(alpha: 0.3)
-                            : const Color(0xFFEF4444).withValues(alpha: 0.3),
+                            ? const Color(0xFFF59E0B).withValues(alpha: 0.4)
+                            : const Color(0xFFEF4444).withValues(alpha: 0.4),
                         width: 1,
                       ),
                       boxShadow: const [
@@ -420,12 +449,12 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: widget.isServiceable
-                                    ? const Color(0xFF16A34A)
+                                    ? const Color(0xFFD97706)
                                     : const Color(0xFFEF4444),
                                 boxShadow: [
                                   BoxShadow(
                                     color: (widget.isServiceable
-                                            ? const Color(0xFF16A34A)
+                                            ? const Color(0xFFF59E0B)
                                             : const Color(0xFFEF4444))
                                         .withValues(alpha: 0.6),
                                     blurRadius: 4 + (_pulseController.value * 4),
@@ -444,7 +473,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
                             color: widget.isServiceable
-                                ? const Color(0xFF15803D)
+                                ? const Color(0xFFB45309)
                                 : const Color(0xFFDC2626),
                           ),
                         ),
@@ -453,7 +482,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 5. Top-Right GPS Recenter Button
+                // 5. Top-Right GPS Recenter Button (Carbon Onyx)
                 Positioned(
                   top: 10,
                   right: 10,
@@ -470,7 +499,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                         child: Icon(
                           Icons.my_location_rounded,
                           size: 18,
-                          color: Color(0xFF3D2FD6),
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                     ),
@@ -580,14 +609,14 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.call_rounded, size: 12, color: Color(0xFF38BDF8)),
+                                          const Icon(Icons.call_rounded, size: 12, color: Color(0xFFF59E0B)),
                                           const SizedBox(width: 4),
                                           Text(
                                             widget.isHindi ? 'हेल्पलाइन से बात करें' : 'Call Support Helpline',
                                             style: const TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w800,
-                                              color: Color(0xFF38BDF8),
+                                              color: Color(0xFFF59E0B),
                                               decoration: TextDecoration.underline,
                                             ),
                                           ),
@@ -603,34 +632,6 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                       ),
                     ),
                   ),
-
-                // 7. Subtle Google Watermark (as seen on maps)
-                Positioned(
-                  bottom: 6,
-                  left: 10,
-                  child: Row(
-                    children: [
-                      Text(
-                        'Google',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black.withValues(alpha: 0.35),
-                          fontFamily: 'sans-serif',
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '• Jharkhand Live Transit',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black.withValues(alpha: 0.35),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -639,13 +640,47 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
     );
   }
 
-  /// Builds high-quality top-down vehicle graphics matching the reference screenshot
+  Widget _buildVectorMapPlaceholder(LatLng pos) {
+    return Container(
+      color: const Color(0xFFF1F5F9),
+      child: Stack(
+        children: [
+          CustomPaint(
+            size: Size.infinite,
+            painter: _RoadGridPainter(),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.90),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                '${pos.latitude.toStringAsFixed(4)}° N, ${pos.longitude.toStringAsFixed(4)}° E',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds top-down vehicle graphics matching the reference screenshot (no blue, no green)
   Widget _buildTopDownVehicle(_VehicleType type) {
     switch (type) {
       case _VehicleType.car:
         return const _TopDownCarWidget(bodyColor: Colors.white);
-      case _VehicleType.carGreen:
-        return const _TopDownCarWidget(bodyColor: Color(0xFFE2E8F0), roofTint: Color(0xFF86EFAC));
+      case _VehicleType.carSilver:
+        return const _TopDownCarWidget(bodyColor: Color(0xFFE2E8F0));
       case _VehicleType.bike:
         return const _TopDownBikeWidget();
       case _VehicleType.auto:
@@ -654,7 +689,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
   }
 }
 
-enum _VehicleType { car, carGreen, bike, auto }
+enum _VehicleType { car, carSilver, bike, auto }
 
 class _SimulatedVehicle {
   final _VehicleType type;
@@ -670,172 +705,12 @@ class _SimulatedVehicle {
   });
 }
 
-/// Custom painter for crisp, realistic top-down road network matching Google Maps
-class _RoadMapCanvasPainter extends CustomPainter {
-  final Offset panOffset;
-  final double pulseValue;
-
-  _RoadMapCanvasPainter({
-    required this.panOffset,
-    required this.pulseValue,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Light Map Landmass Background
-    final bgPaint = Paint()..color = const Color(0xFFF1F3F4);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    final ox = size.width / 2 + panOffset.dx;
-    final oy = size.height / 2 + panOffset.dy;
-
-    // 2. Green Park & Landscape Shapes (just like the reference image!)
-    final parkPaint = Paint()
-      ..color = const Color(0xFFCEEAD6)
-      ..style = PaintingStyle.fill;
-
-    // Water Body (Brookefield lake accent in blue)
-    final waterPaint = Paint()
-      ..color = const Color(0xFFAECBFA)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(ox - 140, oy + 45, 60, 45), const Radius.circular(16)),
-      parkPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(ox + 80, oy + 30, 45, 55), const Radius.circular(14)),
-      waterPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(ox + 50, oy - 95, 55, 35), const Radius.circular(12)),
-      waterPaint,
-    );
-
-    // 3. Road Network (White roads with light gray borders)
-    final roadBorderPaint = Paint()
-      ..color = const Color(0xFFD3D8DE)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final roadSurfacePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    // Road lines connecting landmarks
-    final List<Path> roads = [];
-
-    // Main Diagonal Highway (NH-44 like in screenshot)
-    final hwy = Path();
-    hwy.moveTo(ox - 180, oy - 140);
-    hwy.cubicTo(ox - 100, oy - 50, ox - 90, oy + 40, ox - 60, oy + 150);
-    roads.add(hwy);
-
-    // Secondary Cross Street 1
-    final street1 = Path();
-    street1.moveTo(ox - 120, oy - 80);
-    street1.lineTo(ox + 160, oy - 45);
-    roads.add(street1);
-
-    // Diagonal Avenue 2
-    final street2 = Path();
-    street2.moveTo(ox - 70, oy - 40);
-    street2.lineTo(ox + 120, oy + 120);
-    roads.add(street2);
-
-    // Curved Avenue 3 (through center pickup point)
-    final street3 = Path();
-    street3.moveTo(ox - 40, oy + 90);
-    street3.lineTo(ox + 40, oy - 110);
-    roads.add(street3);
-
-    // East Outer Bypass
-    final street4 = Path();
-    street4.moveTo(ox + 130, oy - 120);
-    street4.lineTo(ox + 150, oy + 130);
-    roads.add(street4);
-
-    // Draw borders first (thicker)
-    for (final r in roads) {
-      roadBorderPaint.strokeWidth = 24.0;
-      canvas.drawPath(r, roadBorderPaint);
-    }
-
-    // Draw white road surfaces (narrower)
-    for (final r in roads) {
-      roadSurfacePaint.strokeWidth = 20.0;
-      canvas.drawPath(r, roadSurfacePaint);
-    }
-
-    // 4. Landmark Text & Icons (matching reference image: "Brookefield", Cafe icon, etc.)
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    _drawLandmark(
-      canvas: canvas,
-      textPainter: textPainter,
-      name: 'RANCHI MAIN RD',
-      offset: Offset(ox - 40, oy + 10),
-      isBold: true,
-      color: const Color(0xFF64748B),
-    );
-
-    _drawLandmark(
-      canvas: canvas,
-      textPainter: textPainter,
-      name: 'Albert Ekka Chowk',
-      offset: Offset(ox - 10, oy - 38),
-      isBold: false,
-      color: const Color(0xFF475569),
-    );
-
-    _drawLandmark(
-      canvas: canvas,
-      textPainter: textPainter,
-      name: 'Firayalal Market',
-      offset: Offset(ox - 130, oy + 15),
-      isBold: false,
-      color: const Color(0xFF94A3B8),
-    );
-  }
-
-  void _drawLandmark({
-    required Canvas canvas,
-    required TextPainter textPainter,
-    required String name,
-    required Offset offset,
-    required bool isBold,
-    required Color color,
-  }) {
-    textPainter.text = TextSpan(
-      text: name,
-      style: TextStyle(
-        fontSize: isBold ? 11 : 9.5,
-        fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
-        color: color,
-        letterSpacing: 0.8,
-      ),
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, offset);
-  }
-
-  @override
-  bool shouldRepaint(covariant _RoadMapCanvasPainter oldDelegate) {
-    return oldDelegate.panOffset != panOffset || oldDelegate.pulseValue != pulseValue;
-  }
-}
-
 /// Top-Down White Car Vector Graphic (matching reference image)
 class _TopDownCarWidget extends StatelessWidget {
   final Color bodyColor;
-  final Color? roofTint;
 
   const _TopDownCarWidget({
     this.bodyColor = Colors.white,
-    this.roofTint,
   });
 
   @override
@@ -861,7 +736,7 @@ class _TopDownCarWidget extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Front Headlights
+          // Front Headlights (Pale Amber)
           Positioned(
             top: 1,
             left: 2.5,
@@ -873,7 +748,7 @@ class _TopDownCarWidget extends StatelessWidget {
             child: Container(width: 3.5, height: 1.5, color: const Color(0xFFFEF08A)),
           ),
 
-          // Front Windshield (Dark trapezoid glass)
+          // Front Windshield (Dark glass)
           Positioned(
             top: 7,
             child: Container(
@@ -893,7 +768,7 @@ class _TopDownCarWidget extends StatelessWidget {
               width: 13,
               height: 14,
               decoration: BoxDecoration(
-                color: roofTint ?? const Color(0xFFF1F5F9),
+                color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(2),
                 border: Border.all(color: const Color(0xFFE2E8F0), width: 0.5),
               ),
@@ -930,7 +805,7 @@ class _TopDownCarWidget extends StatelessWidget {
   }
 }
 
-/// Top-Down Green Bike / Scooter Vector Graphic with Rider (matching reference image)
+/// Top-Down Commuter Bike / Scooter Vector Graphic with Rider (Neutral Charcoal / Amber)
 class _TopDownBikeWidget extends StatelessWidget {
   const _TopDownBikeWidget();
 
@@ -942,12 +817,12 @@ class _TopDownBikeWidget extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Bike Body / Chassis (Emerald Green)
+          // Bike Body / Chassis (Dark Charcoal with Amber highlight)
           Container(
             width: 10,
             height: 28,
             decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
+              color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(5),
               boxShadow: const [
                 BoxShadow(
@@ -966,7 +841,7 @@ class _TopDownBikeWidget extends StatelessWidget {
               width: 16,
               height: 3,
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFFD97706),
                 borderRadius: BorderRadius.circular(1.5),
               ),
             ),
@@ -980,8 +855,8 @@ class _TopDownBikeWidget extends StatelessWidget {
               height: 10,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF1E293B),
-                border: Border.all(color: const Color(0xFF475569), width: 1),
+                color: const Color(0xFF0F172A),
+                border: Border.all(color: const Color(0xFF64748B), width: 1),
               ),
             ),
           ),
@@ -993,7 +868,7 @@ class _TopDownBikeWidget extends StatelessWidget {
               width: 6,
               height: 2.5,
               decoration: BoxDecoration(
-                color: const Color(0xFF38BDF8),
+                color: const Color(0xFFFBBF24),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -1004,7 +879,7 @@ class _TopDownBikeWidget extends StatelessWidget {
   }
 }
 
-/// Top-Down Indian Auto Rickshaw Vector Graphic with Driver (matching reference image)
+/// Top-Down Indian Auto Rickshaw Vector Graphic with Driver (Yellow & Charcoal)
 class _TopDownAutoWidget extends StatelessWidget {
   const _TopDownAutoWidget();
 
@@ -1014,7 +889,7 @@ class _TopDownAutoWidget extends StatelessWidget {
       width: 23,
       height: 34,
       decoration: BoxDecoration(
-        color: const Color(0xFF16A34A), // Emerald green cabin
+        color: const Color(0xFF1E293B), // Charcoal cabin
         borderRadius: BorderRadius.circular(5),
         boxShadow: const [
           BoxShadow(
@@ -1024,7 +899,7 @@ class _TopDownAutoWidget extends StatelessWidget {
           ),
         ],
         border: Border.all(
-          color: const Color(0xFF15803D),
+          color: const Color(0xFF334155),
           width: 0.8,
         ),
       ),
@@ -1066,20 +941,21 @@ class _TopDownAutoWidget extends StatelessWidget {
               height: 8,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF334155),
+                color: Color(0xFF475569),
               ),
             ),
           ),
 
-          // Passenger Cabin Roof (Green)
+          // Passenger Cabin Roof
           Positioned(
             bottom: 2,
             child: Container(
               width: 17,
               height: 17,
               decoration: BoxDecoration(
-                color: const Color(0xFF047857),
+                color: const Color(0xFF0F172A),
                 borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: const Color(0xFF334155), width: 0.5),
               ),
             ),
           ),
@@ -1087,4 +963,89 @@ class _TopDownAutoWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Custom painter for crisp, realistic map road vectors
+class _RoadGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 1. Arterial Highway
+    final highwayPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..strokeWidth = 26
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final highwayCasing = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..strokeWidth = 30
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final highwayPath = Path()
+      ..moveTo(-20, size.height * 0.72)
+      ..cubicTo(
+        size.width * 0.35,
+        size.height * 0.68,
+        size.width * 0.55,
+        size.height * 0.42,
+        size.width + 20,
+        size.height * 0.38,
+      );
+
+    canvas.drawPath(highwayPath, highwayCasing);
+    canvas.drawPath(highwayPath, highwayPaint);
+
+    // 2. Secondary Roads
+    final roadPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..strokeWidth = 14
+      ..style = PaintingStyle.stroke;
+
+    final roadCasing = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..strokeWidth = 17
+      ..style = PaintingStyle.stroke;
+
+    final road1 = Path()
+      ..moveTo(size.width * 0.28, -10)
+      ..lineTo(size.width * 0.36, size.height + 10);
+
+    final road2 = Path()
+      ..moveTo(size.width * 0.72, -10)
+      ..lineTo(size.width * 0.65, size.height + 10);
+
+    final road3 = Path()
+      ..moveTo(-10, size.height * 0.30)
+      ..lineTo(size.width + 10, size.height * 0.25);
+
+    for (final p in [road1, road2, road3]) {
+      canvas.drawPath(p, roadCasing);
+      canvas.drawPath(p, roadPaint);
+    }
+
+    // 3. Roundabout / Central Plaza Ring
+    final roundaboutCenter = Offset(size.width * 0.48, size.height * 0.50);
+    final ringPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..strokeWidth = 18
+      ..style = PaintingStyle.stroke;
+
+    final ringCasing = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..strokeWidth = 22
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawCircle(roundaboutCenter, 34, ringCasing);
+    canvas.drawCircle(roundaboutCenter, 34, ringPaint);
+
+    // Roundabout green island (swapped to neutral slate/charcoal)
+    final islandPaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(roundaboutCenter, 22, islandPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
