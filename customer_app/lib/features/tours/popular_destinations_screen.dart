@@ -69,19 +69,36 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     }
   }
 
+  bool _isOpeningDetail = false;
+
   void _openDestinationDetail(BuildContext context, PopularDestinationModel dest) {
+    if (_isOpeningDetail) return;
+    _isOpeningDetail = true;
     HapticService.selectionClick();
     debugPrint('>>> [EXPLORE] Opening DestinationDetailScreen: ${dest.id} (${dest.name})');
-    try {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => DestinationDetailScreen(destination: dest),
-        ),
-      );
-    } catch (e) {
-      debugPrint('>>> [EXPLORE] Navigator.push fallback to context.push: $e');
-      context.push('/destination-details?id=${dest.id}', extra: dest);
-    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _isOpeningDetail = false;
+        return;
+      }
+      try {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DestinationDetailScreen(destination: dest),
+          ),
+        );
+      } catch (e) {
+        debugPrint('>>> [EXPLORE] Navigator.push fallback to context.push: $e');
+        if (mounted) {
+          await context.push('/destination-details?id=${dest.id}', extra: dest);
+        }
+      } finally {
+        if (mounted) {
+          _isOpeningDetail = false;
+        }
+      }
+    });
   }
 
   void _toggleSave(String id) {
@@ -514,10 +531,11 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
                             onTap: () {
                               final hundru = allDestinations.firstWhere(
                                 (d) => d.id == 'hundru_falls',
@@ -525,24 +543,13 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               );
                               _openDestinationDetail(context, hundru);
                             },
-                            child: Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              child: InkWell(
-                                onTap: () {
-                                  final hundru = allDestinations.firstWhere(
-                                    (d) => d.id == 'hundru_falls',
-                                    orElse: () => allDestinations.first,
-                                  );
-                                  _openDestinationDetail(context, hundru);
-                                },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              height: 110,
+                              decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: AppTokens.softCardShadow,
-                                  ),
+                                boxShadow: AppTokens.softCardShadow,
+                              ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
                                 child: Stack(
@@ -613,8 +620,6 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                         ),
                       ),
                     ),
-                  ),
-                ),
                   const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
                   // 6. Curated Tour Packages Row (Bundles)
@@ -800,28 +805,23 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     PopularDestinationModel dest,
     bool isSaved,
   ) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () => _openDestinationDetail(context, dest),
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-          elevation: 0,
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => _openDestinationDetail(context, dest),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-            child: Container(
+        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+        child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppTokens.radiusCards),
             border: Border.all(color: AppTokens.border),
             boxShadow: AppTokens.softCardShadow,
           ),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Top Image Container with Badges
             Expanded(
               flex: 11,
@@ -969,26 +969,19 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
         ),
       ),
     ),
-  ),
-),
-);
+  );
 }
 
   /// Featured Snap Carousel Card
   Widget _buildFeaturedCard(BuildContext context, PopularDestinationModel dest) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () => _openDestinationDetail(context, dest),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => _openDestinationDetail(context, dest),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-            child: Container(
+        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+        child: Container(
           width: 280,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppTokens.radiusCards),
@@ -1088,9 +1081,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
         ),
       ),
     ),
-  ),
-),
-);
+  );
 }
 
   /// Package Bundle Card
@@ -1101,26 +1092,18 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     required String tag,
     required VoidCallback onTap,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () {
           HapticService.selectionClick();
           onTap();
         },
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          elevation: 0,
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () {
-              HapticService.selectionClick();
-              onTap();
-            },
-            borderRadius: BorderRadius.circular(18),
-            child: Container(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
           width: 250,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -1170,8 +1153,6 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
         ),
       ),
     ),
-  ),
-),
-);
+  );
 }
 }

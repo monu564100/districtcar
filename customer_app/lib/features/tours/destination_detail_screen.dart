@@ -28,6 +28,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   bool _isAboutExpanded = false;
   final Set<String> _selectedNearbyStopIds = <String>{};
   int? _expandedFaqIndex;
+  bool _isNavigatingToBooking = false;
 
   late final List<String> _allPhotos;
 
@@ -797,16 +798,30 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           const SizedBox(width: 16),
           ElevatedButton(
             onPressed: () {
+              if (_isNavigatingToBooking) return;
+              _isNavigatingToBooking = true;
               HapticService.buttonPress();
-              try {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => TourBookingScreen(destination: dest),
-                  ),
-                );
-              } catch (_) {
-                context.push('/book-tour?id=${dest.id}', extra: dest);
-              }
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) {
+                  _isNavigatingToBooking = false;
+                  return;
+                }
+                try {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => TourBookingScreen(destination: dest),
+                    ),
+                  );
+                } catch (_) {
+                  if (mounted) {
+                    await context.push('/book-tour?id=${dest.id}', extra: dest);
+                  }
+                } finally {
+                  if (mounted) {
+                    _isNavigatingToBooking = false;
+                  }
+                }
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTokens.primary,
