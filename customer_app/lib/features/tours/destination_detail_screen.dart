@@ -84,7 +84,6 @@ class DestinationDetailScreen extends StatefulWidget {
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   int _currentPhotoIndex = 0;
   bool _isFavorite = false;
-  bool _isHindi = false;
   bool _isAboutExpanded = false;
   final Set<String> _selectedNearbyStopIds = <String>{};
   int? _expandedFaqIndex;
@@ -357,17 +356,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                                   letterSpacing: -0.4,
                                 ),
                               ),
-                              if (dest.hindiName.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  dest.hindiName,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTokens.marigold,
-                                  ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${dest.district}, Jharkhand • ${dest.approxDistanceKm.round()} km from hub',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTokens.marigold,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
@@ -566,26 +563,19 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               'About this Place',
                               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
                             ),
-                            // Language Toggle
-                            GestureDetector(
-                              onTap: () {
-                                HapticService.selectionClick();
-                                setState(() => _isHindi = !_isHindi);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppTokens.primaryTint,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppTokens.primary.withValues(alpha: 0.3)),
-                                ),
-                                child: Text(
-                                  _isHindi ? 'हिन्दी / EN' : 'EN / हिन्दी',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTokens.primaryDark,
-                                  ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTokens.primaryTint,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppTokens.primary.withValues(alpha: 0.3)),
+                              ),
+                              child: const Text(
+                                'Overview',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTokens.primaryDark,
                                 ),
                               ),
                             ),
@@ -761,7 +751,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'झारखंड टूर सुरक्षा एवं भरोसा',
+                                    'Jharkhand Tour Safety & Trust',
                                     style: TextStyle(color: AppTokens.marigold, fontSize: 12),
                                   ),
                                 ],

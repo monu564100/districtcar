@@ -96,7 +96,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
             _pickupLocation = LocationModel(
               latitude: hub.latitude,
               longitude: hub.longitude,
-              address: '${hub.name} City Center, ${hub.hindiName}, Jharkhand',
+              address: '${hub.name} City Center, Jharkhand',
             );
           });
         },
@@ -243,7 +243,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                       _pickupLocation = LocationModel(
                         latitude: hub.latitude,
                         longitude: hub.longitude,
-                        address: '${hub.name} City Center, ${hub.hindiName}, Jharkhand',
+                        address: '${hub.name} City Center, Jharkhand',
                       );
                     });
                     Navigator.pop(ctx);
@@ -252,7 +252,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                   side: BorderSide(color: isSelected ? AppTokens.primary : AppTokens.border),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   label: Text(
-                    '${hub.name} (${hub.hindiName})',
+                    hub.name,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -865,7 +865,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
         const SizedBox(height: 18),
 
         const Text(
-          'Available Tour Vehicles',
+          'Select Vehicle',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTokens.ink),
         ),
         const SizedBox(height: 10),
@@ -1323,7 +1323,7 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'आपकी टूर राइड सफलतापूर्वक बुक हो गई है',
+                'Your tour ride has been successfully booked',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTokens.primary),
               ),
               const SizedBox(height: 20),

@@ -29,13 +29,13 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
   final Set<String> _savedPlaceIds = <String>{};
 
   final List<Map<String, dynamic>> _categories = [
-    {'id': 'all', 'label': 'All Places', 'hindi': 'सभी स्थान', 'icon': Icons.auto_awesome_rounded},
-    {'id': 'trending', 'label': 'Trending', 'hindi': 'ट्रेंडिंग', 'icon': Icons.local_fire_department_rounded},
-    {'id': 'waterfall', 'label': 'Waterfalls', 'hindi': 'जलप्रपात', 'icon': Icons.water_rounded},
-    {'id': 'temple', 'label': 'Temples', 'hindi': 'मंदिर', 'icon': Icons.temple_hindu_rounded},
-    {'id': 'hill_station', 'label': 'Hills', 'hindi': 'पहाड़', 'icon': Icons.terrain_rounded},
-    {'id': 'wildlife', 'label': 'Wildlife', 'hindi': 'वन्यजीव', 'icon': Icons.pets_rounded},
-    {'id': 'heritage', 'label': 'Heritage', 'hindi': 'ऐतिहासिक', 'icon': Icons.account_balance_rounded},
+    {'id': 'all', 'label': 'All Places', 'icon': Icons.auto_awesome_rounded},
+    {'id': 'trending', 'label': 'Trending', 'icon': Icons.local_fire_department_rounded},
+    {'id': 'waterfall', 'label': 'Waterfalls', 'icon': Icons.water_rounded},
+    {'id': 'temple', 'label': 'Temples & Spiritual', 'icon': Icons.temple_hindu_rounded},
+    {'id': 'hill_station', 'label': 'Hills & Valleys', 'icon': Icons.terrain_rounded},
+    {'id': 'wildlife', 'label': 'Wildlife & Nature', 'icon': Icons.pets_rounded},
+    {'id': 'heritage', 'label': 'Heritage', 'icon': Icons.account_balance_rounded},
   ];
 
   final List<String> _recentSearches = ['Hundru Falls', 'Netarhat Sunset', 'Patratu Valley', 'Baidyanath Dham'];
@@ -243,9 +243,9 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                             ),
                           ),
                           Text(
-                            'झारखंड दर्शन एवं तीर्थ यात्रा',
+                            'Explore Jharkhand • Day Tours & Getaways',
                             style: TextStyle(
-                              fontSize: 13, // Rule: Never below 12px
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                               color: AppTokens.primary,
                             ),
@@ -468,10 +468,10 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               ),
                             ),
                             Text(
-                              'खास यात्राएं',
+                              'Top Rated',
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                                 color: AppTokens.primary,
                               ),
                             ),
@@ -611,10 +611,10 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               ),
                             ),
                             Text(
-                              'सस्ती पैकेज यात्रा',
+                              'Curated Circuits',
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                                 color: AppTokens.primary,
                               ),
                             ),
@@ -882,54 +882,78 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name in refined serif
                         Text(
                           dest.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Georgia',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
                             color: AppTokens.ink,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        // Hindi Name (Rule: minimum 12px)
-                        if (dest.hindiName.isNotEmpty)
-                          Text(
-                            dest.hindiName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppTokens.secondaryText,
-                            ),
+                        Text(
+                          '${dest.district} • ${dest.approxDistanceKm.round()} km',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: AppTokens.secondaryText,
                           ),
+                        ),
                       ],
                     ),
 
                     // Distance & Fare Row
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '${dest.approxDistanceKm.round()} km · ${dest.timeNeeded}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppTokens.hint,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Round Trip from',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppTokens.hint,
+                              ),
+                            ),
+                            Text(
+                              '₹${dest.startingFare.round()}',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w900,
+                                color: AppTokens.primary,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'From ₹${dest.startingFare.round()}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: AppTokens.primary,
-                            fontFeatures: [FontFeature.tabularFigures()],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              SizedBox(width: 2),
+                              Icon(Icons.arrow_forward_rounded, size: 11, color: Color(0xFF0F172A)),
+                            ],
                           ),
                         ),
                       ],

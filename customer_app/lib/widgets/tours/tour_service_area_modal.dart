@@ -109,7 +109,7 @@ class TourServiceAreaModal extends StatelessWidget {
 
           // Headline
           const Text(
-            'Aapki location door hai',
+            'Pickup Location is Far',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 22,
@@ -120,7 +120,7 @@ class TourServiceAreaModal extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'आपकी पिकअप लोकेशन इस टूर गंतव्य से 150 किमी से अधिक दूर है',
+            'Your pickup point is more than 150 km from this destination',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -190,7 +190,7 @@ class TourServiceAreaModal extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       avatar: const Icon(Icons.near_me_rounded, size: 14, color: AppTokens.primary),
                       label: Text(
-                        '${hub.name} (${hub.hindiName})',
+                        hub.name,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
