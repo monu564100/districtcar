@@ -14,7 +14,7 @@ void main() {
       locationAddress: 'Ormanjhi, Ranchi',
       latitude: 23.4503,
       longitude: 85.6567,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Hundru_Falls_Ranchi.jpg/1280px-Hundru_Falls_Ranchi.jpg',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/be/Hundru_Falls%2C_Jharkhand%2C_India_4.jpg',
       description: 'Hundru Falls is a scenic waterfall',
       startingFare: 1199.0,
       approxDistanceKm: 44.0,
