@@ -13,9 +13,32 @@ import 'tour_booking_screen.dart';
 /// Editorial layout: Hero photo pager, 2x3 quick facts, season bar, bilingual about,
 /// safety tips, nearby stops multi-stop upsell, guarantee card, and sticky package fare bar.
 class DestinationDetailScreen extends StatefulWidget {
-  final PopularDestinationModel destination;
+  final PopularDestinationModel? destination;
+  final String? destinationId;
 
-  const DestinationDetailScreen({super.key, required this.destination});
+  const DestinationDetailScreen({
+    super.key,
+    this.destination,
+    this.destinationId,
+  });
+
+  /// Universal entry point to open DestinationDetailScreen across any router or navigation context
+  static Future<void> open(BuildContext context, PopularDestinationModel destination) async {
+    HapticService.selectionClick();
+    debugPrint('>>> [DESTINATION_DETAIL] Opening destination: ${destination.id} (${destination.name})');
+    try {
+      await context.push('/destination-details?id=${destination.id}', extra: destination);
+    } catch (e) {
+      debugPrint('>>> [DESTINATION_DETAIL] context.push failed ($e), falling back to Navigator.push');
+      if (context.mounted) {
+        await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => DestinationDetailScreen(destination: destination),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   State<DestinationDetailScreen> createState() => _DestinationDetailScreenState();
@@ -30,18 +53,43 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   int? _expandedFaqIndex;
   bool _isNavigatingToBooking = false;
 
-  late final List<String> _allPhotos;
+  PopularDestinationModel get _dest {
+    if (widget.destination != null) return widget.destination!;
+    if (widget.destinationId != null && widget.destinationId!.isNotEmpty) {
+      return DestinationsService.defaultDestinations.firstWhere(
+        (d) => d.id == widget.destinationId,
+        orElse: () => DestinationsService.defaultDestinations.first,
+      );
+    }
+    return DestinationsService.defaultDestinations.first;
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    final d = widget.destination;
+  late List<String> _allPhotos;
+
+  void _loadPhotos() {
+    final d = _dest;
     _allPhotos = [
       if (d.imageUrl.isNotEmpty) d.imageUrl,
       ...d.galleryImages.where((img) => img.isNotEmpty && img != d.imageUrl),
     ];
     if (_allPhotos.isEmpty) {
       _allPhotos = [d.imageUrl.isNotEmpty ? d.imageUrl : 'placeholder'];
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhotos();
+  }
+
+  @override
+  void didUpdateWidget(covariant DestinationDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.destination?.id != widget.destination?.id ||
+        oldWidget.destinationId != widget.destinationId) {
+      _loadPhotos();
+      _currentPhotoIndex = 0;
     }
   }
 
@@ -53,24 +101,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       url,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: AppTokens.darkSurface,
-          child: const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppTokens.primary),
-            ),
-          ),
-        );
-      },
     );
   }
 
   void _shareViaWhatsApp() async {
     HapticService.selectionClick();
-    final d = widget.destination;
+    final d = _dest;
     final text = 'Namaste! Check out this tour to ${d.name} (${d.district}, Jharkhand) on District Car: round-trip fixed packages from ₹${d.startingFare.round()}. Verified local drivers & doorstep pickup: https://districtcar.in/tours/${d.id}';
     final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
     if (await canLaunchUrl(url)) {
@@ -80,14 +116,14 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
   void _openFullScreenGallery(int initialIndex) {
     HapticService.selectionClick();
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (ctx) => _FullScreenGalleryViewer(
           images: _allPhotos,
           initialIndex: initialIndex,
-          destinationName: widget.destination.name,
-          credit: widget.destination.imageCredit,
-          license: widget.destination.imageLicense,
+          destinationName: _dest.name,
+          credit: _dest.imageCredit,
+          license: _dest.imageLicense,
         ),
       ),
     );
@@ -100,16 +136,20 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       return;
     }
     try {
+      if (context.canPop()) {
+        context.pop();
+        return;
+      }
+    } catch (_) {}
+    try {
       context.go('/tours');
-    } catch (_) {
-      // Fallback
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    final dest = widget.destination;
-    final heroHeight = MediaQuery.of(context).size.height * 0.44;
+    final dest = _dest;
+    final heroHeight = (MediaQuery.of(context).size.height * 0.40).clamp(280.0, 420.0);
 
     return PopScope(
       canPop: true,

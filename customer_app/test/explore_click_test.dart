@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/destinations_service.dart';
 import 'package:district_car_customer/features/tours/popular_destinations_screen.dart';
 import 'package:district_car_customer/features/tours/destination_detail_screen.dart';
 import 'package:district_car_customer/features/tours/tour_booking_screen.dart';
@@ -18,6 +20,14 @@ void main() {
         GoRoute(
           path: '/tours',
           builder: (context, state) => const PopularDestinationsScreen(),
+        ),
+        GoRoute(
+          path: '/destination-details',
+          builder: (context, state) {
+            final dest = (state.extra as PopularDestinationModel?) ??
+                DestinationsService.defaultDestinations.first;
+            return DestinationDetailScreen(destination: dest);
+          },
         ),
       ],
     );

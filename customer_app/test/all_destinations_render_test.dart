@@ -13,7 +13,7 @@ void main() {
       debugPrint('Testing DestinationDetailScreen for: ${dest.id} (${dest.name})');
       await tester.pumpWidget(
         MaterialApp(
-          home: DestinationDetailScreen(destination: dest),
+          home: DestinationDetailScreen(key: ValueKey(dest.id), destination: dest),
         ),
       );
       await tester.pumpAndSettle();

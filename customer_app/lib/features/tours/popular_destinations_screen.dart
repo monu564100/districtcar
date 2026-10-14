@@ -69,36 +69,8 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     }
   }
 
-  bool _isOpeningDetail = false;
-
   void _openDestinationDetail(BuildContext context, PopularDestinationModel dest) {
-    if (_isOpeningDetail) return;
-    _isOpeningDetail = true;
-    HapticService.selectionClick();
-    debugPrint('>>> [EXPLORE] Opening DestinationDetailScreen: ${dest.id} (${dest.name})');
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        _isOpeningDetail = false;
-        return;
-      }
-      try {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => DestinationDetailScreen(destination: dest),
-          ),
-        );
-      } catch (e) {
-        debugPrint('>>> [EXPLORE] Navigator.push fallback to context.push: $e');
-        if (mounted) {
-          await context.push('/destination-details?id=${dest.id}', extra: dest);
-        }
-      } finally {
-        if (mounted) {
-          _isOpeningDetail = false;
-        }
-      }
-    });
+    DestinationDetailScreen.open(context, dest);
   }
 
   void _toggleSave(String id) {
