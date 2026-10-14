@@ -760,7 +760,8 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     );
   }
 
-  Widget _buildSafeImage(String url, {BoxFit fit = BoxFit.cover}) {
+  Widget _buildSafeImage(String rawUrl, {BoxFit fit = BoxFit.cover}) {
+    final url = DestinationDetailScreen.sanitizeUrl(rawUrl);
     if (url.isEmpty || !url.startsWith('http')) {
       return const BrandedDestinationPlaceholder();
     }

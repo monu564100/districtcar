@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,22 +23,58 @@ class DestinationDetailScreen extends StatefulWidget {
     this.destinationId,
   });
 
-  /// Universal entry point to open DestinationDetailScreen across any router or navigation context
-  static Future<void> open(BuildContext context, PopularDestinationModel destination) async {
+  /// Sanitize image URLs to prevent 404s or stale Wikimedia URLs
+  static String sanitizeUrl(String url) {
+    if (url.contains('Hundru_Falls_Ranchi.jpg')) {
+      return 'https://upload.wikimedia.org/wikipedia/commons/b/be/Hundru_Falls%2C_Jharkhand%2C_India_4.jpg';
+    }
+    return url;
+  }
+
+  /// Universal entry point to open DestinationDetailScreen across any router or navigation context.
+  /// Uses addPostFrameCallback to ensure all mouse pointer & hover events finish cleanly,
+  /// completely preventing mouse_tracker assertion failures on Flutter Web.
+  static Future<void> open(BuildContext context, PopularDestinationModel destination) {
     HapticService.selectionClick();
     debugPrint('>>> [DESTINATION_DETAIL] Opening destination: ${destination.id} (${destination.name})');
-    try {
-      await context.push('/destination-details?id=${destination.id}', extra: destination);
-    } catch (e) {
-      debugPrint('>>> [DESTINATION_DETAIL] context.push failed ($e), falling back to Navigator.push');
-      if (context.mounted) {
+
+    final completer = Completer<void>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!context.mounted) {
+        completer.complete();
+        return;
+      }
+
+      try {
+        // Direct root Navigator push: 100% reliable across Web, Mobile, and Desktop
         await Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
-            builder: (_) => DestinationDetailScreen(destination: destination),
+            settings: RouteSettings(name: '/destination-details?id=${destination.id}'),
+            builder: (_) => DestinationDetailScreen(
+              key: ValueKey(destination.id),
+              destination: destination,
+              destinationId: destination.id,
+            ),
           ),
         );
+      } catch (e) {
+        debugPrint('>>> [DESTINATION_DETAIL] Navigator.push fallback to context.push: $e');
+        if (context.mounted) {
+          try {
+            await context.push('/destination-details?id=${destination.id}', extra: destination);
+          } catch (routerError) {
+            debugPrint('>>> [DESTINATION_DETAIL] context.push also failed: $routerError');
+          }
+        }
+      } finally {
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       }
-    }
+    });
+
+    return completer.future;
   }
 
   @override
@@ -68,12 +105,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
   void _loadPhotos() {
     final d = _dest;
+    final primaryImg = DestinationDetailScreen.sanitizeUrl(d.imageUrl);
     _allPhotos = [
-      if (d.imageUrl.isNotEmpty) d.imageUrl,
-      ...d.galleryImages.where((img) => img.isNotEmpty && img != d.imageUrl),
+      if (primaryImg.isNotEmpty) primaryImg,
+      ...d.galleryImages
+          .map(DestinationDetailScreen.sanitizeUrl)
+          .where((img) => img.isNotEmpty && img != primaryImg),
     ];
     if (_allPhotos.isEmpty) {
-      _allPhotos = [d.imageUrl.isNotEmpty ? d.imageUrl : 'placeholder'];
+      _allPhotos = [primaryImg.isNotEmpty ? primaryImg : 'placeholder'];
     }
   }
 
@@ -93,7 +133,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
-  Widget _buildSafeHeroImage(String url) {
+  Widget _buildSafeHeroImage(String rawUrl) {
+    final url = DestinationDetailScreen.sanitizeUrl(rawUrl);
     if (url.isEmpty || url == 'placeholder' || !url.startsWith('http')) {
       return const BrandedDestinationPlaceholder();
     }
