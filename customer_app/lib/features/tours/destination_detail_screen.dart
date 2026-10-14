@@ -65,196 +65,207 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
+  void _handleBack(BuildContext context) {
+    HapticService.selectionClick();
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/tours');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dest = widget.destination;
     final heroHeight = MediaQuery.of(context).size.height * 0.44;
 
-    return Scaffold(
-      backgroundColor: AppTokens.background,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // 1. Hero (45% height): Swipeable Photo Pager with Parallax & Scrim
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: heroHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Photo PageView
-                      PageView.builder(
-                        itemCount: _allPhotos.length,
-                        onPageChanged: (i) {
-                          HapticService.selectionClick();
-                          setState(() => _currentPhotoIndex = i);
-                        },
-                        itemBuilder: (context, index) {
-                          final imgUrl = _allPhotos[index];
-                          return GestureDetector(
-                            onTap: () => _openFullScreenGallery(index),
-                            child: Image.network(
-                              imgUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-                            ),
-                          );
-                        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: AppTokens.background,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                // 1. Pinned Hero App Bar (Back button ALWAYS visible, never stuck)
+                SliverAppBar(
+                  expandedHeight: heroHeight,
+                  pinned: true,
+                  elevation: 0,
+                  backgroundColor: AppTokens.darkSurface,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Center(
+                      child: _buildFrostedButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: () => _handleBack(context),
                       ),
+                    ),
+                  ),
+                  actions: [
+                    _buildFrostedButton(
+                      icon: Icons.share_rounded,
+                      onTap: _shareViaWhatsApp,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFrostedButton(
+                      icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      iconColor: _isFavorite ? AppTokens.terracotta : Colors.white,
+                      onTap: () {
+                        setState(() => _isFavorite = !_isFavorite);
+                        if (_isFavorite) {
+                          HapticService.success();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Saved to your Favorites ❤️')),
+                          );
+                        } else {
+                          HapticService.lightImpact();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Photo PageView
+                        PageView.builder(
+                          itemCount: _allPhotos.length,
+                          onPageChanged: (i) {
+                            HapticService.selectionClick();
+                            setState(() => _currentPhotoIndex = i);
+                          },
+                          itemBuilder: (context, index) {
+                            final imgUrl = _allPhotos[index];
+                            return GestureDetector(
+                              onTap: () => _openFullScreenGallery(index),
+                              child: Image.network(
+                                imgUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+                              ),
+                            );
+                          },
+                        ),
 
-                      // Dark Hero Scrim (Never blue-black)
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.black45,
-                              Colors.transparent,
-                              Color.fromRGBO(16, 26, 20, 0.88),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: [0.0, 0.4, 1.0],
+                        // Dark Hero Scrim
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black45,
+                                Colors.transparent,
+                                Color.fromRGBO(16, 26, 20, 0.90),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: [0.0, 0.35, 1.0],
+                            ),
                           ),
                         ),
-                      ),
 
-                      // Top Navigation Controls (Frosted Circles)
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildFrostedButton(
-                                icon: Icons.arrow_back_ios_new_rounded,
-                                onTap: () => context.pop(),
+                        // Photo Counter Pill (e.g. "1/6")
+                        Positioned(
+                          right: 16,
+                          bottom: 72,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Text(
+                              '${_currentPhotoIndex + 1}/${_allPhotos.length} Photos',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
                               ),
+                            ),
+                          ),
+                        ),
+
+                        // Bottom Scrim Details: Category, City, Serif Title, Hindi Title
+                        Positioned(
+                          left: 20,
+                          right: 20,
+                          bottom: 12,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                               Row(
                                 children: [
-                                  _buildFrostedButton(
-                                    icon: Icons.share_rounded,
-                                    onTap: _shareViaWhatsApp,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppTokens.primary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      dest.category.toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 11,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  _buildFrostedButton(
-                                    icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                    iconColor: _isFavorite ? AppTokens.terracotta : Colors.white,
-                                    onTap: () {
-                                      setState(() => _isFavorite = !_isFavorite);
-                                      if (_isFavorite) {
-                                        HapticService.success();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Saved to your Favorites ❤️')),
-                                        );
-                                      } else {
-                                        HapticService.lightImpact();
-                                      }
-                                    },
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppTokens.marigold,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      dest.district,
+                                      style: const TextStyle(
+                                        color: AppTokens.ink,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Photo Counter Pill (e.g. "1/6")
-                      Positioned(
-                        right: 16,
-                        bottom: 80,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: Text(
-                            '${_currentPhotoIndex + 1}/${_allPhotos.length} Photos',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Bottom Scrim Details: Category, City, Serif Title, Hindi Title
-                      Positioned(
-                        left: 20,
-                        right: 20,
-                        bottom: 16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: AppTokens.primary,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    dest.category.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
+                              const SizedBox(height: 6),
+                              Text(
+                                dest.name,
+                                style: const TextStyle(
+                                  fontFamily: 'Georgia',
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.4,
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
+                              ),
+                              if (dest.hindiName.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  dest.hindiName,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                     color: AppTokens.marigold,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    dest.district,
-                                    style: const TextStyle(
-                                      color: AppTokens.ink,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                    ),
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 6),
-                            // Editorial Serif Title
-                            Text(
-                              dest.name,
-                              style: const TextStyle(
-                                fontFamily: 'Georgia',
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                            if (dest.hindiName.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                dest.hindiName,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTokens.marigold,
-                                ),
-                              ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
+
 
               // 2. Photo License & Attribution Bar (Rule 0a: Real attribution stored in data)
               SliverToBoxAdapter(
@@ -786,8 +797,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFrostedButton({
     required IconData icon,

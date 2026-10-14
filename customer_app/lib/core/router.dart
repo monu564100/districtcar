@@ -15,6 +15,7 @@ import '../features/tours/popular_destinations_screen.dart';
 import '../features/tours/destination_detail_screen.dart';
 import '../features/tours/tour_booking_screen.dart';
 import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/destinations_service.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -31,14 +32,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/destination-details',
         builder: (context, state) {
-          final dest = state.extra as PopularDestinationModel;
+          final dest = (state.extra as PopularDestinationModel?) ??
+              DestinationsService.defaultDestinations.first;
           return DestinationDetailScreen(destination: dest);
         },
       ),
       GoRoute(
         path: '/book-tour',
         builder: (context, state) {
-          final dest = state.extra as PopularDestinationModel;
+          final dest = (state.extra as PopularDestinationModel?) ??
+              DestinationsService.defaultDestinations.first;
           return TourBookingScreen(destination: dest);
         },
       ),
