@@ -17,6 +17,7 @@ import '../../services/haptic_service.dart';
 import '../../widgets/home/booking_card.dart';
 import '../../widgets/home/vehicle_card.dart';
 import '../../widgets/home/fare_card.dart';
+import '../../widgets/home/home_map_header.dart';
 import '../../widgets/home/trust_strip.dart';
 import '../../widgets/home/sticky_book_bar.dart';
 import '../booking/booking_confirm_sheet.dart';
@@ -643,8 +644,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   _buildHeader(),
                   const SizedBox(height: 10),
 
-                  // F. Trust Strip (near top of fold)
-                  TrustStrip(isHindi: _isHindi),
+                  // Live Animated Map View above From and To container (Ola / Uber style)
+                  HomeMapHeader(
+                    pickupLocation: _pickupLocation,
+                    isServiceable: isServiceable,
+                    isHindi: _isHindi,
+                    onRecenter: _setCurrentGpsForPickup,
+                    onSupportTap: () => _makePhoneCall('918789601387'),
+                  ),
                   const SizedBox(height: 14),
 
                   // B. Hero Booking Card (Single destination input, no duplicate search bar)
