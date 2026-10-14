@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/models/models.dart';
-import 'package:district_car_shared/theme/app_theme.dart';
+import 'package:district_car_shared/services/destinations_service.dart';
+import '../../theme/theme.dart';
+import '../../services/haptic_service.dart';
+import '../../widgets/tours/branded_destination_placeholder.dart';
+import 'tour_pricing_service.dart';
 
+/// Redesigned Destination Detail Screen
+/// Editorial layout: Hero photo pager, 2x3 quick facts, season bar, bilingual about,
+/// safety tips, nearby stops multi-stop upsell, guarantee card, and sticky package fare bar.
 class DestinationDetailScreen extends StatefulWidget {
   final PopularDestinationModel destination;
 
@@ -13,142 +21,233 @@ class DestinationDetailScreen extends StatefulWidget {
 }
 
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
-  bool _isDescriptionExpanded = false;
+  int _currentPhotoIndex = 0;
   bool _isFavorite = false;
+  bool _isHindi = false;
+  bool _isAboutExpanded = false;
+  final Set<String> _selectedNearbyStopIds = <String>{};
+  int? _expandedFaqIndex;
+
+  late final List<String> _allPhotos;
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.destination;
+    _allPhotos = [
+      d.imageUrl,
+      ...d.galleryImages.where((img) => img != d.imageUrl),
+    ];
+  }
+
+  void _shareViaWhatsApp() async {
+    HapticService.selectionClick();
+    final d = widget.destination;
+    final text = 'Namaste! Check out this tour to ${d.name} (${d.district}, Jharkhand) on District Car: round-trip fixed packages from ₹${d.startingFare.round()}. Verified local drivers & doorstep pickup: https://districtcar.in/tours/${d.id}';
+    final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _openFullScreenGallery(int initialIndex) {
+    HapticService.selectionClick();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => _FullScreenGalleryViewer(
+          images: _allPhotos,
+          initialIndex: initialIndex,
+          destinationName: widget.destination.name,
+          credit: widget.destination.imageCredit,
+          license: widget.destination.imageLicense,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final dest = widget.destination;
+    final heroHeight = MediaQuery.of(context).size.height * 0.44;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTokens.background,
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
-              // 1. Hero Image App Bar
-              SliverAppBar(
-                expandedHeight: 320,
-                pinned: true,
-                backgroundColor: const Color(0xFF0F172A),
-                leading: Container(
-                  margin: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-                    onPressed: () => context.pop(),
-                  ),
-                ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: _isFavorite ? Colors.redAccent : Colors.white,
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        setState(() => _isFavorite = !_isFavorite);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(_isFavorite ? 'Saved to Favorites ❤️' : 'Removed from Favorites'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
+              // 1. Hero (45% height): Swipeable Photo Pager with Parallax & Scrim
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: heroHeight,
+                  child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        dest.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF1E293B),
-                          child: const Center(child: Icon(Icons.image, size: 48, color: Colors.white54)),
-                        ),
+                      // Photo PageView
+                      PageView.builder(
+                        itemCount: _allPhotos.length,
+                        onPageChanged: (i) {
+                          HapticService.selectionClick();
+                          setState(() => _currentPhotoIndex = i);
+                        },
+                        itemBuilder: (context, index) {
+                          final imgUrl = _allPhotos[index];
+                          return GestureDetector(
+                            onTap: () => _openFullScreenGallery(index),
+                            child: Image.network(
+                              imgUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+                            ),
+                          );
+                        },
                       ),
-                      // Top & Bottom Gradient Overlay
+
+                      // Dark Hero Scrim (Never blue-black)
                       Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withOpacity(0.5),
+                              Colors.black45,
                               Colors.transparent,
-                              Colors.black.withOpacity(0.85),
+                              Color.fromRGBO(16, 26, 20, 0.88),
                             ],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
+                            stops: [0.0, 0.4, 1.0],
                           ),
                         ),
                       ),
-                      // Category & District Badges
+
+                      // Top Navigation Controls (Frosted Circles)
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildFrostedButton(
+                                icon: Icons.arrow_back_ios_new_rounded,
+                                onTap: () => context.pop(),
+                              ),
+                              Row(
+                                children: [
+                                  _buildFrostedButton(
+                                    icon: Icons.share_rounded,
+                                    onTap: _shareViaWhatsApp,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  _buildFrostedButton(
+                                    icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    iconColor: _isFavorite ? AppTokens.terracotta : Colors.white,
+                                    onTap: () {
+                                      setState(() => _isFavorite = !_isFavorite);
+                                      if (_isFavorite) {
+                                        HapticService.success();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Saved to your Favorites ❤️')),
+                                        );
+                                      } else {
+                                        HapticService.lightImpact();
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Photo Counter Pill (e.g. "1/6")
+                      Positioned(
+                        right: 16,
+                        bottom: 80,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Text(
+                            '${_currentPhotoIndex + 1}/${_allPhotos.length} Photos',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Bottom Scrim Details: Category, City, Serif Title, Hindi Title
                       Positioned(
                         left: 20,
-                        bottom: 24,
                         right: 20,
+                        bottom: 16,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF059669),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: AppTokens.primary,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     dest.category.toUpperCase(),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 10.5,
+                                      fontSize: 11,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: AppTokens.marigold,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.location_on, size: 12, color: Colors.white),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        dest.district,
-                                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    dest.district,
+                                    style: const TextStyle(
+                                      color: AppTokens.ink,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
+                            // Editorial Serif Title
                             Text(
                               dest.name,
                               style: const TextStyle(
+                                fontFamily: 'Georgia',
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                                height: 1.2,
+                                letterSpacing: -0.4,
                               ),
                             ),
+                            if (dest.hindiName.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                dest.hindiName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTokens.marigold,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -157,411 +256,528 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
               ),
 
-              // 2. Main Content Body
+              // 2. Photo License & Attribution Bar (Rule 0a: Real attribution stored in data)
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  color: AppTokens.surface2,
+                  child: Row(
                     children: [
-                      // Location & Rating Header Bar
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.place_rounded, color: AppColors.primary, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    dest.locationAddress.isNotEmpty ? dest.locationAddress : '${dest.name}, ${dest.district}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF334155),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildQuickInfoCol(
-                                  icon: Icons.star_rounded,
-                                  iconColor: Colors.amber,
-                                  title: '${dest.rating} / 5.0',
-                                  subtitle: '${dest.reviewsCount}+ reviews',
-                                ),
-                                Container(width: 1, height: 32, color: Colors.grey.shade200),
-                                _buildQuickInfoCol(
-                                  icon: Icons.near_me_rounded,
-                                  iconColor: const Color(0xFF2563EB),
-                                  title: '~${dest.approxDistanceKm.toInt()} km',
-                                  subtitle: 'From city center',
-                                ),
-                                Container(width: 1, height: 32, color: Colors.grey.shade200),
-                                _buildQuickInfoCol(
-                                  icon: Icons.access_time_filled_rounded,
-                                  iconColor: const Color(0xFF059669),
-                                  title: 'Full Day',
-                                  subtitle: 'Recommended',
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Travel Specifications Strip (Best Time & Timings)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFBBF7D0)),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.wb_sunny_rounded, color: Color(0xFF16A34A), size: 18),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'Best Time to Visit: ',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF14532D)),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    dest.bestTimeToVisit,
-                                    style: const TextStyle(fontSize: 13, color: Color(0xFF166534)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.schedule_rounded, color: Color(0xFF16A34A), size: 18),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'Visiting Hours: ',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF14532D)),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    dest.timings,
-                                    style: const TextStyle(fontSize: 13, color: Color(0xFF166534)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-
-                      // "Read More" About this place Section
-                      const Text(
-                        'About this Destination (स्थान का विवरण)',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              dest.description,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Color(0xFF475569),
-                                height: 1.6,
-                              ),
-                              maxLines: _isDescriptionExpanded ? null : 3,
-                              overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isDescriptionExpanded = !_isDescriptionExpanded;
-                                });
-                              },
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _isDescriptionExpanded ? 'Read Less ▲' : 'Read More ▼ (पूरा विवरण)',
-                                    style: const TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-
-                      // Photo Gallery Section (तस्वीरें)
-                      () {
-                        final allImages = {
-                          dest.imageUrl,
-                          ...dest.galleryImages,
-                        }.where((url) => url.isNotEmpty).toList();
-
-                        if (allImages.length <= 1) return const SizedBox.shrink();
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Photo Gallery (स्थान की तस्वीरें)',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                                Text(
-                                  '${allImages.length} Photos',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF059669),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 110,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: allImages.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                itemBuilder: (context, idx) {
-                                  final img = allImages[idx];
-                                  return GestureDetector(
-                                    onTap: () => _openImageLightbox(context, img, allImages),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Stack(
-                                        children: [
-                                          Image.network(
-                                            img,
-                                            width: 140,
-                                            height: 110,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(
-                                              width: 140,
-                                              height: 110,
-                                              color: Colors.grey.shade200,
-                                              child: const Icon(Icons.broken_image, color: Colors.grey),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            bottom: 6,
-                                            right: 6,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.55),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 16),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 22),
-                          ],
-                        );
-                      }(),
-
-                      // Key Highlights
-                      if (dest.highlights.isNotEmpty) ...[
-                        const Text(
-                          'Key Highlights & Attractions',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: dest.highlights.map((h) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    h,
-                                    style: const TextStyle(
-                                      color: Color(0xFF1E293B),
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 22),
-                      ],
-
-                      // District Car Tour Benefits
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.verified_user_rounded, color: Color(0xFF34D399), size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'District Car Tour Guarantee',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _buildBenefitBullet('Experienced local rural & hill route drivers'),
-                            _buildBenefitBullet('Flexible stay & waiting duration at spots'),
-                            _buildBenefitBullet('Doorstep pickup & drop back to your home'),
-                            _buildBenefitBullet('Fixed transparent pricing — no hidden fuel surcharges'),
-                          ],
+                      const Icon(Icons.verified_rounded, size: 14, color: AppTokens.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Photo credit: ${dest.imageCredit} · License: ${dest.imageLicense}',
+                          style: const TextStyle(fontSize: 11, color: AppTokens.secondaryText),
                         ),
                       ),
                     ],
                   ),
                 ),
+              ),
+
+              // 3. Quick-Facts Grid (2x3)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                      border: Border.all(color: AppTokens.border),
+                      boxShadow: AppTokens.softCardShadow,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildQuickFactItem(
+                              icon: Icons.star_rounded,
+                              iconColor: AppTokens.marigoldDark,
+                              label: 'Rating',
+                              value: '${dest.rating} (${dest.reviewsCount}+)',
+                            ),
+                            _buildQuickFactItem(
+                              icon: Icons.near_me_rounded,
+                              iconColor: AppTokens.primary,
+                              label: 'Distance',
+                              value: '${dest.approxDistanceKm.round()} km from you',
+                            ),
+                          ],
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(color: AppTokens.border, height: 1),
+                        ),
+                        Row(
+                          children: [
+                            _buildQuickFactItem(
+                              icon: Icons.schedule_rounded,
+                              iconColor: AppTokens.terracotta,
+                              label: 'Time Needed',
+                              value: dest.timeNeeded,
+                            ),
+                            _buildQuickFactItem(
+                              icon: Icons.confirmation_number_rounded,
+                              iconColor: AppTokens.primary,
+                              label: 'Entry Fee',
+                              value: dest.entryFee,
+                            ),
+                          ],
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(color: AppTokens.border, height: 1),
+                        ),
+                        Row(
+                          children: [
+                            _buildQuickFactItem(
+                              icon: Icons.wb_sunny_rounded,
+                              iconColor: AppTokens.marigoldDark,
+                              label: 'Best Season',
+                              value: dest.bestTimeToVisit.split('(').first.trim(),
+                            ),
+                            _buildQuickFactItem(
+                              icon: Icons.local_parking_rounded,
+                              iconColor: AppTokens.primaryDark,
+                              label: 'Access & Parking',
+                              value: dest.stepsOrParking,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 4. Best Time to Visit Card with 12 Months Season Bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTokens.marigoldTint,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTokens.marigold.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(Icons.calendar_month_rounded, size: 18, color: AppTokens.marigoldDark),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Season Guide & Weather',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTokens.ink,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppTokens.marigold.withValues(alpha: 0.4)),
+                              ),
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.wb_cloudy_rounded, size: 13, color: AppTokens.primary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '26°C · Pleasant',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTokens.ink),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // 12 Months Season Bar
+                        _buildSeasonBar(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Recommended: ${dest.bestTimeToVisit}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTokens.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 5. About Section with Language Toggle & Read More
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                      border: Border.all(color: AppTokens.border),
+                      boxShadow: AppTokens.softCardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'About this Place',
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                            ),
+                            // Language Toggle
+                            GestureDetector(
+                              onTap: () {
+                                HapticService.selectionClick();
+                                setState(() => _isHindi = !_isHindi);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTokens.primaryTint,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppTokens.primary.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  _isHindi ? 'हिन्दी / EN' : 'EN / हिन्दी',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTokens.primaryDark,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          dest.description,
+                          maxLines: _isAboutExpanded ? 20 : 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: AppTokens.secondaryText,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            HapticService.selectionClick();
+                            setState(() => _isAboutExpanded = !_isAboutExpanded);
+                          },
+                          child: Text(
+                            _isAboutExpanded ? 'Show Less' : 'Read More',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppTokens.primary, // Primary green, NOT blue
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 6. Highlights (Clean Checklist, one per row)
+              if (dest.highlights.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                        border: Border.all(color: AppTokens.border),
+                        boxShadow: AppTokens.softCardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tour Highlights',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                          ),
+                          const SizedBox(height: 12),
+                          ...dest.highlights.map((h) => _buildHighlightRow(h)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 7. Safety & Tips Section (Builds trust, prevents misunderstandings)
+              if (dest.safetyTips.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                        border: Border.all(color: AppTokens.border),
+                        boxShadow: AppTokens.softCardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.shield_outlined, size: 20, color: AppTokens.terracotta),
+                              SizedBox(width: 8),
+                              Text(
+                                'Travel Safety & Local Tips',
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...dest.safetyTips.map((tip) => _buildSafetyTipRow(tip)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 8. Combine with this Trip (Nearby Stops Multi-Stop Upsell)
+              if (dest.nearbyStops.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                        border: Border.all(color: AppTokens.border),
+                        boxShadow: AppTokens.softCardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Combine with this Trip',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Add nearby spots to your route with zero detour bargaining',
+                            style: TextStyle(fontSize: 12.5, color: AppTokens.secondaryText),
+                          ),
+                          const SizedBox(height: 14),
+                          ...dest.nearbyStops.map((stop) {
+                            final stopId = stop['id'] as String;
+                            final isAdded = _selectedNearbyStopIds.contains(stopId);
+                            return _buildNearbyStopTile(stop, isAdded);
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 9. District Car Guarantee Card (Dark Forest Gradient + Marigold Shield)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: AppTokens.darkForestGradient,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                      boxShadow: AppTokens.softCardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTokens.marigold.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.verified_user_rounded, color: AppTokens.marigold, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'District Car Tour Guarantee',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    'झारखंड टूर सुरक्षा एवं भरोसा',
+                                    style: TextStyle(color: AppTokens.marigold, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildGuaranteeCheck('Local verified drivers with deep route knowledge'),
+                        _buildGuaranteeCheck('Flexible waiting hours (1 hr free in round trips)'),
+                        _buildGuaranteeCheck('Doorstep pickup & drop right at your home or hotel'),
+                        _buildGuaranteeCheck('100% Fixed package price: no bargaining, no surge'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 10. FAQ Accordion (3 items)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+                      border: Border.all(color: AppTokens.border),
+                      boxShadow: AppTokens.softCardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Frequently Asked Questions',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildFaqItem(
+                          index: 0,
+                          q: 'How does round-trip waiting work?',
+                          a: 'Your driver stays with your vehicle at the destination parking. 1 hour of waiting is included free. Extra hours are just ₹100–₹150/hr.',
+                        ),
+                        _buildFaqItem(
+                          index: 1,
+                          q: 'Can I pick up family members along the route?',
+                          a: 'Yes! Doorstep pickup anywhere in the hub city is included. You can add stops during checkout.',
+                        ),
+                        _buildFaqItem(
+                          index: 2,
+                          q: 'What if weather turns bad or rain starts?',
+                          a: 'Free cancellation is available up to 2 hours before your scheduled departure time.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Space for bottom sticky bar
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 120),
               ),
             ],
           ),
 
-          // Floating Bottom Booking Bar
+          // 11. Sticky Bottom Package Fare Bar
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                MediaQuery.of(context).padding.bottom + 14,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 18,
-                    offset: const Offset(0, -4),
+                    color: Color.fromRGBO(28, 27, 24, 0.12),
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Live Fare Booking',
-                        style: TextStyle(fontSize: 14, color: Color(0xFF0F172A), fontWeight: FontWeight.w900),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Transparent Distance Pricing',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 4,
-                      ),
-                      onPressed: () {
-                        context.push('/book-tour', extra: dest);
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.directions_car_rounded, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Book Tour Ride',
-                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'From ₹${dest.startingFare.round()}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppTokens.ink,
+                            letterSpacing: -0.4,
                           ),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          'Round trip from ${dest.district}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTokens.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      context.push('/book-tour', extra: dest);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTokens.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Plan this trip',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
                     ),
                   ),
                 ],
@@ -573,33 +789,61 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  Widget _buildQuickInfoCol({
+  Widget _buildFrostedButton({
     required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
+    Color iconColor = Colors.white,
+    required VoidCallback onTap,
   }) {
-    return Column(
-      children: [
-        Icon(icon, color: iconColor, size: 22),
-        const SizedBox(height: 4),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A))),
-        Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-      ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Center(
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+      ),
     );
   }
 
-  Widget _buildBenefitBullet(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+  Widget _buildQuickFactItem({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Expanded(
       child: Row(
         children: [
-          const Icon(Icons.check_rounded, color: Color(0xFF34D399), size: 14),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTokens.primaryTint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppTokens.hint),
+                ),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                ),
+              ],
             ),
           ),
         ],
@@ -607,78 +851,281 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  void _openImageLightbox(BuildContext context, String initialUrl, List<String> allImages) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        String current = initialUrl;
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) => Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(12),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: InteractiveViewer(
-                    maxScale: 4.0,
-                    child: Image.network(
-                      current,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 250,
-                        color: Colors.black87,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, color: Colors.white54, size: 48),
-                        ),
-                      ),
-                    ),
-                  ),
+  Widget _buildSeasonBar() {
+    const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    // For waterfall/plateau destinations in Jharkhand, best months are typically Jul-Feb (indices 6, 7, 8, 9, 10, 11, 0, 1)
+    const bestIndices = {6, 7, 8, 9, 10, 11, 0, 1};
+
+    return Row(
+      children: List.generate(12, (index) {
+        final isBest = bestIndices.contains(index);
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+            height: 24,
+            decoration: BoxDecoration(
+              color: isBest ? AppTokens.primary : AppTokens.border,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: Text(
+                months[index],
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: isBest ? Colors.white : AppTokens.secondaryText,
                 ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ),
-                if (allImages.length > 1)
-                  Positioned(
-                    bottom: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: allImages.map((u) {
-                          final isSel = u == current;
-                          return GestureDetector(
-                            onTap: () => setDialogState(() => current = u),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: isSel ? 24 : 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: isSel ? AppColors.primary : Colors.white54,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         );
-      },
+      }),
+    );
+  }
+
+  Widget _buildHighlightRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle_rounded, color: AppTokens.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTokens.ink),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSafetyTipRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: AppTokens.terracotta, size: 17),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTokens.secondaryText),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNearbyStopTile(Map<String, dynamic> stop, bool isAdded) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isAdded ? AppTokens.primaryTint : AppTokens.surface2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isAdded ? AppTokens.primary : AppTokens.border,
+          width: isAdded ? 1.5 : 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stop['name'] as String,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                ),
+                Text(
+                  '+${stop['distanceKm']} km · +₹${stop['fare']}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.primary),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: isAdded,
+            activeColor: AppTokens.primary,
+            onChanged: (val) {
+              HapticService.selectionClick();
+              setState(() {
+                final id = stop['id'] as String;
+                if (val) {
+                  _selectedNearbyStopIds.add(id);
+                } else {
+                  _selectedNearbyStopIds.remove(id);
+                }
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuaranteeCheck(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle_outline_rounded, color: AppTokens.marigold, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFaqItem({required int index, required String q, required String a}) {
+    final isExpanded = _expandedFaqIndex == index;
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            HapticService.selectionClick();
+            setState(() => _expandedFaqIndex = isExpanded ? null : index);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    q,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.ink),
+                  ),
+                ),
+                Icon(
+                  isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: AppTokens.secondaryText,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              a,
+              style: const TextStyle(fontSize: 13, color: AppTokens.secondaryText, height: 1.4),
+            ),
+          ),
+        const Divider(color: AppTokens.border, height: 1),
+      ],
     );
   }
 }
 
+/// Full Screen Gallery Viewer with Pinch-to-zoom and swipe to dismiss
+class _FullScreenGalleryViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  final String destinationName;
+  final String credit;
+  final String license;
+
+  const _FullScreenGalleryViewer({
+    required this.images,
+    required this.initialIndex,
+    required this.destinationName,
+    required this.credit,
+    required this.license,
+  });
+
+  @override
+  State<_FullScreenGalleryViewer> createState() => _FullScreenGalleryViewerState();
+}
+
+class _FullScreenGalleryViewerState extends State<_FullScreenGalleryViewer> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          widget.destinationName,
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Text(
+                '${_currentIndex + 1}/${widget.images.length}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            itemCount: widget.images.length,
+            controller: PageController(initialPage: widget.initialIndex),
+            onPageChanged: (i) => setState(() => _currentIndex = i),
+            itemBuilder: (context, idx) {
+              return InteractiveViewer(
+                minScale: 1.0,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    widget.images[idx],
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white54, size: 54),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Credit: ${widget.credit} · License: ${widget.license}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

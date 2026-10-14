@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/theme.dart';
 
-/// Floating Bottom Dock with transparent white water blurry glassmorphism
-/// and a floating bubble capsule over the active selected page.
+/// Floating Bottom Dock with warm natural glassmorphism
+/// All 4 tabs always show their labels (Rule 0e) and use the Sal Forest + Marigold system.
 class FloatingBottomDock extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTabSelected;
@@ -14,70 +15,68 @@ class FloatingBottomDock extends StatelessWidget {
     required this.onTabSelected,
   });
 
+  /// Standard height including margins for screens to add bottom padding = 88.0 + safe area
+  static const double dockHeight = 72.0;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(38),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(34),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF6A5CFF).withValues(alpha: 0.12),
+            color: Color.fromRGBO(28, 27, 24, 0.12),
             blurRadius: 24,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            color: Color.fromRGBO(28, 27, 24, 0.05),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xEEFFFFFF), // Transparent water glass look
-          borderRadius: BorderRadius.circular(38),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-            width: 1.5,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(34),
+              border: Border.all(
+                color: AppTokens.border,
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTabItem(
+                  index: 0,
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                ),
+                _buildTabItem(
+                  index: 1,
+                  icon: Icons.explore_rounded,
+                  label: 'Explore',
+                ),
+                _buildTabItem(
+                  index: 2,
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Trips',
+                ),
+                _buildTabItem(
+                  index: 3,
+                  icon: Icons.person_rounded,
+                  label: 'Profile',
+                ),
+              ],
+            ),
           ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color.fromRGBO(15, 23, 42, 0.08),
-              blurRadius: 16,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildTabItem(
-              index: 0,
-              icon: Icons.home_rounded,
-              label: 'Home',
-            ),
-            const SizedBox(width: 4),
-            _buildTabItem(
-              index: 1,
-              icon: Icons.explore_rounded,
-              label: 'Explore',
-            ),
-            const SizedBox(width: 4),
-            _buildTabItem(
-              index: 2,
-              icon: Icons.receipt_long_rounded,
-              label: 'Trips',
-            ),
-            const SizedBox(width: 4),
-            _buildTabItem(
-              index: 3,
-              icon: Icons.person_rounded,
-              label: 'Profile',
-            ),
-          ],
         ),
       ),
     );
@@ -89,65 +88,45 @@ class FloatingBottomDock extends StatelessWidget {
     required String label,
   }) {
     final isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTabSelected(index);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 18 : 12,
-          vertical: 8,
-        ),
-        decoration: isSelected
-            ? BoxDecoration(
-                color: Colors.white, // Elevated liquid water bubble (no blue overlay)
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1.5,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromRGBO(15, 23, 42, 0.09),
-                    blurRadius: 10,
-                    offset: Offset(0, 3),
-                  ),
-                  BoxShadow(
-                    color: Color.fromRGBO(255, 255, 255, 0.95),
-                    blurRadius: 2,
-                    offset: Offset(0, -1),
-                  ),
-                ],
-              )
-            : BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(26),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTabSelected(index);
+        },
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTokens.primaryTint : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? AppTokens.primary : AppTokens.secondaryText,
+                size: 22,
               ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF3D2FD6) : const Color(0xFF64748B),
-              size: 20,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
+              const SizedBox(height: 3),
+              // All 4 tabs always show their labels (Rule 0e)
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? AppTokens.primaryDark : AppTokens.secondaryText,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 12,
                   letterSpacing: -0.1,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -62,4 +62,25 @@ class HapticService {
     if (!isEnabled) return;
     HapticFeedback.heavyImpact();
   }
+
+  // Standard aliases
+  static void selectionClick() {
+    if (!isEnabled) return;
+    HapticFeedback.selectionClick();
+  }
+
+  static void lightImpact() {
+    if (!isEnabled) return;
+    HapticFeedback.lightImpact();
+  }
+
+  static void mediumImpact() {
+    if (!isEnabled) return;
+    HapticFeedback.mediumImpact();
+  }
+
+  static void heavyImpact() {
+    if (!isEnabled) return;
+    HapticFeedback.heavyImpact();
+  }
 }

@@ -1,52 +1,70 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for District Car
-/// Inspired by top-tier mobility apps (Uber/Rapido/Ola) crafted for rural & district Jharkhand.
+/// Design tokens for District Car: Sal Forest + Marigold + Laterite Earth
+/// Zero Blue / Indigo / Teal anywhere in the system.
 class AppTokens {
   // Brand Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF6A5CFF), Color(0xFF3D2FD6)],
+    colors: [Color(0xFF1E7B4F), Color(0xFF0F5A38)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient fareDarkGradient = LinearGradient(
-    colors: [Color(0xFF0B1020), Color(0xFF1B2347)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient warningGradient = LinearGradient(
-    colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+  static const LinearGradient marigoldGradient = LinearGradient(
+    colors: [Color(0xFFF4A62A), Color(0xFFE98A15)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
-  // Core Colors
-  static const Color primaryDark = Color(0xFF2A1FA8);
-  static const Color success = Color(0xFF16A34A);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFE5484D);
+  static const LinearGradient darkForestGradient = LinearGradient(
+    colors: [Color(0xFF1E2A22), Color(0xFF101A14)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  // Ink Typography Colors
-  static const Color ink = Color(0xFF0B1020);
-  static const Color textSecondary = Color(0xFF5B6478);
-  static const Color secondary = Color(0xFF5B6478);
-  static const Color textHint = Color(0xFF98A2B3);
-  static const Color hint = Color(0xFF98A2B3);
+  static const LinearGradient heroScrim = LinearGradient(
+    colors: [Colors.transparent, Color.fromRGBO(16, 26, 20, 0.75)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
-  // Surfaces & Canvas
-  static const Color background = Color(0xFFF6F7FB);
+  // Core Primaries (Sal Forest)
+  static const Color primary = Color(0xFF1E7B4F);
+  static const Color primaryDark = Color(0xFF0B3F28);
+  static const Color primaryTint = Color(0xFFE8F4EC);
+
+  // Accent (Marigold)
+  static const Color marigold = Color(0xFFF4A62A);
+  static const Color marigoldDark = Color(0xFFE98A15);
+  static const Color marigoldTint = Color(0xFFFFF3DC);
+
+  // Terracotta (Laterite Earth)
+  static const Color terracotta = Color(0xFFC65A3A);
+
+  // Neutrals (Warm Sal Wood & Stone)
+  static const Color background = Color(0xFFFAF8F4);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceSecondary = Color(0xFFF1F3F9);
-  static const Color borderLight = Color(0xFFEEF0F6);
+  static const Color surface2 = Color(0xFFF3F0E9);
+  static const Color border = Color(0xFFECE7DD);
+  static const Color ink = Color(0xFF1C1B18);
+  static const Color secondaryText = Color(0xFF6A645A);
+  static const Color secondary = secondaryText;
+  static const Color textSecondary = secondaryText;
+  static const Color hint = Color(0xFFA09A8F);
+  static const Color textHint = hint;
+  static const Color borderLight = border;
+  static const LinearGradient fareDarkGradient = darkForestGradient;
 
-  // Dark Mode Tokens
-  static const Color darkBackground = Color(0xFF0A0D1A);
-  static const Color darkSurface = Color(0xFF141A2E);
-  static const Color darkBorder = Color(0x14FFFFFF);
+  // Status & Utility
+  static const Color success = Color(0xFF2E9E5B);
+  static const Color error = Color(0xFFD64545);
+  static const Color warning = Color(0xFFF4A62A);
 
-  // Spacing (4pt grid: 4, 8, 12, 16, 24, 32)
+  // Dark Surfaces (Forest Charcoal)
+  static const Color darkSurface = Color(0xFF101A14);
+  static const Color darkSurface2 = Color(0xFF1E2A22);
+
+  // Spacing (4pt grid: 4, 8, 12, 16, 20, 24, 32)
   static const double space4 = 4.0;
   static const double space8 = 8.0;
   static const double space12 = 12.0;
@@ -66,23 +84,23 @@ class AppTokens {
   static const double minTouchTarget = 48.0;
   static const double primaryButtonHeight = 58.0;
 
-  // Shadows
+  // Layered Soft Shadows
   static const List<BoxShadow> softCardShadow = [
     BoxShadow(
-      color: Color.fromRGBO(16, 24, 40, 0.04),
-      blurRadius: 4,
+      color: Color.fromRGBO(28, 27, 24, 0.06),
+      blurRadius: 2,
       offset: Offset(0, 1),
     ),
     BoxShadow(
-      color: Color.fromRGBO(16, 24, 40, 0.08),
-      blurRadius: 24,
-      offset: Offset(0, 8),
+      color: Color.fromRGBO(28, 27, 24, 0.10),
+      blurRadius: 28,
+      offset: Offset(0, 10),
     ),
   ];
 
   static const List<BoxShadow> elevationGlow = [
     BoxShadow(
-      color: Color.fromRGBO(106, 92, 255, 0.22),
+      color: Color.fromRGBO(30, 123, 79, 0.20),
       blurRadius: 18,
       offset: Offset(0, 6),
     ),

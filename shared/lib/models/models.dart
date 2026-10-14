@@ -350,6 +350,17 @@ class PopularDestinationModel {
   final bool isTrending;
   final bool isPopular;
   final List<String> highlights;
+  final String hindiName;
+  final String imageCredit;
+  final String imageLicense;
+  final String altTextEn;
+  final String altTextHi;
+  final String entryFee;
+  final String timeNeeded;
+  final String stepsOrParking;
+  final List<String> safetyTips;
+  final List<Map<String, dynamic>> nearbyStops;
+  final Map<String, dynamic> hubPackages;
 
   PopularDestinationModel({
     required this.id,
@@ -371,6 +382,17 @@ class PopularDestinationModel {
     this.isTrending = true,
     this.isPopular = true,
     this.highlights = const [],
+    this.hindiName = '',
+    this.imageCredit = 'Wikimedia Commons / Public License',
+    this.imageLicense = 'CC BY-SA 4.0',
+    this.altTextEn = '',
+    this.altTextHi = '',
+    this.entryFee = 'Free Entry',
+    this.timeNeeded = 'Half Day',
+    this.stepsOrParking = 'Parking available',
+    this.safetyTips = const [],
+    this.nearbyStops = const [],
+    this.hubPackages = const {},
   });
 
   Map<String, dynamic> toMap() {
@@ -394,6 +416,17 @@ class PopularDestinationModel {
       'isTrending': isTrending,
       'isPopular': isPopular,
       'highlights': highlights,
+      'hindiName': hindiName,
+      'imageCredit': imageCredit,
+      'imageLicense': imageLicense,
+      'altTextEn': altTextEn,
+      'altTextHi': altTextHi,
+      'entryFee': entryFee,
+      'timeNeeded': timeNeeded,
+      'stepsOrParking': stepsOrParking,
+      'safetyTips': safetyTips,
+      'nearbyStops': nearbyStops,
+      'hubPackages': hubPackages,
     };
   }
 
@@ -418,6 +451,17 @@ class PopularDestinationModel {
       isTrending: map['isTrending'] == true,
       isPopular: map['isPopular'] ?? true,
       highlights: (map['highlights'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      hindiName: map['hindiName'] as String? ?? '',
+      imageCredit: map['imageCredit'] as String? ?? 'Wikimedia Commons / Public License',
+      imageLicense: map['imageLicense'] as String? ?? 'CC BY-SA 4.0',
+      altTextEn: map['altTextEn'] as String? ?? '',
+      altTextHi: map['altTextHi'] as String? ?? '',
+      entryFee: map['entryFee'] as String? ?? 'Free Entry',
+      timeNeeded: map['timeNeeded'] as String? ?? 'Half Day',
+      stepsOrParking: map['stepsOrParking'] as String? ?? 'Parking available',
+      safetyTips: (map['safetyTips'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      nearbyStops: (map['nearbyStops'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
+      hubPackages: (map['hubPackages'] as Map<String, dynamic>?) ?? {},
     );
   }
 
@@ -441,6 +485,17 @@ class PopularDestinationModel {
     bool? isTrending,
     bool? isPopular,
     List<String>? highlights,
+    String? hindiName,
+    String? imageCredit,
+    String? imageLicense,
+    String? altTextEn,
+    String? altTextHi,
+    String? entryFee,
+    String? timeNeeded,
+    String? stepsOrParking,
+    List<String>? safetyTips,
+    List<Map<String, dynamic>>? nearbyStops,
+    Map<String, dynamic>? hubPackages,
   }) {
     return PopularDestinationModel(
       id: id ?? this.id,
@@ -462,6 +517,17 @@ class PopularDestinationModel {
       isTrending: isTrending ?? this.isTrending,
       isPopular: isPopular ?? this.isPopular,
       highlights: highlights ?? this.highlights,
+      hindiName: hindiName ?? this.hindiName,
+      imageCredit: imageCredit ?? this.imageCredit,
+      imageLicense: imageLicense ?? this.imageLicense,
+      altTextEn: altTextEn ?? this.altTextEn,
+      altTextHi: altTextHi ?? this.altTextHi,
+      entryFee: entryFee ?? this.entryFee,
+      timeNeeded: timeNeeded ?? this.timeNeeded,
+      stepsOrParking: stepsOrParking ?? this.stepsOrParking,
+      safetyTips: safetyTips ?? this.safetyTips,
+      nearbyStops: nearbyStops ?? this.nearbyStops,
+      hubPackages: hubPackages ?? this.hubPackages,
     );
   }
 }
