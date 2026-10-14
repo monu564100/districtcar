@@ -82,7 +82,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
           ];
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTokens.surface,

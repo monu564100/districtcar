@@ -639,6 +639,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final topInset = MediaQuery.of(context).padding.top;
     final mapHeight = (310.0 + topInset).clamp(320.0, 380.0);
 
+    // Dynamic map scroll offset:
+    // Initial scroll maintains subtle parallax so booking card slides over map.
+    // After the pricing container (~220px threshold), map scrolls up continuously off-screen!
+    const double pricingScrollThreshold = 220.0;
+    final double mapParallaxOffset = _scrollOffset <= pricingScrollThreshold
+        ? -(_scrollOffset * 0.18)
+        : -(pricingScrollThreshold * 0.18) - (_scrollOffset - pricingScrollThreshold);
+
     return Scaffold(
       backgroundColor: AppTokens.background,
       body: Stack(
@@ -650,8 +658,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             right: 0,
             height: mapHeight,
             child: Transform.translate(
-              // Silky smooth parallax: map moves slower than the scroll
-              offset: Offset(0, -(_scrollOffset * 0.28).clamp(0.0, mapHeight * 0.45)),
+              offset: Offset(0, mapParallaxOffset),
               child: HomeMapHeader(
                 edgeToEdge: true,
                 height: mapHeight,
@@ -666,7 +673,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
           // 2. Subtle Bottom Scrim for Map (Smooth transition into content sheet)
           Positioned(
-            top: mapHeight - 50,
+            top: mapHeight - 50 + mapParallaxOffset,
             left: 0,
             right: 0,
             height: 50,
@@ -698,9 +705,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // B. Hero Booking Card
+                // B. Hero Booking Card (Widened container)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: BookingCard(
                     pickupAddress: _pickupLocation.address,
                     destinationAddress: _destinationLocation.address,
@@ -733,7 +740,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // E. Options Row (compact chips: Date/Time, Passengers, Payment, Round-trip)
+                // E. Options Row (compact chips: Date/Time, Payment, Round-trip)
                 _buildOptionsRow(),
                 const SizedBox(height: 18),
 
@@ -763,61 +770,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             ),
           ),
 
-          // 4. Floating Top-Left Brand Pill
-          Positioned(
-            top: topInset + 8,
-            left: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      width: 1.2,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.12),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(
-                          'assets/images/app_logo.jpg',
-                          width: 20,
-                          height: 20,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'District Car',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 5. Floating Top-Right "My Trips" Button (Remains pinned at top-right corner)
+          // 4. Floating Top-Right "My Trips" Button (Remains pinned at top-right corner)
           Positioned(
             top: topInset + 8,
             right: 16,
@@ -1097,7 +1050,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             children: [
               // Date/Time Chip
               Expanded(
-                flex: 4,
+                flex: 5,
                 child: InkWell(
                   onTap: () {
                     HapticService.selection();
@@ -1105,7 +1058,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   },
                   borderRadius: BorderRadius.circular(AppTokens.radiusChips),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(AppTokens.radiusChips),
@@ -1114,8 +1067,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF0F172A)),
-                        const SizedBox(width: 4),
+                        const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF0F172A)),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             _selectedTimeSlot.startsWith('Now') ? 'Now' : '$dayDate, ${_selectedTimeSlot.split('(').first.trim()}',
@@ -1133,98 +1086,41 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-
-              // Passengers Stepper Chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InkWell(
-                      onTap: _passengerCount > 1
-                          ? () {
-                              HapticService.selection();
-                              setState(() => _passengerCount--);
-                            }
-                          : null,
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Icon(
-                          Icons.remove_rounded,
-                          size: 15,
-                          color: _passengerCount > 1 ? AppTokens.ink : AppTokens.hint,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.person_rounded, size: 12, color: AppTokens.secondary),
-                          Text(
-                            '$_passengerCount',
-                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
-                          ),
-                        ],
-                      ),
-                    ),
-                    InkWell(
-                      onTap: _passengerCount < 6
-                          ? () {
-                              HapticService.selection();
-                              setState(() => _passengerCount++);
-                            }
-                          : null,
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 15,
-                          color: _passengerCount < 6 ? const Color(0xFF0F172A) : AppTokens.hint,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
 
               // Payment Chip
-              InkWell(
-                onTap: () {
-                  HapticService.selection();
-                  setState(() {
-                    _paymentMethod = _paymentMethod == 'Cash / UPI' ? 'Cash' : 'Cash / UPI';
-                  });
-                },
-                borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.payments_rounded, size: 13, color: Color(0xFF0F172A)),
-                      const SizedBox(width: 3),
-                      Text(
-                        _paymentMethod == 'Cash / UPI' ? 'Cash/UPI' : _paymentMethod,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
+              Expanded(
+                flex: 3,
+                child: InkWell(
+                  onTap: () {
+                    HapticService.selection();
+                    setState(() {
+                      _paymentMethod = _paymentMethod == 'Cash / UPI' ? 'Cash' : 'Cash / UPI';
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.payments_rounded, size: 14, color: Color(0xFF0F172A)),
+                        const SizedBox(width: 5),
+                        Text(
+                          _paymentMethod == 'Cash / UPI' ? 'Cash/UPI' : _paymentMethod,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

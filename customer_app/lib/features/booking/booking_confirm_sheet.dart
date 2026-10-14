@@ -214,19 +214,19 @@ class _BookingConfirmSheetState extends State<BookingConfirmSheet> {
 
           const SizedBox(height: 12),
 
-          // Details row: Schedule + Passengers + OTP notice
+          // Details row: Schedule + Time + Payment
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildDetailTag(Icons.event_rounded, widget.selectedDate),
               _buildDetailTag(Icons.schedule_rounded, widget.selectedTimeSlot.split('(').first.trim()),
-              _buildDetailTag(Icons.people_rounded, '${widget.passengerCount} Seat'),
+              _buildDetailTag(Icons.payments_rounded, widget.paymentMethod),
             ],
           ),
 
           const SizedBox(height: 20),
 
-          // Primary Slide / Big Confirm Button (58h)
+          // Primary Big Confirm Button (58h)
           SizedBox(
             width: double.infinity,
             height: AppTokens.primaryButtonHeight,
@@ -236,10 +236,10 @@ class _BookingConfirmSheetState extends State<BookingConfirmSheet> {
                 Navigator.of(context).pop(true);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3D2FD6),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 elevation: 4,
-                shadowColor: const Color(0xFF3D2FD6).withValues(alpha: 0.4),
+                shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.25),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppTokens.radiusButtons),
                 ),
