@@ -20,6 +20,7 @@ import '../../widgets/home/fare_card.dart';
 import '../../widgets/home/home_map_header.dart';
 import '../../widgets/home/trust_strip.dart';
 import '../../widgets/home/sticky_book_bar.dart';
+import '../../widgets/home/ola_promo_feed.dart';
 import '../booking/booking_confirm_sheet.dart';
 import 'categories_provider.dart';
 import '../booking/booking_service.dart';
@@ -694,19 +695,30 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
                   // E. Options Row (compact chips: Date/Time, Passengers, Payment, Round-trip)
                   _buildOptionsRow(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // G. Quick WhatsApp & Call Booking
-                  _buildWhatsAppHelplineCard(),
-                  const SizedBox(height: 16),
-
-                  // H. Tours & Travels Hero (height 140, below options)
-                  _buildTourAndTravelsShortcutBanner(),
-                  const SizedBox(height: 16),
-
-                  // Village Return Guarantee Transparency
-                  _buildJharkhandVillagePricingBanner(),
-                  const SizedBox(height: 20),
+                  // Ola-Style High Graphic Promotional Feed & Brand Footer
+                  OlaPromoFeed(
+                    isHindi: _isHindi,
+                    onLuggageTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('District Prime Luggage: Extra boot space guaranteed on your booking!'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    onPrimePlusTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('District Prime+: Top-rated drivers & spacious sedans/SUVs.'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1268,248 +1280,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  /// G. Quick WhatsApp / Call booking (compact single-line row)
-  Widget _buildWhatsAppHelplineCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0F172A),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 16),
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Quick WhatsApp & Call Booking: +91 87896 01387',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                color: AppTokens.ink,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-          InkWell(
-            onTap: () {
-              HapticService.selection();
-              _openWhatsApp(
-                message: 'Hello District Car Helpline, I want to book a ride / need assistance.',
-              );
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: const Padding(
-              padding: EdgeInsets.all(5),
-              child: Icon(Icons.chat_bubble_rounded, color: Color(0xFF0F172A), size: 19),
-            ),
-          ),
-          InkWell(
-            onTap: () {
-              HapticService.selection();
-              _makePhoneCall('918789601387');
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: const Padding(
-              padding: EdgeInsets.all(5),
-              child: Icon(Icons.call_rounded, color: Color(0xFF0F172A), size: 19),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  /// H. Tours & Travels Hero (height 140, below options)
-  Widget _buildTourAndTravelsShortcutBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(15, 118, 110, 0.22),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-        child: Stack(
-          children: [
-            Image.asset(
-              'assets/images/tour_banner_jharkhand.jpg',
-              height: 140,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 140,
-                color: const Color(0xFF0F766E),
-              ),
-            ),
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withValues(alpha: 0.78),
-                    Colors.black.withValues(alpha: 0.4),
-                    Colors.black.withValues(alpha: 0.2),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-              ),
-            ),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-                onTap: () {
-                  HapticService.selection();
-                  context.push('/tours');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.22),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-                        ),
-                        child: const Icon(Icons.explore_rounded, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF08A),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'TOUR & TRAVELS',
-                                    style: TextStyle(
-                                      color: Color(0xFF854D0E),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 9,
-                                      letterSpacing: 0.4,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'EXPLORE',
-                                    style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _isHindi ? 'झारखंड के प्रमुख पर्यटन स्थल' : 'Waterfalls, Temples & Hills',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _isHindi ? 'हुंडरू, जोन्हा, बैद्यनाथ धाम, नेतरहाट व अन्य' : 'Hundru, Dassam, Baidyanath Dham, Netarhat & more',
-                              style: const TextStyle(color: Colors.white70, fontSize: 10.5),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F766E), size: 16),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Village Return Guarantee Transparency Banner
-  Widget _buildJharkhandVillagePricingBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.verified_user_outlined, color: Color(0xFFD97706), size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isHindi ? 'ग्रामीण रिटर्न गारंटी' : 'Village Return Guarantee',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: AppTokens.ink),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _isHindi
-                      ? 'ग्रामीण इलाकों में रिटर्न सवारी की अनिश्चितता के कारण हमारे ड्राइवर साथियों को उचित मुआवज़ा दिया जाता है, जिससे आपकी राइड बिना कैंसिल हुए तुरंत स्वीकार होती है।'
-                      : 'In rural Jharkhand, return trips have lower availability. Our fair-rate model compensates driver return travel so your ride is 100% accepted without cancellations.',
-                  style: const TextStyle(fontSize: 10.5, color: AppTokens.secondary, height: 1.4),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Persistent Rectangle Popup showing accepted booking status until trip completed
   Widget _buildActiveTripPersistentPopup() {
