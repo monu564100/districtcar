@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/haptic_service.dart';
-import '../../theme/theme.dart';
 
-/// Ola-Style High Graphic Promotional Feed & Brand Footer
+/// Ola-Style High Graphic Promotional Feed & Seamless Brand Footer
 /// Placed directly below the options row on the Home Screen.
-/// Follows the user's reference design with:
-/// 1. "NO MORE BOOT-SPACE SURPRISES" Prime Luggage Card
-/// 2. "More festive trips, less driving" Prime Plus Card
-/// 3. "Vacations, totally exciting!" Outstation Tours Card
-/// 4. "#DistrictCarOnTheMove" Moving Jharkhand Brand Footer
 class OlaPromoFeed extends StatelessWidget {
   final bool isHindi;
   final VoidCallback? onLuggageTap;
@@ -35,20 +29,21 @@ class OlaPromoFeed extends StatelessWidget {
         _buildFestivePrimePlusCard(context),
         const SizedBox(height: 16),
 
-        // 3. Outstation Roadtrip Scenic Card
+        // 3. Outstation Roadtrip Scenic Card (Matching fixed width & height)
         _buildOutstationToursCard(context),
         const SizedBox(height: 24),
 
-        // 4. #DistrictCarOnTheMove Footer
+        // 4. #DistrictCarOnTheMove Footer (Seamless, unboxed directly on screen)
         _buildDistrictCarOnTheMoveFooter(),
-        const SizedBox(height: 90), // Generous padding above floating sticky dock
+        const SizedBox(height: 90), // Spacing for floating sticky booking dock
       ],
     );
   }
 
-  /// Card 1: Prime Luggage with 3D open boot graphic
+  /// Card 1: Prime Luggage with 3D open boot graphic (No tags at top)
   Widget _buildLuggageCard(BuildContext context) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -85,11 +80,11 @@ class OlaPromoFeed extends StatelessWidget {
               ),
 
               Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Text Column
+                    // Text Column (Clean headline + tagline without top tags)
                     Expanded(
                       flex: 12,
                       child: Column(
@@ -101,58 +96,20 @@ class OlaPromoFeed extends StatelessWidget {
                                 ? 'सामान के लिए\nपूरी डिक्की स्पेस'
                                 : 'NO MORE\nBOOT-SPACE\nSURPRISES.',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 19,
                               fontWeight: FontWeight.w900,
                               height: 1.15,
                               letterSpacing: -0.4,
                               color: Color(0xFF0F172A),
                             ),
                           ),
-                          const SizedBox(height: 10),
-
-                          // Introducing Badge (Warm Amber/Gold)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFFDE68A)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star_rounded, size: 12, color: Color(0xFFD97706)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isHindi ? 'नया फीचर' : 'INTRODUCING',
-                                  style: const TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFFB45309),
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                           const SizedBox(height: 8),
-
-                          // Brand & Tagline
-                          const Text(
-                            'DISTRICT PRIME LUGGAGE',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
                           Text(
                             isHindi
                                 ? 'हर बार पक्की डिक्की स्पेस गारंटी।'
                                 : 'Assured boot space, every time.',
                             style: const TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: Color(0xFF64748B),
                             ),
@@ -221,9 +178,10 @@ class OlaPromoFeed extends StatelessWidget {
     );
   }
 
-  /// Card 2: Prime Plus Cinematic Interior Ride
+  /// Card 2: Prime Plus Festive Ride (Clean, no tag at top)
   Widget _buildFestivePrimePlusCard(BuildContext context) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       height: 210,
       decoration: BoxDecoration(
@@ -265,8 +223,8 @@ class OlaPromoFeed extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.black.withValues(alpha: 0.70),
-                        Colors.black.withValues(alpha: 0.40),
+                        Colors.black.withValues(alpha: 0.50),
+                        Colors.black.withValues(alpha: 0.25),
                         Colors.black.withValues(alpha: 0.85),
                       ],
                       begin: Alignment.topCenter,
@@ -276,43 +234,13 @@ class OlaPromoFeed extends StatelessWidget {
                 ),
               ),
 
-              // Content
+              // Content (Bottom-aligned, clean, no top tag)
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Badge: District Prime+
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.workspace_premium_rounded, size: 13, color: Color(0xFFFBBF24)),
-                              SizedBox(width: 4),
-                              Text(
-                                'DISTRICT PRIME+',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-
                     // Headline
                     Text(
                       isHindi
@@ -320,7 +248,7 @@ class OlaPromoFeed extends StatelessWidget {
                           : 'More festive trips,\nless driving',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 21,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                         height: 1.15,
                         letterSpacing: -0.3,
@@ -334,8 +262,8 @@ class OlaPromoFeed extends StatelessWidget {
                           ? 'शानदार गाड़ियाँ और तेज़ पिकअप Prime Plus के साथ'
                           : 'Enjoy spacious rides and speedy pickups with Prime Plus',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.90),
-                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -377,11 +305,12 @@ class OlaPromoFeed extends StatelessWidget {
     );
   }
 
-  /// Card 3: Outstation Roadtrip Vacation Card
+  /// Card 3: Outstation Roadtrip Vacation Card (Fixed width identical to Card 1 & 2, no top tag)
   Widget _buildOutstationToursCard(BuildContext context) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 205,
+      height: 210, // Exact same dimensions as Card 2
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
@@ -421,8 +350,8 @@ class OlaPromoFeed extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.black.withValues(alpha: 0.55),
-                        Colors.black.withValues(alpha: 0.25),
+                        Colors.black.withValues(alpha: 0.50),
+                        Colors.black.withValues(alpha: 0.20),
                         Colors.black.withValues(alpha: 0.85),
                       ],
                       begin: Alignment.topCenter,
@@ -432,45 +361,19 @@ class OlaPromoFeed extends StatelessWidget {
                 ),
               ),
 
-              // Content
+              // Content (Bottom-aligned, clean, no top tag)
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Tag
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.80),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.explore_rounded, size: 12, color: Color(0xFFF59E0B)),
-                          SizedBox(width: 4),
-                          Text(
-                            'DISTRICT OUTSTATION',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-
                     // Headline
                     Text(
                       isHindi ? 'छुट्टियों का सफर,\nबेहद रोमांचक!' : 'Vacations,\ntoy-ally exciting!',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 21,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                         height: 1.15,
                         letterSpacing: -0.3,
@@ -484,8 +387,8 @@ class OlaPromoFeed extends StatelessWidget {
                           ? 'झारखंड के दर्शनीय स्थलों के लिए किफायती आउटस्टेशन राइड'
                           : 'Book an affordable District Outstation ride',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.90),
-                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -527,64 +430,52 @@ class OlaPromoFeed extends StatelessWidget {
     );
   }
 
-  /// Footer 4: #DistrictCarOnTheMove (Matching Ola screenshot 2)
+  /// Footer 4: #DistrictCarOnTheMove (Matching Ola screenshot 2: Seamlessly on-screen, no card box background)
   Widget _buildDistrictCarOnTheMoveFooter() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '#DistrictCarOnTheMove',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.4,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 3),
-          const Text(
-            'Moving Jharkhand since 2024 🇮🇳',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Panoramic Mobility Illustration
-          Container(
-            height: 190,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(15, 23, 42, 0.04),
-                  blurRadius: 14,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Image.asset(
-                'assets/images/promo_on_the_move_footer.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFF1F5F9),
-                  child: const Center(
-                    child: Icon(Icons.directions_car_rounded, size: 48, color: Color(0xFF94A3B8)),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '#DistrictCarOnTheMove',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                  color: Color(0xFF0F172A),
                 ),
               ),
-            ),
+              const SizedBox(height: 3),
+              const Text(
+                'Moving Jharkhand since 2024 🇮🇳',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+
+        // Seamless Panoramic Mobility Graphic (No card container, directly on the screen canvas)
+        Image.asset(
+          'assets/images/district_on_the_move_seamless.jpg',
+          width: double.infinity,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Image.asset(
+            'assets/images/promo_on_the_move_footer.jpg',
+            width: double.infinity,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+      ],
     );
   }
 }

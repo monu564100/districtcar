@@ -673,25 +673,19 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   _buildVehicleSelector(categoriesAsync, distanceKm),
                   const SizedBox(height: 16),
 
-                  // Geofence / Service check: Show empty state if outside bounds
-                  if (!isServiceable) ...[
-                    _buildUnserviceableNotice(currentCat?.displayName ?? 'Vehicle'),
-                    const SizedBox(height: 16),
-                  ] else ...[
-                    // D. Fare Summary (dark gradient card, collapsible)
-                    FareCard(
-                      totalFare: totalFare,
-                      distanceKm: effectiveDistanceKm,
-                      formattedDuration: formattedDuration,
-                      isRoundTrip: _isRoundTrip,
-                      baseFare: currentCat?.baseFare ?? 60.0,
-                      distanceFare: totalFare - (currentCat?.baseFare ?? 60.0),
-                      returnAllowance: _isRoundTrip ? ((_roundTripStoppingHours - 1.0).clamp(0, 10) * 60.0) : 0.0,
-                      isHindi: _isHindi,
-                      vehicleName: currentCat?.displayName ?? 'District Ride',
-                    ),
-                    const SizedBox(height: 14),
-                  ],
+                  // D. Fare Summary (dark gradient card, collapsible)
+                  FareCard(
+                    totalFare: totalFare,
+                    distanceKm: effectiveDistanceKm,
+                    formattedDuration: formattedDuration,
+                    isRoundTrip: _isRoundTrip,
+                    baseFare: currentCat?.baseFare ?? 60.0,
+                    distanceFare: totalFare - (currentCat?.baseFare ?? 60.0),
+                    returnAllowance: _isRoundTrip ? ((_roundTripStoppingHours - 1.0).clamp(0, 10) * 60.0) : 0.0,
+                    isHindi: _isHindi,
+                    vehicleName: currentCat?.displayName ?? 'District Ride',
+                  ),
+                  const SizedBox(height: 14),
 
                   // E. Options Row (compact chips: Date/Time, Passengers, Payment, Round-trip)
                   _buildOptionsRow(),
@@ -733,10 +727,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       bottomNavigationBar: StickyBookBar(
         vehicleName: currentCat?.displayName ?? 'Auto',
         fare: totalFare,
-        isServiceable: isServiceable,
+        isServiceable: true,
         isDestinationSelected: _destinationLocation.address.isNotEmpty,
         isLoading: _isBookingLoading,
-        onBook: () => _showBookingConfirmSheet(totalFare, currentCat),
+        onBook: () {
+          if (!isServiceable) {
+            _showNoRideAvailableSheet();
+          } else {
+            _showBookingConfirmSheet(totalFare, currentCat);
+          }
+        },
         currentNavIndex: 0,
         onNavSelected: _onDockTabSelected,
         isHindi: false,
@@ -897,97 +897,110 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  /// Empty state notice when distance exceeds geofence (e.g. Bike/Auto > 60km)
-  Widget _buildUnserviceableNotice(String vehicleName) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-        border: Border.all(color: const Color(0xFFFECACA), width: 1.5),
+  /// When user clicks Book and no ride/driver is available in this zone
+  void _showNoRideAvailableSheet() {
+    HapticService.selection();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
-                  shape: BoxShape.circle,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Minimal Drag Handle
+                Container(
+                  width: 44,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
-                child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Service not available in this area',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.5,
-                        color: Color(0xFF991B1B),
+                const SizedBox(height: 18),
+
+                // Beautiful 3D High Graphic Image
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromRGBO(15, 23, 42, 0.08),
+                        blurRadius: 18,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset(
+                      'assets/images/no_ride_available_3d.jpg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFF1F5F9),
+                        child: const Icon(
+                          Icons.directions_car_rounded,
+                          size: 64,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Max range for $vehicleName is 60 km. Select Cab/Bolero for long trips or contact our helpline.',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C), height: 1.3),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Clean headline without verbose clutter
+                Text(
+                  _isHindi ? 'कोई राइड उपलब्ध नहीं है' : 'No Ride Available',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Action Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F172A),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
-                  ],
+                    child: Text(
+                      _isHindi ? 'समझ गया' : 'Got it',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _openWhatsApp(
-                    message: 'Hello District Car Helpline, I need a long-distance ride outside regular service range.',
-                  ),
-                  icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF0F172A)),
-                  label: const Text(
-                    'WhatsApp',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 12.5),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF0F172A)),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _makePhoneCall('918789601387'),
-                  icon: const Icon(Icons.call_rounded, size: 16, color: Colors.white),
-                  label: const Text(
-                    'Call Support',
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.5),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB91C1C),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

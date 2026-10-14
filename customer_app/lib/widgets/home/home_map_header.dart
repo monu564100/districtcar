@@ -242,10 +242,9 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                     child: _buildVectorMapPlaceholder(targetLatLng),
                   ),
 
-                // 2. Interactive Gesture Layer & Animated Top-Down Vehicles (Shown ONLY if serviceable)
-                if (widget.isServiceable)
-                  Positioned.fill(
-                    child: IgnorePointer(
+                // 2. Interactive Gesture Layer & Animated Top-Down Vehicles
+                Positioned.fill(
+                  child: IgnorePointer(
                       child: AnimatedBuilder(
                         animation: _driftController,
                         builder: (context, child) {
@@ -312,18 +311,14 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                                       Container(
                                         width: 6.5,
                                         height: 6.5,
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: widget.isServiceable
-                                              ? const Color(0xFFF59E0B)
-                                              : const Color(0xFFEF4444),
+                                          color: Color(0xFFF59E0B),
                                         ),
                                       ),
                                       const SizedBox(width: 5),
                                       Text(
-                                        widget.isServiceable
-                                            ? (widget.isHindi ? 'पिकअप स्थान' : 'Pickup Location')
-                                            : (widget.isHindi ? 'अमान्य क्षेत्र' : 'Out of Bounds'),
+                                        widget.isHindi ? 'पिकअप स्थान' : 'Pickup Location',
                                         style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
@@ -506,132 +501,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 6. Unserviceable Area Overlay (Shown ONLY if area is unserviceable)
-                if (!widget.isServiceable)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                        child: Container(
-                          color: const Color(0xFF0F172A).withValues(alpha: 0.78),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          child: Row(
-                            children: [
-                              // 3D Unserviceable Image Graphic
-                              Container(
-                                width: 78,
-                                height: 78,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.25),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black38,
-                                      blurRadius: 10,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Image.asset(
-                                    'assets/images/unserviceable_area_3d.jpg',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      color: const Color(0xFF1E293B),
-                                      child: const Icon(
-                                        Icons.location_off_rounded,
-                                        size: 38,
-                                        color: Color(0xFFEF4444),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
 
-                              // Unserviceable Message & Call Button
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEF4444).withValues(alpha: 0.25),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: const Color(0xFFEF4444).withValues(alpha: 0.6),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        widget.isHindi
-                                            ? 'यहाँ सेवा उपलब्ध नहीं है'
-                                            : 'NO SERVICE IN THIS AREA',
-                                        style: const TextStyle(
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.3,
-                                          color: Color(0xFFF87171),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      widget.isHindi
-                                          ? 'यह स्थान हमारे सेवा क्षेत्र से बाहर है।'
-                                          : 'No vehicles active in this zone currently.',
-                                      style: const TextStyle(
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      widget.isHindi
-                                          ? 'जल्द ही आपके गाँव/जिले में शुरू होगी।'
-                                          : 'District Car expanding rapidly across Jharkhand.',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 7),
-                                    GestureDetector(
-                                      onTap: widget.onSupportTap,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.call_rounded, size: 12, color: Color(0xFFF59E0B)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            widget.isHindi ? 'हेल्पलाइन से बात करें' : 'Call Support Helpline',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFFF59E0B),
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
