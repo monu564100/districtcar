@@ -477,11 +477,13 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                 child: SizedBox(
                   width: 72,
                   height: 72,
-                  child: Image.network(
-                    widget.destination.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-                  ),
+                  child: (widget.destination.imageUrl.isNotEmpty && widget.destination.imageUrl.startsWith('http'))
+                      ? Image.network(
+                          widget.destination.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+                        )
+                      : const BrandedDestinationPlaceholder(),
                 ),
               ),
               const SizedBox(width: 14),

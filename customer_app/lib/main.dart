@@ -40,6 +40,71 @@ class DistrictCarCustomerApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      builder: (context, child) {
+        ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFFAF8F4),
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF1E7B4F),
+              elevation: 0,
+              title: const Text('District Car', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    router.go('/tours');
+                  }
+                },
+              ),
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: Color(0xFFC65A3A), size: 48),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Something went wrong / Kuch gadbad hui',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1C1B18)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      errorDetails.exceptionAsString(),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6A645A)),
+                      textAlign: TextAlign.center,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E7B4F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          router.go('/tours');
+                        }
+                      },
+                      child: const Text('Go Back (Wapas Jaayein)'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        };
+        return child ?? const SizedBox.shrink();
+      },
       scrollBehavior: const MaterialScrollBehavior().copyWith(
         dragDevices: {
           PointerDeviceKind.mouse,

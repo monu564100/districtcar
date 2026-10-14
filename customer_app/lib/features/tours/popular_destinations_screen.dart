@@ -783,6 +783,17 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     );
   }
 
+  Widget _buildSafeImage(String url, {BoxFit fit = BoxFit.cover}) {
+    if (url.isEmpty || !url.startsWith('http')) {
+      return const BrandedDestinationPlaceholder();
+    }
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+    );
+  }
+
   /// 4:5 Destination Grid Card with Serif title and no redundant "Explore Place" button
   Widget _buildDestinationGridCard(
     BuildContext context,
@@ -819,11 +830,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTokens.radiusCards)),
-                    child: Image.network(
-                      dest.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-                    ),
+                    child: _buildSafeImage(dest.imageUrl, fit: BoxFit.cover),
                   ),
                   // Top Scrim
                   Container(
@@ -992,11 +999,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
             child: Stack(
               fit: StackFit.expand,
               children: [
-              Image.network(
-                dest.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-              ),
+              _buildSafeImage(dest.imageUrl, fit: BoxFit.cover),
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(

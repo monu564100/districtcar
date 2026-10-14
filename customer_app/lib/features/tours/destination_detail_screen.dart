@@ -36,9 +36,35 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     super.initState();
     final d = widget.destination;
     _allPhotos = [
-      d.imageUrl,
-      ...d.galleryImages.where((img) => img != d.imageUrl),
+      if (d.imageUrl.isNotEmpty) d.imageUrl,
+      ...d.galleryImages.where((img) => img.isNotEmpty && img != d.imageUrl),
     ];
+    if (_allPhotos.isEmpty) {
+      _allPhotos = [d.imageUrl.isNotEmpty ? d.imageUrl : 'placeholder'];
+    }
+  }
+
+  Widget _buildSafeHeroImage(String url) {
+    if (url.isEmpty || url == 'placeholder' || !url.startsWith('http')) {
+      return const BrandedDestinationPlaceholder();
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: AppTokens.darkSurface,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTokens.primary),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _shareViaWhatsApp() async {
@@ -150,11 +176,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                             final imgUrl = _allPhotos[index];
                             return GestureDetector(
                               onTap: () => _openFullScreenGallery(index),
-                              child: Image.network(
-                                imgUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-                              ),
+                              child: _buildSafeHeroImage(imgUrl),
                             );
                           },
                         ),
@@ -353,7 +375,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               icon: Icons.wb_sunny_rounded,
                               iconColor: AppTokens.marigoldDark,
                               label: 'Best Season',
-                              value: dest.bestTimeToVisit.split('(').first.trim(),
+                              value: dest.bestTimeToVisit.isNotEmpty
+                                  ? dest.bestTimeToVisit.split('(').first.trim()
+                                  : 'Oct to Feb',
                             ),
                             _buildQuickFactItem(
                               icon: Icons.local_parking_rounded,
@@ -607,7 +631,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                           ),
                           const SizedBox(height: 14),
                           ...dest.nearbyStops.map((stop) {
-                            final stopId = stop['id'] as String;
+                            final stopId = stop['id']?.toString() ?? '';
                             final isAdded = _selectedNearbyStopIds.contains(stopId);
                             return _buildNearbyStopTile(stop, isAdded);
                           }),
@@ -946,6 +970,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   Widget _buildNearbyStopTile(Map<String, dynamic> stop, bool isAdded) {
+    final stopId = stop['id']?.toString() ?? '';
+    final stopName = stop['name']?.toString() ?? 'Nearby Spot';
+    final distanceKm = stop['distanceKm']?.toString() ?? '10';
+    final fare = stop['fare']?.toString() ?? '200';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -965,11 +993,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  stop['name'] as String,
+                  stopName,
                   style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
                 ),
                 Text(
-                  '+${stop['distanceKm']} km · +₹${stop['fare']}',
+                  '+$distanceKm km · +₹$fare',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.primary),
                 ),
               ],
@@ -981,11 +1009,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             onChanged: (val) {
               HapticService.selectionClick();
               setState(() {
-                final id = stop['id'] as String;
                 if (val) {
-                  _selectedNearbyStopIds.add(id);
+                  _selectedNearbyStopIds.add(stopId);
                 } else {
-                  _selectedNearbyStopIds.remove(id);
+                  _selectedNearbyStopIds.remove(stopId);
                 }
               });
             },
@@ -1120,13 +1147,17 @@ class _FullScreenGalleryViewerState extends State<_FullScreenGalleryViewer> {
                 minScale: 1.0,
                 maxScale: 4.0,
                 child: Center(
-                  child: Image.network(
-                    widget.images[idx],
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image, color: Colors.white54, size: 54),
-                    ),
-                  ),
+                  child: (widget.images[idx].isNotEmpty && widget.images[idx].startsWith('http'))
+                      ? Image.network(
+                          widget.images[idx],
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54, size: 54),
+                          ),
+                        )
+                      : const Center(
+                          child: Icon(Icons.photo_library_rounded, color: Colors.white54, size: 54),
+                        ),
                 ),
               );
             },
