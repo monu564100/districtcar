@@ -69,8 +69,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     HapticService.selectionClick();
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
-    } else {
+      return;
+    }
+    try {
       context.go('/tours');
+    } catch (_) {
+      // Fallback
     }
   }
 
@@ -80,17 +84,18 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     final heroHeight = MediaQuery.of(context).size.height * 0.44;
 
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _handleBack(context);
+        if (!didPop) {
+          _handleBack(context);
+        }
       },
       child: Scaffold(
         backgroundColor: AppTokens.background,
-        body: Stack(
-          children: [
-            CustomScrollView(
-              slivers: [
+        bottomNavigationBar: _buildStickyBottomBar(dest),
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
                 // 1. Pinned Hero App Bar (Back button ALWAYS visible, never stuck)
                 SliverAppBar(
                   expandedHeight: heroHeight,
@@ -709,115 +714,113 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
               ),
 
-              // Space for bottom sticky bar
               const SliverToBoxAdapter(
-                child: SizedBox(height: 120),
+                child: SizedBox(height: 24),
               ),
             ],
           ),
+        ),
+      );
+  }
 
-          // 11. Sticky Bottom Package Fare Bar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                MediaQuery.of(context).padding.bottom + 14,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromRGBO(28, 27, 24, 0.12),
-                    blurRadius: 20,
-                    offset: Offset(0, -4),
+  Widget _buildStickyBottomBar(PopularDestinationModel dest) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        14,
+        20,
+        MediaQuery.of(context).padding.bottom + 14,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromRGBO(28, 27, 24, 0.12),
+            blurRadius: 20,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From ₹${dest.startingFare.round()}',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppTokens.ink,
+                    letterSpacing: -0.4,
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'From ₹${dest.startingFare.round()}',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: AppTokens.ink,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        Text(
-                          'Round trip from ${dest.district}',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppTokens.primary,
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                Text(
+                  'Round trip from ${dest.district}',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTokens.primary,
                   ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      HapticService.buttonPress();
-                      context.push('/book-tour', extra: dest);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTokens.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Plan this trip',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: () {
+              HapticService.buttonPress();
+              context.push('/book-tour', extra: dest);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTokens.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Plan this trip',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward_rounded, size: 18),
+              ],
             ),
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildFrostedButton({
     required IconData icon,
     Color iconColor = Colors.white,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Center(
-          child: Icon(icon, color: iconColor, size: 18),
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.50),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white30),
+          ),
+          child: Center(
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
         ),
       ),
     );
