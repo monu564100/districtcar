@@ -21,6 +21,7 @@ import '../../widgets/home/home_map_header.dart';
 import '../../widgets/home/trust_strip.dart';
 import '../../widgets/home/sticky_book_bar.dart';
 import '../../widgets/home/ola_promo_feed.dart';
+import '../../widgets/home/no_ride_available_asset.dart';
 import '../booking/booking_confirm_sheet.dart';
 import 'categories_provider.dart';
 import '../booking/booking_service.dart';
@@ -941,17 +942,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
-                    child: Image.asset(
-                      'assets/images/no_ride_available_3d.jpg',
+                    child: Image.memory(
+                      kNoRideAvailableImageBytes,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFF1F5F9),
-                        child: const Icon(
-                          Icons.directions_car_rounded,
-                          size: 64,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
                     ),
                   ),
                 ),

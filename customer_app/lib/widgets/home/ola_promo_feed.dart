@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/haptic_service.dart';
+import 'district_seamless_asset.dart';
 
 /// Ola-Style High Graphic Promotional Feed & Seamless Brand Footer
 /// Placed directly below the options row on the Home Screen.
@@ -464,16 +465,10 @@ class OlaPromoFeed extends StatelessWidget {
         const SizedBox(height: 12),
 
         // Seamless Panoramic Mobility Graphic (No card container, directly on the screen canvas)
-        Image.asset(
-          'assets/images/district_on_the_move_seamless.jpg',
+        Image.memory(
+          kDistrictOnTheMoveBytes,
           width: double.infinity,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
-            'assets/images/promo_on_the_move_footer.jpg',
-            width: double.infinity,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
         ),
       ],
     );
