@@ -21,6 +21,8 @@ class HomeMapHeader extends StatefulWidget {
   final bool isHindi;
   final VoidCallback? onRecenter;
   final VoidCallback? onSupportTap;
+  final bool edgeToEdge;
+  final double? height;
 
   const HomeMapHeader({
     super.key,
@@ -29,6 +31,8 @@ class HomeMapHeader extends StatefulWidget {
     this.isHindi = false,
     this.onRecenter,
     this.onSupportTap,
+    this.edgeToEdge = false,
+    this.height,
   });
 
   @override
@@ -187,6 +191,10 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
       widget.pickupLocation.latitude,
       widget.pickupLocation.longitude,
     );
+    final topPadding = MediaQuery.of(context).padding.top;
+    final mapHeight = widget.height ?? (widget.edgeToEdge ? 330.0 : 225.0);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final contentWidth = widget.edgeToEdge ? screenWidth : (screenWidth - 32);
 
     return SizeTransition(
       sizeFactor: _expandAnimation,
@@ -194,24 +202,32 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Container(
-          height: 225,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          height: mapHeight,
+          margin: widget.edgeToEdge ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: const Color(0xFFE2E8F0),
-              width: 1.5,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromRGBO(15, 23, 42, 0.08),
-                blurRadius: 20,
-                offset: Offset(0, 8),
-              ),
-            ],
+            borderRadius: widget.edgeToEdge
+                ? BorderRadius.zero
+                : BorderRadius.circular(24),
+            border: widget.edgeToEdge
+                ? null
+                : Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1.5,
+                  ),
+            boxShadow: widget.edgeToEdge
+                ? null
+                : const [
+                    BoxShadow(
+                      color: Color.fromRGBO(15, 23, 42, 0.08),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: widget.edgeToEdge
+                ? BorderRadius.zero
+                : BorderRadius.circular(22),
             child: Stack(
               children: [
                 // 1. Exact Google Maps Layer (Centered at Pickup Location)
@@ -245,39 +261,39 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                 // 2. Interactive Gesture Layer & Animated Top-Down Vehicles
                 Positioned.fill(
                   child: IgnorePointer(
-                      child: AnimatedBuilder(
-                        animation: _driftController,
-                        builder: (context, child) {
-                          return Stack(
-                            children: _vehicles.map((v) {
-                              // Subtle idle vehicle movement along its heading
-                              final driftPhase = (_driftController.value * 2 * math.pi) + v.driftSpeed;
-                              final forwardDrift = math.sin(driftPhase) * 4.0;
-                              final lateralDrift = math.cos(driftPhase) * 1.5;
+                    child: AnimatedBuilder(
+                      animation: _driftController,
+                      builder: (context, child) {
+                        return Stack(
+                          children: _vehicles.map((v) {
+                            // Subtle idle vehicle movement along its heading
+                            final driftPhase = (_driftController.value * 2 * math.pi) + v.driftSpeed;
+                            final forwardDrift = math.sin(driftPhase) * 4.0;
+                            final lateralDrift = math.cos(driftPhase) * 1.5;
 
-                              final headingRad = v.headingDeg * math.pi / 180.0;
-                              final dx = math.cos(headingRad) * forwardDrift - math.sin(headingRad) * lateralDrift;
-                              final dy = math.sin(headingRad) * forwardDrift + math.cos(headingRad) * lateralDrift;
+                            final headingRad = v.headingDeg * math.pi / 180.0;
+                            final dx = math.cos(headingRad) * forwardDrift - math.sin(headingRad) * lateralDrift;
+                            final dy = math.sin(headingRad) * forwardDrift + math.cos(headingRad) * lateralDrift;
 
-                              // Screen center + pan offset + initial vehicle offset + drift
-                              return Positioned(
-                                left: (MediaQuery.of(context).size.width - 32) / 2 +
-                                    _mapPanOffset.dx +
-                                    v.initialOffset.dx +
-                                    dx -
-                                    14,
-                                top: 112.5 + _mapPanOffset.dy + v.initialOffset.dy + dy - 22,
-                                child: Transform.rotate(
-                                  angle: headingRad,
-                                  child: _buildTopDownVehicle(v.type),
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
+                            // Screen center + pan offset + initial vehicle offset + drift
+                            return Positioned(
+                              left: (contentWidth / 2) +
+                                  _mapPanOffset.dx +
+                                  v.initialOffset.dx +
+                                  dx -
+                                  14,
+                              top: (mapHeight / 2) + _mapPanOffset.dy + v.initialOffset.dy + dy - 22,
+                              child: Transform.rotate(
+                                angle: headingRad,
+                                child: _buildTopDownVehicle(v.type),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
                     ),
                   ),
+                ),
 
                 // 3. User Pickup Pin (Pulse aura + vertical pole + Carbon Onyx/Amber marker)
                 Positioned.fill(
@@ -408,10 +424,10 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 4. Top-Left Status Badge ("Vehicles Nearby" in Amber or "Service Unavailable" in Red)
+                // 4. Status Badge ("Live Cabs Nearby" in Amber or "Service Unavailable" in Red)
                 Positioned(
-                  top: 12,
-                  left: 12,
+                  top: widget.edgeToEdge ? (topPadding + 46) : 12,
+                  left: widget.edgeToEdge ? 16 : 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
@@ -477,10 +493,11 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 5. Top-Right GPS Recenter Button (Carbon Onyx)
+                // 5. GPS Recenter Button (Carbon Onyx)
                 Positioned(
-                  top: 10,
-                  right: 10,
+                  top: widget.edgeToEdge ? null : 10,
+                  bottom: widget.edgeToEdge ? 36 : null,
+                  right: widget.edgeToEdge ? 16 : 10,
                   child: Material(
                     color: Colors.white.withValues(alpha: 0.94),
                     shape: const CircleBorder(),

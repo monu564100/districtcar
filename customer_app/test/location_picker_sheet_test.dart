@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 6. Test selecting a popular hub
-    final firstResultFinder = find.byIcon(Icons.location_on_outlined);
+    final firstResultFinder = find.byIcon(Icons.north_west_rounded);
     expect(firstResultFinder, findsWidgets);
     await tester.tap(firstResultFinder.first);
     await tester.pumpAndSettle();

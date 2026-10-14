@@ -802,60 +802,67 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                             ),
                           )
                         : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                             itemCount: _results.length,
-                            separatorBuilder: (_, __) => const Divider(
-                              height: 1,
-                              indent: 52,
-                              color: Color(0xFFF1F5F9),
-                            ),
+                            separatorBuilder: (_, __) => const SizedBox(height: 6),
                             itemBuilder: (context, index) {
                               final item = _results[index];
-                              return ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                leading: Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.location_on_outlined,
-                                      color: AppColors.primary,
-                                      size: 19,
+                              return Material(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () => _onSelectResult(item),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        _buildResultLeadingIcon(item),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _buildHighlightedTitle(item.title, _textController.text),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                item.subtitle.isNotEmpty ? item.subtitle : 'Jharkhand',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF8FAFC),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          ),
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.north_west_rounded,
+                                              size: 14,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                                title: Text(
-                                  item.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.5,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  item.subtitle.isNotEmpty ? item.subtitle : 'Jharkhand',
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                trailing: const Icon(
-                                  Icons.north_west_rounded,
-                                  size: 15,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                onTap: () => _onSelectResult(item),
                               );
                             },
                           ),
@@ -863,6 +870,136 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildResultLeadingIcon(LocationSearchResult item) {
+    final combined = '${item.title} ${item.subtitle}'.toLowerCase();
+    IconData iconData = Icons.location_on_rounded;
+    Color iconColor = AppColors.primary;
+    Color bgColor = const Color(0xFFE8F4EC);
+
+    if (combined.contains('hospital') ||
+        combined.contains('clinic') ||
+        combined.contains('rims') ||
+        combined.contains('sadar')) {
+      iconData = Icons.local_hospital_rounded;
+      iconColor = const Color(0xFFC65A3A); // Laterite Earth
+      bgColor = const Color(0xFFFBECE8);
+    } else if (combined.contains('station') ||
+        combined.contains('railway') ||
+        combined.contains('junction')) {
+      iconData = Icons.train_rounded;
+      iconColor = const Color(0xFFD97706); // Amber
+      bgColor = const Color(0xFFFEF3C7);
+    } else if (combined.contains('bus') ||
+        combined.contains('stand') ||
+        combined.contains('depot')) {
+      iconData = Icons.directions_bus_rounded;
+      iconColor = const Color(0xFF1E7B4F); // Sal Forest
+      bgColor = const Color(0xFFE8F4EC);
+    } else if (combined.contains('airport') || combined.contains('aerodrome')) {
+      iconData = Icons.flight_takeoff_rounded;
+      iconColor = const Color(0xFF0F172A);
+      bgColor = const Color(0xFFF1F5F9);
+    } else if (combined.contains('temple') ||
+        combined.contains('mandir') ||
+        combined.contains('dham')) {
+      iconData = Icons.temple_hindu_rounded;
+      iconColor = const Color(0xFFB45309);
+      bgColor = const Color(0xFFFEF3C7);
+    } else if (combined.contains('chowk') ||
+        combined.contains('bazar') ||
+        combined.contains('market') ||
+        combined.contains('mall')) {
+      iconData = Icons.storefront_rounded;
+      iconColor = const Color(0xFF1E7B4F);
+      bgColor = const Color(0xFFE8F4EC);
+    } else if (combined.contains('court') ||
+        combined.contains('kutchery') ||
+        combined.contains('thana') ||
+        combined.contains('block')) {
+      iconData = Icons.account_balance_rounded;
+      iconColor = const Color(0xFF475569);
+      bgColor = const Color(0xFFF1F5F9);
+    }
+
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: iconColor.withValues(alpha: 0.2)),
+      ),
+      child: Center(
+        child: Icon(
+          iconData,
+          color: iconColor,
+          size: 19,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHighlightedTitle(String title, String query) {
+    if (query.trim().isEmpty) {
+      return Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+      );
+    }
+    final q = query.trim().toLowerCase();
+    final tLower = title.toLowerCase();
+    final matchIdx = tLower.indexOf(q);
+
+    if (matchIdx == -1) {
+      return Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+      );
+    }
+
+    final before = title.substring(0, matchIdx);
+    final match = title.substring(matchIdx, matchIdx + q.length);
+    final after = title.substring(matchIdx + q.length);
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+        children: [
+          if (before.isNotEmpty)
+            TextSpan(
+              text: before,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          TextSpan(
+            text: match,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+            ),
+          ),
+          if (after.isNotEmpty)
+            TextSpan(
+              text: after,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -85,9 +86,20 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     '08:00 PM - 10:00 PM (Night)',
   ];
 
+  // Scroll Controller for animative parallax and anchored map
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (mounted) {
+        setState(() {
+          _scrollOffset = _scrollController.offset;
+        });
+      }
+    });
     _detectUserCurrentGpsOnStart();
     _fetchGoogleDistanceAndDuration();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,6 +118,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         role: 'customer',
       );
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _detectUserCurrentGpsOnStart() async {
@@ -618,46 +636,72 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final totalFare = _calculateFare(currentCat, distanceKm);
     final formattedDuration = _formatDuration(totalDurationMinutes);
 
+    final topInset = MediaQuery.of(context).padding.top;
+    final mapHeight = (310.0 + topInset).clamp(320.0, 380.0);
+
     return Scaffold(
       backgroundColor: AppTokens.background,
       body: Stack(
         children: [
-          // Subtle radial glow top-right
+          // 1. Anchored Map Backdrop (Extends edge-to-edge till the very top of screen)
           Positioned(
-            top: -60,
-            right: -60,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.05),
+            top: 0,
+            left: 0,
+            right: 0,
+            height: mapHeight,
+            child: Transform.translate(
+              // Silky smooth parallax: map moves slower than the scroll
+              offset: Offset(0, -(_scrollOffset * 0.28).clamp(0.0, mapHeight * 0.45)),
+              child: HomeMapHeader(
+                edgeToEdge: true,
+                height: mapHeight,
+                pickupLocation: _pickupLocation,
+                isServiceable: isServiceable,
+                isHindi: _isHindi,
+                onRecenter: _setCurrentGpsForPickup,
+                onSupportTap: () => _makePhoneCall('918789601387'),
               ),
             ),
           ),
 
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // A. Header (compact)
-                  _buildHeader(),
-                  const SizedBox(height: 10),
-
-                  // Live Animated Map View above From and To container (Ola / Uber style)
-                  HomeMapHeader(
-                    pickupLocation: _pickupLocation,
-                    isServiceable: isServiceable,
-                    isHindi: _isHindi,
-                    onRecenter: _setCurrentGpsForPickup,
-                    onSupportTap: () => _makePhoneCall('918789601387'),
+          // 2. Subtle Bottom Scrim for Map (Smooth transition into content sheet)
+          Positioned(
+            top: mapHeight - 50,
+            left: 0,
+            right: 0,
+            height: 50,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTokens.background.withValues(alpha: 0.0),
+                      AppTokens.background.withValues(alpha: 0.85),
+                    ],
                   ),
-                  const SizedBox(height: 14),
+                ),
+              ),
+            ),
+          ),
 
-                  // B. Hero Booking Card (Single destination input, no duplicate search bar)
-                  BookingCard(
+          // 3. Foreground Scrolling Content:
+          // Scrolls directly starting from the BookingCard over the anchored map!
+          SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: EdgeInsets.only(
+              top: mapHeight - 26, // Starts right at booking card!
+              bottom: 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // B. Hero Booking Card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: BookingCard(
                     pickupAddress: _pickupLocation.address,
                     destinationAddress: _destinationLocation.address,
                     onPickupTap: _openPickupLocationPicker,
@@ -668,53 +712,168 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     onVoiceInput: _handleVoiceInput,
                     isHindi: _isHindi,
                   ),
-                  const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 16),
 
-                  // C. Vehicle Selector (horizontal snap carousel, 2.3 visible)
-                  _buildVehicleSelector(categoriesAsync, distanceKm),
-                  const SizedBox(height: 16),
+                // C. Vehicle Selector (horizontal snap carousel, 2.3 visible)
+                _buildVehicleSelector(categoriesAsync, distanceKm),
+                const SizedBox(height: 16),
 
-                  // D. Fare Summary (dark gradient card, collapsible)
-                  FareCard(
-                    totalFare: totalFare,
-                    distanceKm: effectiveDistanceKm,
-                    formattedDuration: formattedDuration,
-                    isRoundTrip: _isRoundTrip,
-                    baseFare: currentCat?.baseFare ?? 60.0,
-                    distanceFare: totalFare - (currentCat?.baseFare ?? 60.0),
-                    returnAllowance: _isRoundTrip ? ((_roundTripStoppingHours - 1.0).clamp(0, 10) * 60.0) : 0.0,
-                    isHindi: _isHindi,
-                    vehicleName: currentCat?.displayName ?? 'District Ride',
+                // D. Fare Summary (dark gradient card, collapsible)
+                FareCard(
+                  totalFare: totalFare,
+                  distanceKm: effectiveDistanceKm,
+                  formattedDuration: formattedDuration,
+                  isRoundTrip: _isRoundTrip,
+                  baseFare: currentCat?.baseFare ?? 60.0,
+                  distanceFare: totalFare - (currentCat?.baseFare ?? 60.0),
+                  returnAllowance: _isRoundTrip ? ((_roundTripStoppingHours - 1.0).clamp(0, 10) * 60.0) : 0.0,
+                  isHindi: _isHindi,
+                  vehicleName: currentCat?.displayName ?? 'District Ride',
+                ),
+                const SizedBox(height: 14),
+
+                // E. Options Row (compact chips: Date/Time, Passengers, Payment, Round-trip)
+                _buildOptionsRow(),
+                const SizedBox(height: 18),
+
+                // Ola-Style High Graphic Promotional Feed & Brand Footer
+                OlaPromoFeed(
+                  isHindi: _isHindi,
+                  onLuggageTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('District Prime Luggage: Extra boot space guaranteed on your booking!'),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  onPrimePlusTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('District Prime+: Top-rated drivers & spacious sedans/SUVs.'),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // 4. Floating Top-Left Brand Pill
+          Positioned(
+            top: topInset + 8,
+            left: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      width: 1.2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color.fromRGBO(0, 0, 0, 0.12),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-
-                  // E. Options Row (compact chips: Date/Time, Passengers, Payment, Round-trip)
-                  _buildOptionsRow(),
-                  const SizedBox(height: 18),
-
-                  // Ola-Style High Graphic Promotional Feed & Brand Footer
-                  OlaPromoFeed(
-                    isHindi: _isHindi,
-                    onLuggageTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('District Prime Luggage: Extra boot space guaranteed on your booking!'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/images/app_logo.jpg',
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.cover,
                         ),
-                      );
-                    },
-                    onPrimePlusTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('District Prime+: Top-rated drivers & spacious sedans/SUVs.'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'District Car',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.2,
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ),
+          ),
+
+          // 5. Floating Top-Right "My Trips" Button (Remains pinned at top-right corner)
+          Positioned(
+            top: topInset + 8,
+            right: 16,
+            child: Material(
+              color: Colors.transparent,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        width: 1.2,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color.fromRGBO(0, 0, 0, 0.12),
+                          blurRadius: 10,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        HapticService.selection();
+                        context.push('/trips');
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.receipt_long_rounded,
+                              color: Color(0xFF0F172A),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _isHindi ? 'सफर' : 'My Trips',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -741,91 +900,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         currentNavIndex: 0,
         onNavSelected: _onDockTabSelected,
         isHindi: false,
-      ),
-    );
-  }
-
-  /// A. Header (compact): Logo + "District Car", Greeting "Namaste, [Name]", Language toggle, Notification/Avatar
-  Widget _buildHeader() {
-    final user = ref.watch(authServiceProvider).currentUser;
-    final userName = user?.displayName ?? (user?.phoneNumber != null ? 'Citizen' : 'Partner');
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
-        children: [
-          // Logo & Name
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: AssetImage('assets/images/app_logo.jpg'),
-                fit: BoxFit.cover,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.12),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _isHindi ? 'नमस्ते, $userName' : 'Namaste, $userName',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppTokens.ink,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Text(
-                  'District Car • Jharkhand',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppTokens.secondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Profile / Trips Bell
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF0F172A), size: 18),
-            ),
-            tooltip: _isHindi ? 'सफर' : 'My Trips',
-            onPressed: () {
-              HapticService.selection();
-              context.push('/trips');
-            },
-          ),
-        ],
       ),
     );
   }
