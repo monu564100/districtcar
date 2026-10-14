@@ -396,41 +396,46 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                           final cat = _categories[idx];
                           final isSelected = _selectedCategory == cat['id'];
 
-                          return GestureDetector(
-                            onTap: () {
-                              HapticService.selectionClick();
-                              setState(() => _selectedCategory = cat['id'] as String);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                gradient: isSelected ? AppTokens.primaryGradient : null,
-                                color: isSelected ? null : Colors.white,
-                                borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                                border: Border.all(
-                                  color: isSelected ? Colors.transparent : AppTokens.border,
+                          return Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                            child: InkWell(
+                              onTap: () {
+                                HapticService.selectionClick();
+                                setState(() => _selectedCategory = cat['id'] as String);
+                              },
+                              borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: isSelected ? AppTokens.primaryGradient : null,
+                                  color: isSelected ? null : Colors.white,
+                                  borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.transparent : AppTokens.border,
+                                  ),
+                                  boxShadow: isSelected ? AppTokens.elevationGlow : null,
                                 ),
-                                boxShadow: isSelected ? AppTokens.elevationGlow : null,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    cat['icon'] as IconData,
-                                    size: 16,
-                                    color: isSelected ? Colors.white : AppTokens.secondaryText,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    cat['label'] as String,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                      color: isSelected ? Colors.white : AppTokens.ink,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      cat['icon'] as IconData,
+                                      size: 16,
+                                      color: isSelected ? Colors.white : AppTokens.secondaryText,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      cat['label'] as String,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                        color: isSelected ? Colors.white : AppTokens.ink,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -493,75 +498,90 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Container(
-                          height: 110,
-                          decoration: BoxDecoration(
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            onTap: () {
+                              HapticService.selectionClick();
+                              final hundru = allDestinations.firstWhere(
+                                (d) => d.id == 'hundru_falls',
+                                orElse: () => allDestinations.first,
+                              );
+                              context.push('/destination-details?id=${hundru.id}', extra: hundru);
+                            },
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: AppTokens.softCardShadow,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.memory(
-                                  kMonsoonBannerBytes,
-                                  fit: BoxFit.cover,
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppTokens.darkSurface.withValues(alpha: 0.85),
-                                        Colors.transparent,
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
+                            child: Container(
+                              height: 110,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: AppTokens.softCardShadow,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.memory(
+                                      kMonsoonBannerBytes,
+                                      fit: BoxFit.cover,
                                     ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: AppTokens.marigold,
-                                          borderRadius: BorderRadius.circular(8),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTokens.darkSurface.withValues(alpha: 0.85),
+                                            Colors.transparent,
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
                                         ),
-                                        child: const Text(
-                                          'SEASON SPECIAL',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w900,
-                                            color: AppTokens.ink,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppTokens.marigold,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Text(
+                                              'SEASON SPECIAL',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w900,
+                                                color: AppTokens.ink,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(height: 4),
+                                          const Text(
+                                            'Monsoon Waterfalls at Full Glory',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const Text(
+                                            'Book a weekend village tour with verified local drivers',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Monsoon Waterfalls at Full Glory',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'Book a weekend village tour with verified local drivers',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -611,8 +631,11 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               fare: 'From ₹1,899',
                               tag: 'Most Popular',
                               onTap: () {
-                                final hundru = allDestinations.firstWhere((d) => d.id == 'hundru_falls');
-                                context.push('/destination-details', extra: hundru);
+                                final hundru = allDestinations.firstWhere(
+                                  (d) => d.id == 'hundru_falls',
+                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'hundru_falls'),
+                                );
+                                context.push('/destination-details?id=${hundru.id}', extra: hundru);
                               },
                             ),
                             const SizedBox(width: 12),
@@ -622,8 +645,11 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               fare: 'From ₹1,299',
                               tag: 'Best Value',
                               onTap: () {
-                                final patratu = allDestinations.firstWhere((d) => d.id == 'patratu_valley');
-                                context.push('/destination-details', extra: patratu);
+                                final patratu = allDestinations.firstWhere(
+                                  (d) => d.id == 'patratu_valley',
+                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'patratu_valley'),
+                                );
+                                context.push('/destination-details?id=${patratu.id}', extra: patratu);
                               },
                             ),
                             const SizedBox(width: 12),
@@ -633,8 +659,11 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                               fare: 'From ₹3,999',
                               tag: 'Pilgrimage',
                               onTap: () {
-                                final baidyanath = allDestinations.firstWhere((d) => d.id == 'baidyanath_dham');
-                                context.push('/destination-details', extra: baidyanath);
+                                final baidyanath = allDestinations.firstWhere(
+                                  (d) => d.id == 'baidyanath_dham',
+                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'baidyanath_dham'),
+                                );
+                                context.push('/destination-details?id=${baidyanath.id}', extra: baidyanath);
                               },
                             ),
                           ],
@@ -732,19 +761,24 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     PopularDestinationModel dest,
     bool isSaved,
   ) {
-    return GestureDetector(
-      onTap: () {
-        HapticService.selectionClick();
-        context.push('/destination-details', extra: dest);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-          border: Border.all(color: AppTokens.border),
-          boxShadow: AppTokens.softCardShadow,
-        ),
-        child: Column(
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          HapticService.selectionClick();
+          context.push('/destination-details?id=${dest.id}', extra: dest);
+        },
+        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+            border: Border.all(color: AppTokens.border),
+            boxShadow: AppTokens.softCardShadow,
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Image Container with Badges
@@ -897,27 +931,33 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Featured Snap Carousel Card
   Widget _buildFeaturedCard(BuildContext context, PopularDestinationModel dest) {
-    return GestureDetector(
-      onTap: () {
-        HapticService.selectionClick();
-        context.push('/destination-details', extra: dest);
-      },
-      child: Container(
-        width: 280,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-          boxShadow: AppTokens.softCardShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          HapticService.selectionClick();
+          context.push('/destination-details?id=${dest.id}', extra: dest);
+        },
+        borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+        child: Container(
+          width: 280,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+            boxShadow: AppTokens.softCardShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
               Image.network(
                 dest.imageUrl,
                 fit: BoxFit.cover,
@@ -973,14 +1013,19 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${dest.approxDistanceKm.round()} km from you',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
+                        Expanded(
+                          child: Text(
+                            '${dest.approxDistanceKm.round()} km from you',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -1005,8 +1050,9 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Package Bundle Card
   Widget _buildPackageBundleCard({
@@ -1016,21 +1062,26 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     required String tag,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () {
-        HapticService.selectionClick();
-        onTap();
-      },
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTokens.border),
-          boxShadow: AppTokens.softCardShadow,
-        ),
-        child: Column(
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          HapticService.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: 250,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTokens.border),
+            boxShadow: AppTokens.softCardShadow,
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1071,6 +1122,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

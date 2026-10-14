@@ -32,16 +32,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/destination-details',
         builder: (context, state) {
+          final id = state.uri.queryParameters['id'];
           final dest = (state.extra as PopularDestinationModel?) ??
-              DestinationsService.defaultDestinations.first;
+              (id != null
+                  ? DestinationsService.defaultDestinations.firstWhere(
+                      (d) => d.id == id,
+                      orElse: () => DestinationsService.defaultDestinations.first,
+                    )
+                  : DestinationsService.defaultDestinations.first);
           return DestinationDetailScreen(destination: dest);
         },
       ),
       GoRoute(
         path: '/book-tour',
         builder: (context, state) {
+          final id = state.uri.queryParameters['id'];
           final dest = (state.extra as PopularDestinationModel?) ??
-              DestinationsService.defaultDestinations.first;
+              (id != null
+                  ? DestinationsService.defaultDestinations.firstWhere(
+                      (d) => d.id == id,
+                      orElse: () => DestinationsService.defaultDestinations.first,
+                    )
+                  : DestinationsService.defaultDestinations.first);
           return TourBookingScreen(destination: dest);
         },
       ),
