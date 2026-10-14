@@ -952,7 +952,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
                 // Clean headline without verbose clutter
                 Text(
-                  _isHindi ? 'कोई राइड उपलब्ध नहीं है' : 'No Ride Available',
+                  _isHindi ? 'कोई राइडर उपलब्ध नहीं है' : 'No Riders Available',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 22,
