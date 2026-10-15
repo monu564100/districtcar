@@ -32,7 +32,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   LocationModel _driverLocation = LocationModel(
     latitude: 23.3441,
     longitude: 85.3096,
-    address: 'Albert Ekka Chowk, Ranchi, Jharkhand',
+    address: 'Albert Ekka Chowk Stand, Ranchi, Jharkhand',
   );
 
   @override
@@ -44,19 +44,45 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
         context: context,
         appKey: 'driver_app',
-        currentBuildNumber: 6,
+        currentBuildNumber: 8,
       );
+
       final user = ref.read(driverServiceProvider).currentUser;
+      if (user == null) {
+        context.go('/driver-login');
+        return;
+      }
+
       String driverCat = 'car';
       try {
         final prefs = await SharedPreferences.getInstance();
         driverCat = prefs.getString('driver_user_category') ?? 'car';
+
+        // Check if mandatory consent is completed
+        final hasConsent = prefs.getBool('driver_consent_given') ?? false;
+        if (!hasConsent && mounted) {
+          context.go('/driver-consent');
+          return;
+        }
+
+        // Restore saved address
+        final savedAddr = prefs.getString('driver_address');
+        if (savedAddr != null && savedAddr.isNotEmpty) {
+          setState(() {
+            _driverLocation = LocationModel(
+              latitude: _driverLocation.latitude,
+              longitude: _driverLocation.longitude,
+              address: savedAddr,
+            );
+          });
+        }
       } catch (_) {}
+
       _subscribedCategory = driverCat;
 
       FCMNotificationService.initFCM(
         role: 'driver',
-        userId: user?.uid,
+        userId: user.uid,
         category: driverCat,
       );
       FCMNotificationService.listenToLiveBroadcasts(
@@ -99,7 +125,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             _driverLocation = LocationModel(
               latitude: pos.latitude,
               longitude: pos.longitude,
-              address: 'Current Location (${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)})',
+              address: _driverLocation.address.isNotEmpty
+                  ? _driverLocation.address
+                  : 'Current Location (${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)})',
             );
           });
         }
@@ -180,27 +208,307 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     }
   }
 
-  void _acceptFromList(BookingModel booking) async {
-    try {
-      await ref.read(driverServiceProvider).acceptRide(booking.id, null);
-      setState(() {
-        _activeBooking = booking.copyWith(status: 'driver_assigned');
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ride Accepted! Booking details added above navigation. ✅'),
-            backgroundColor: Color(0xFF059669),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not accept: $e')),
-        );
-      }
+  bool _isCategoryEligible(String bookingCat, String driverCat) {
+    final b = bookingCat.trim().toLowerCase();
+    final d = driverCat.trim().toLowerCase();
+    if (b == d) return true;
+    if ((d == 'car' || d == 'sedan' || d == 'mini' || d == 'suv') &&
+        (b == 'car' || b == 'sedan' || b == 'mini' || b == 'suv')) {
+      return true;
     }
+    return false;
+  }
+
+  bool _isDistanceEligible(BookingModel booking, double driverLat, double driverLng) {
+    if (booking.pickup.latitude == 0.0 && booking.pickup.longitude == 0.0) return true;
+    if (driverLat == 0.0 && driverLng == 0.0) return true;
+
+    final isTour = booking.bookingType == 'tour' ||
+        (booking.tourDestinationName != null && booking.tourDestinationName!.isNotEmpty);
+    final isLongDistance = isTour || booking.isRoundTrip || (booking.estimatedDistanceKm > 25);
+    final maxRadiusKm = isLongDistance ? 30.0 : 15.0;
+
+    final distanceMeters = Geolocator.distanceBetween(
+      driverLat,
+      driverLng,
+      booking.pickup.latitude,
+      booking.pickup.longitude,
+    );
+    final distanceKm = distanceMeters / 1000.0;
+    return distanceKm <= maxRadiusKm;
+  }
+
+  double _calculatePickupDistanceKm(BookingModel booking) {
+    if (booking.pickup.latitude == 0.0 || _driverLocation.latitude == 0.0) return 1.5;
+    final meters = Geolocator.distanceBetween(
+      _driverLocation.latitude,
+      _driverLocation.longitude,
+      booking.pickup.latitude,
+      booking.pickup.longitude,
+    );
+    return meters / 1000.0;
+  }
+
+  void _showAcceptConfirmationModal(BookingModel booking) {
+    bool pledgeAgreed = true;
+    bool isProcessing = false;
+    final pickupDistanceKm = _calculatePickupDistanceKm(booking);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFDCFCE7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.handshake_outlined, color: Color(0xFF15803D), size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Confirm Ride Acceptance',
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                'सवारी स्वीकार व समय पर पहुंचने की सहमति',
+                                style: TextStyle(fontSize: 11.5, color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Fare & Pickup Summary
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Trip Fare (कुल किराया):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                              Text(
+                                '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 18),
+                          Row(
+                            children: [
+                              const Icon(Icons.near_me, size: 16, color: Color(0xFF059669)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Pickup is ~${pickupDistanceKm.toStringAsFixed(1)} km from your stand',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.radio_button_checked, size: 14, color: Color(0xFF059669)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  booking.pickup.address,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 14, color: Color(0xFFDC2626)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  booking.destination.address,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Driver Pledge Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline, color: Color(0xFF92400E), size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Partner Commitment (वचन):',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'स्वीकार करने के बाद यात्री आपका इंतज़ार करता है। बिना आपात स्थिति के सवारी रद्द न करें। रद्द करने पर रेटिंग प्रभावित होगी।',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF78350F), height: 1.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Interactive Pledge Checkbox
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: pledgeAgreed,
+                          activeColor: const Color(0xFF059669),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (v) => setModalState(() => pledgeAgreed = v ?? false),
+                        ),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setModalState(() => pledgeAgreed = !pledgeAgreed),
+                            child: const Text(
+                              'I agree to reach on time and complete this journey without cancellation.',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Confirm & Cancel Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Back / Decline', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: (!pledgeAgreed || isProcessing)
+                                ? null
+                                : () async {
+                                    setModalState(() => isProcessing = true);
+                                    try {
+                                      await ref.read(driverServiceProvider).acceptRide(booking.id, null);
+                                      Navigator.pop(ctx);
+                                      setState(() {
+                                        _activeBooking = booking.copyWith(status: 'driver_assigned');
+                                      });
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Ride Accepted! Marked Busy. Proceed to pickup. ✅'),
+                                            backgroundColor: Color(0xFF059669),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      setModalState(() => isProcessing = false);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Could not accept: $e')),
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: isProcessing
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : const Text(
+                                    'CONFIRM & LOCK RIDE (कन्फर्म करें)',
+                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _verifyOtpAndStartTrip(BookingModel booking) async {
@@ -213,10 +521,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     }
 
     try {
-      await FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
-        'status': 'trip_started',
-        'startedAt': FieldValue.serverTimestamp(),
-      });
+      await ref.read(driverServiceProvider).startTrip(
+        booking.id,
+        enteredOtp.isNotEmpty ? enteredOtp : (booking.rideOtp ?? '1234'),
+      );
       setState(() {
         _activeBooking = booking.copyWith(status: 'trip_started');
         _otpVerifyCtrl.clear();
@@ -226,24 +534,36 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
           const SnackBar(content: Text('Trip Started! Have a safe journey. 🚗'), backgroundColor: Color(0xFF059669)),
         );
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error starting trip: $e')),
+        );
+      }
+    }
   }
 
   void _completeTrip(BookingModel booking) async {
     try {
-      await FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
-        'status': 'trip_completed',
-        'completedAt': FieldValue.serverTimestamp(),
-      });
+      await ref.read(driverServiceProvider).completeTrip(booking.id);
       setState(() {
         _activeBooking = null;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trip Completed! Fare received. 🎉'), backgroundColor: Color(0xFF059669)),
+          const SnackBar(
+            content: Text('Trip Completed! Fare credited to your Partner Wallet. Available for new rides. 🎉'),
+            backgroundColor: Color(0xFF059669),
+          ),
         );
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error completing trip: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -261,197 +581,199 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       );
     }
 
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('drivers').doc(user.uid).snapshots(),
-      builder: (context, snapshot) {
-        final data = (snapshot.hasData && snapshot.data!.exists)
-            ? snapshot.data!.data() as Map<String, dynamic>?
-            : {
-                'name': user.displayName ?? 'Ramesh Mahto',
-                'vehiclePlateNumber': 'JH 01 BZ 4892',
-                'vehicleModel': 'Maruti Suzuki Dzire AC',
-                'vehicleCategoryId': 'car',
-                'verificationStatus': 'approved',
-                'rating': 4.9,
-                'totalTrips': 28,
-                'totalEarnings': 6850.0,
-              };
-
-        final String name = (data?['name'] != null && (data!['name'] as String).isNotEmpty)
-            ? data['name']
-            : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
-        final String plate = data?['vehiclePlateNumber']?.toString() ?? 'Vehicle not registered';
-        final String vehicleModel = data?['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
-        final double rating = (data?['rating'] as num?)?.toDouble() ?? 5.0;
-        final double totalEarnings = (data?['totalEarnings'] as num?)?.toDouble() ?? 0.0;
-        final String driverCategory = (data?['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
-        if (_subscribedCategory != driverCategory) {
-          _subscribedCategory = driverCategory;
-          FCMNotificationService.subscribeToTopic('driver_$driverCategory');
+    // Active Booking Sync Listener
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('driverId', isEqualTo: user.uid)
+          .where('status', whereIn: ['driver_assigned', 'driver_arrived', 'trip_started'])
+          .snapshots(),
+      builder: (context, activeSnap) {
+        if (activeSnap.hasData && activeSnap.data!.docs.isNotEmpty) {
+          final doc = activeSnap.data!.docs.first;
+          final b = BookingModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          _activeBooking = b;
+        } else if (activeSnap.hasData && activeSnap.data!.docs.isEmpty && _activeBooking != null) {
+          // Trip finished or cancelled remotely
+          _activeBooking = null;
         }
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF0F172A),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('District Car Partner', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
-                Text(
-                  _isOnline ? '🟢 ONLINE (Ready for trips)' : '⚪ OFFLINE (Tap to Go Online)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: _isOnline ? const Color(0xFF16A34A) : Colors.grey.shade600,
-                  ),
+
+        final isCurrentlyBusy = _activeBooking != null;
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('drivers').doc(user.uid).snapshots(),
+          builder: (context, snapshot) {
+            final data = (snapshot.hasData && snapshot.data!.exists)
+                ? snapshot.data!.data() as Map<String, dynamic>?
+                : {
+                    'name': user.displayName ?? 'Ramesh Mahto',
+                    'vehiclePlateNumber': 'JH 01 BZ 4892',
+                    'vehicleModel': 'Maruti Suzuki Dzire AC',
+                    'vehicleCategoryId': 'car',
+                    'verificationStatus': 'approved',
+                    'rating': 4.9,
+                    'totalTrips': 28,
+                    'totalEarnings': 6850.0,
+                    'walletBalance': 6165.0,
+                  };
+
+            final String name = (data?['name'] != null && (data!['name'] as String).isNotEmpty)
+                ? data['name']
+                : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
+            final String plate = data?['vehiclePlateNumber']?.toString() ?? 'Vehicle not registered';
+            final String vehicleModel = data?['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
+            final double rating = (data?['rating'] as num?)?.toDouble() ?? 5.0;
+            final double totalEarnings = (data?['totalEarnings'] as num?)?.toDouble() ?? 0.0;
+            final double walletBalance = (data?['walletBalance'] as num?)?.toDouble() ?? (totalEarnings * 0.9);
+            final String driverCategory = (data?['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+
+            if (_subscribedCategory != driverCategory) {
+              _subscribedCategory = driverCategory;
+              FCMNotificationService.subscribeToTopic('driver_$driverCategory');
+            }
+
+            return Scaffold(
+              backgroundColor: const Color(0xFFF8FAFC),
+              appBar: AppBar(
+                elevation: 0,
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF0F172A),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('District Car Partner', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+                    Text(
+                      isCurrentlyBusy
+                          ? '🟡 BUSY (On Active Journey)'
+                          : (_isOnline ? '🟢 ONLINE (Ready for trips)' : '⚪ OFFLINE (Tap to Go Online)'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isCurrentlyBusy
+                            ? const Color(0xFFD97706)
+                            : (_isOnline ? const Color(0xFF16A34A) : Colors.grey.shade600),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                tooltip: 'Edit Vehicle & Driver Profile',
-                icon: const Icon(Icons.drive_file_rename_outline, color: Color(0xFF059669)),
-                onPressed: () => context.push('/driver-onboarding'),
+                actions: [
+                  IconButton(
+                    tooltip: 'Edit Vehicle & Driver Profile',
+                    icon: const Icon(Icons.drive_file_rename_outline, color: Color(0xFF059669)),
+                    onPressed: () => context.push('/driver-onboarding'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    onPressed: () => context.push('/driver-earnings'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_outline),
+                    onPressed: () => context.push('/driver-profile'),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                onPressed: () => context.push('/driver-earnings'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.person_outline),
-                onPressed: () => context.push('/driver-profile'),
-              ),
-            ],
-          ),
-          body: Stack(
-            children: [
-              SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 220),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Driver Info & Vehicle Strip
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3)),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFDCFCE7),
-                                border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
-                              ),
-                              child: const Icon(Icons.person, color: Color(0xFF15803D), size: 32),
+              body: Stack(
+                children: [
+                  SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 240),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Driver Info & Vehicle Strip
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3)),
+                              ],
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '$vehicleModel · $plate',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFDCFCE7),
+                                    border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
+                                  child: const Icon(Icons.person, color: Color(0xFF15803D), size: 32),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.star, color: Colors.amber, size: 15),
-                                      const SizedBox(width: 4),
-                                      Text('$rating · Verified Partner', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$vehicleModel · $plate',
+                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.star, color: Colors.amber, size: 15),
+                                          const SizedBox(width: 4),
+                                          Text('$rating · Verified Partner', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
                                     ],
                                   ),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _isOnline ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: (_isToggling || isCurrentlyBusy) ? null : () => _toggleOnlineStatus(!_isOnline),
+                                  child: Text(
+                                    _isOnline ? 'GO OFFLINE' : 'GO ONLINE',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Location Hotspot Selector
+                          InkWell(
+                            onTap: isCurrentlyBusy ? null : _openLocationPicker,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.my_location, color: Color(0xFF059669), size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _driverLocation.address,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (!isCurrentlyBusy) const Icon(Icons.edit, size: 14, color: Color(0xFF059669)),
                                 ],
                               ),
                             ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isOnline ? const Color(0xFFDC2626) : const Color(0xFF059669),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _isToggling ? null : () => _toggleOnlineStatus(!_isOnline),
-                              child: Text(
-                                _isOnline ? 'GO OFFLINE' : 'GO ONLINE',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Location Hotspot Selector
-                      InkWell(
-                        onTap: _openLocationPicker,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade200),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.my_location, color: Color(0xFF059669), size: 18),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _driverLocation.address,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const Icon(Icons.edit, size: 14, color: Color(0xFF059669)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
+                          const SizedBox(height: 14),
 
-                      // Quick Earnings Box - Dynamic Live Calculation from Completed Bookings
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('bookings')
-                            .where('driverId', isEqualTo: user.uid)
-                            .where('status', isEqualTo: 'trip_completed')
-                            .snapshots(),
-                        builder: (context, completedSnap) {
-                          double completedEarnings = 0.0;
-                          int completedTripsCount = 0;
-                          if (completedSnap.hasData && completedSnap.data!.docs.isNotEmpty) {
-                            completedTripsCount = completedSnap.data!.docs.length;
-                            for (final doc in completedSnap.data!.docs) {
-                              final b = doc.data() as Map<String, dynamic>;
-                              completedEarnings += (b['finalFare'] as num?)?.toDouble() ??
-                                  (b['estimatedFare'] as num?)?.toDouble() ??
-                                  0.0;
-                            }
-                          }
-
-                          // If completed bookings have earnings, use that; otherwise fallback to profile totalEarnings
-                          final effectiveEarnings = completedEarnings > 0 ? completedEarnings : totalEarnings;
-                          final effectiveTrips = completedTripsCount > 0
-                              ? completedTripsCount
-                              : ((data?['totalTrips'] as num?)?.toInt() ?? 0);
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          // Quick Earnings & Wallet Box
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF065F46), Color(0xFF059669)],
@@ -473,32 +795,19 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          'Total Earnings (कुल कमाई)',
-                                          style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
-                                        ),
-                                        if (effectiveTrips > 0) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              '$effectiveTrips trips',
-                                              style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
+                                    const Text(
+                                      'Wallet Balance (पार्टनर वॉलेट)',
+                                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      '₹${effectiveEarnings.toStringAsFixed(0)}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900),
+                                      '₹${walletBalance.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Total Gross: ₹${totalEarnings.toStringAsFixed(0)}',
+                                      style: const TextStyle(color: Colors.white60, fontSize: 10),
                                     ),
                                   ],
                                 ),
@@ -511,85 +820,112 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   ),
                                   onPressed: () => context.push('/driver-earnings'),
-                                  child: const Text('Wallet Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                  child: const Text('Passbook & Payout', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Real-time Available Booking Requests Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'AVAILABLE BOOKING REQUESTS',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.textMuted, letterSpacing: 0.8),
                           ),
-                          if (_isOnline)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDCFCE7),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text('LIVE', style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.bold)),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                          const SizedBox(height: 24),
 
-                      if (!_isOnline) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Column(
+                          // Available Booking Requests Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(Icons.wifi_off, size: 40, color: Colors.grey.shade400),
-                              const SizedBox(height: 10),
-                              const Text('You are currently Offline', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              const SizedBox(height: 4),
-                              const Text('Tap "Go Online" above to start receiving ride requests in Jharkhand.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              const Text(
+                                'ELIGIBLE BOOKING REQUESTS',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.textMuted, letterSpacing: 0.8),
+                              ),
+                              if (_isOnline && !isCurrentlyBusy)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('LIVE RADAR', style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
                             ],
                           ),
-                        ),
-                      ] else ...[
-                        _buildAvailableRequestsStream(driverCategory),
-                      ],
-                    ],
+                          const SizedBox(height: 12),
+
+                          if (!_isOnline) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.wifi_off, size: 40, color: Colors.grey.shade400),
+                                  const SizedBox(height: 10),
+                                  const Text('You are currently Offline', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                  const SizedBox(height: 4),
+                                  const Text('Tap "Go Online" above to start receiving ride requests in Jharkhand.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                ],
+                              ),
+                            ),
+                          ] else if (isCurrentlyBusy) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.directions_car, color: Color(0xFFB45309), size: 28),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: const [
+                                        Text('Driver Busy Mode Active', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF92400E))),
+                                        SizedBox(height: 2),
+                                        Text('You are on an active trip. Complete current trip below to receive new bookings.', style: TextStyle(fontSize: 11, color: Color(0xFF78350F))),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            _buildAvailableRequestsStream(driverCategory),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+
+                  // 1. Full-screen Pop-up Notification for Incoming Eligible Rides (Hidden when Busy)
+                  if (_isOnline && !isCurrentlyBusy)
+                    IncomingRequestOverlay(
+                      driverId: user.uid,
+                      vehicleCategory: driverCategory,
+                      driverLocation: _driverLocation,
+                      onAccepted: (booking) {
+                        setState(() {
+                          _activeBooking = booking.copyWith(status: 'driver_assigned');
+                        });
+                      },
+                    ),
+
+                  // 2. Persistent Active Booking Card Floating Above Dock
+                  if (_activeBooking != null)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: _buildActiveBookingCard(_activeBooking!),
+                    ),
+                ],
               ),
-
-              // 1. Popup Notification for New Ride
-              if (_isOnline && _activeBooking == null)
-                IncomingRequestOverlay(
-                  driverId: user.uid,
-                  vehicleCategory: driverCategory,
-                  onAccepted: (booking) {
-                    setState(() {
-                      _activeBooking = booking.copyWith(status: 'driver_assigned');
-                    });
-                  },
-                ),
-
-              // 2. Persistent Active Booking Card Above Navigation Card
-              if (_activeBooking != null)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                  child: _buildActiveBookingCard(_activeBooking!),
-                ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -600,17 +936,20 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       stream: FirebaseFirestore.instance
           .collection('bookings')
           .where('status', isEqualTo: 'searching_driver')
-          .where('vehicleCategoryId', isEqualTo: driverCategory)
+          .limit(15)
           .snapshots(),
       builder: (context, snapshot) {
         final allDocs = snapshot.data?.docs ?? [];
-        final docs = allDocs.where((doc) {
+        final eligibleDocs = allDocs.where((doc) {
           final d = doc.data() as Map<String, dynamic>;
-          final cat = (d['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
-          return cat == driverCategory;
+          final cat = (d['vehicleCategoryId'] ?? 'car').toString();
+          if (!_isCategoryEligible(cat, driverCategory)) return false;
+
+          final booking = BookingModel.fromMap(d, doc.id);
+          return _isDistanceEligible(booking, _driverLocation.latitude, _driverLocation.longitude);
         }).toList();
 
-        if (docs.isEmpty) {
+        if (eligibleDocs.isEmpty) {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -625,16 +964,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                 SizedBox(height: 10),
                 Text('Radar Active — Waiting for Rides', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 SizedBox(height: 4),
-                Text('When a customer books a ride in your village area, it will appear here immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text('When an eligible customer books in your 15km/30km radius, it will appear here immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           );
         }
 
         return Column(
-          children: docs.map((doc) {
+          children: eligibleDocs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final booking = BookingModel.fromMap(data, doc.id);
+            final pickupDistKm = _calculatePickupDistanceKm(booking);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -675,12 +1015,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         ],
                       ),
                       Text(
-                        '₹${booking.finalFare ?? booking.estimatedFare}',
+                        '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Pickup ~${pickupDistKm.toStringAsFixed(1)} km from your stand · Trip: ${booking.estimatedDistanceKm} km',
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       const Icon(Icons.radio_button_checked, color: Color(0xFF059669), size: 14),
@@ -705,8 +1050,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         backgroundColor: const Color(0xFF059669),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      onPressed: () => _acceptFromList(booking),
-                      child: const Text('ACCEPT THIS RIDE (स्वीकार करें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () => _showAcceptConfirmationModal(booking),
+                      child: const Text('ACCEPT THIS RIDE (सवारी स्वीकार करें)', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -721,6 +1066,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   /// ACTIVE BOOKING DETAILS CARD FLOATING ABOVE NAVIGATION DOCK
   Widget _buildActiveBookingCard(BookingModel booking) {
     final isStarted = booking.status == 'trip_started';
+    final customerPhone = booking.customerPhone ?? '+91 87896 01387';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -761,12 +1107,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
               ),
               Row(
                 children: [
-                  Text('₹${booking.finalFare ?? booking.estimatedFare}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF059669))),
+                  Text(
+                    '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                  ),
                   const SizedBox(width: 10),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => _callCustomer('+91 98765 43210'),
+                      onTap: () => _callCustomer(customerPhone),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.all(8),

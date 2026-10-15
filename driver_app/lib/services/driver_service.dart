@@ -697,15 +697,40 @@ class DriverService {
       });
 
       if (uid != null) {
+        final commission = (fare * 0.10).roundToDouble();
+        final netFare = fare - commission;
+
         await _firestore.collection('drivers').doc(uid).set({
           'isBusy': false,
           'activeBookingId': null,
           'totalTrips': FieldValue.increment(1),
           'totalEarnings': FieldValue.increment(fare),
-          'walletBalance': FieldValue.increment(fare),
+          'walletBalance': FieldValue.increment(netFare),
+          'pendingCommission': FieldValue.increment(commission),
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+
+        // Record wallet credit transaction
+        try {
+          await _firestore.collection('wallet_transactions').add({
+            'driverId': uid,
+            'bookingId': bookingId,
+            'readableId': data['readableId'] ?? bookingId,
+            'type': 'trip_fare_credit',
+            'grossFare': fare,
+            'platformCommission': commission,
+            'netCredit': netFare,
+            'paymentMethod': data['paymentMethod'] ?? 'cash',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
       }
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('driver_active_booking_id');
+        await prefs.setBool('driver_is_busy', false);
+      } catch (_) {}
 
       return {'success': true, 'finalFare': fare};
     }

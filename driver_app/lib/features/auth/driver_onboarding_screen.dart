@@ -16,11 +16,16 @@ class DriverOnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen> {
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _plateCtrl = TextEditingController();
-  final _modelCtrl = TextEditingController();
-  final _locationAddressCtrl = TextEditingController(text: 'Murhu Chowk / Lac Market, Khunti');
+  int _currentSlide = 0;
+  bool _showingRegistrationForm = false;
+  final PageController _pageController = PageController();
+
+  // Registration Form Controllers
+  final _nameCtrl = TextEditingController(text: 'Ramesh Mahto');
+  final _phoneCtrl = TextEditingController(text: '+91 94311 23456');
+  final _plateCtrl = TextEditingController(text: 'JH 01 BZ 4892');
+  final _modelCtrl = TextEditingController(text: 'Maruti Suzuki Dzire AC');
+  final _locationAddressCtrl = TextEditingController(text: 'Murhu Chowk / Lac Stand, Khunti');
 
   String _selectedDistrict = 'Khunti';
   String _selectedBlock = 'Murhu';
@@ -34,8 +39,71 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
   bool _isLoading = false;
   String? _errorMessage;
 
+  final List<Map<String, String>> _onboardingSlides = [
+    {
+      'image': 'assets/images/driver_onboarding_1_earn.jpg',
+      'title': 'झारखंड में रोज़ाना पक्की कमाई',
+      'subtitle': 'Unlimited Daily Earnings & Direct Bookings',
+      'description':
+          'गांव-कस्बे से जिला मुख्यालय तक बिना किसी बिचौलिए या कमीशन कटौती के लगातार बुकिंग्स पाएं।',
+    },
+    {
+      'image': 'assets/images/driver_onboarding_2_rural.jpg',
+      'title': 'गांव से अस्पताल व शहर तक कनेक्टिविटी',
+      'subtitle': 'Village Stand to District Hospital & Town',
+      'description':
+          'अपने गांव के स्टैंड या चौक से ही ट्रिप्स पाएं। राउंड-ट्रिप और टूर पैकेजों पर डबल रिटर्न फायदा।',
+    },
+    {
+      'image': 'assets/images/driver_onboarding_3_wallet.jpg',
+      'title': 'वॉलेट में तुरंत क्रेडिट व पारदर्शी किराया',
+      'subtitle': 'Instant Wallet Credit & Transparent Fares',
+      'description':
+          'ट्रिप पूरी होते ही पैसा सीधे आपके पार्टनर वॉलेट में। 100% पारदर्शी दरें और 24x7 स्थानीय सपोर्ट।',
+    },
+  ];
+
+  final List<Map<String, dynamic>> _vehicleCategories = [
+    {
+      'id': 'car',
+      'name': 'Economy Mini',
+      'hindi': 'मिनी कैब (Alto/WagonR)',
+      'image': 'assets/images/icon_vehicle_mini.jpg',
+      'defaultModel': 'Maruti WagonR / Alto',
+    },
+    {
+      'id': 'sedan',
+      'name': 'Prime Sedan',
+      'hindi': 'सेडान (Dzire/Etios)',
+      'image': 'assets/images/icon_vehicle_sedan.jpg',
+      'defaultModel': 'Maruti Suzuki Dzire AC',
+    },
+    {
+      'id': 'suv',
+      'name': 'Rural SUV / Bolero',
+      'hindi': 'बोलेरो / स्कॉर्पियो',
+      'image': 'assets/images/icon_vehicle_suv.jpg',
+      'defaultModel': 'Mahindra Bolero Neo AC',
+    },
+    {
+      'id': 'auto',
+      'name': 'Auto Rickshaw',
+      'hindi': 'ऑटो रिक्शा (3-सीटर)',
+      'image': 'assets/images/icon_vehicle_auto.jpg',
+      'defaultModel': 'Bajaj Compact Auto',
+    },
+    {
+      'id': 'bike',
+      'name': 'Moto Bike',
+      'hindi': 'बाइक राइड (1 पैसेंजर)',
+      'image': 'assets/images/icon_vehicle_bike.jpg',
+      'defaultModel': 'Hero Splendor / Honda Shine',
+    },
+  ];
+
   @override
   void dispose() {
+    _pageController.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _plateCtrl.dispose();
@@ -74,7 +142,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     } catch (_) {}
   }
 
-  void _submitOnboarding() async {
+  void _submitRegistration() async {
     final name = _nameCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
     final plate = _plateCtrl.text.trim();
@@ -110,540 +178,605 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Onboarding completed! Welcome to District Car Partner. ✅'),
-            backgroundColor: Color(0xFF059669),
-          ),
-        );
-        context.go('/driver-home');
+        // Direct to Mandatory Consent Screen
+        context.go('/driver-consent');
       }
     } catch (e) {
       if (mounted) {
-        context.go('/driver-home');
+        context.go('/driver-consent');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Widget _buildDriverPhotoPreviewWidget() {
-    if (_driverPhotoBytes != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(40),
-        child: Image.memory(_driverPhotoBytes!, width: 70, height: 70, fit: BoxFit.cover),
-      );
-    }
-    if (_selectedDriverPhoto.startsWith('data:image')) {
-      try {
-        final bytes = base64Decode(_selectedDriverPhoto.split(',').last);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(40),
-          child: Image.memory(bytes, width: 70, height: 70, fit: BoxFit.cover),
-        );
-      } catch (_) {}
-    }
-    IconData icon = Icons.person;
-    if (_selectedDriverPhoto == 'avatar_2') icon = Icons.face;
-    if (_selectedDriverPhoto == 'avatar_3') icon = Icons.account_circle;
-    return Container(
-      width: 70,
-      height: 70,
-      decoration: BoxDecoration(
-        color: const Color(0xFFDCFCE7),
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF16A34A), width: 2),
-      ),
-      child: Icon(icon, size: 40, color: const Color(0xFF16A34A)),
-    );
-  }
-
-  Widget _buildVehiclePhotoPreviewWidget() {
-    if (_vehiclePhotoBytes != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.memory(_vehiclePhotoBytes!, width: double.infinity, height: 120, fit: BoxFit.cover),
-      );
-    }
-    if (_selectedVehicleImage.startsWith('data:image')) {
-      try {
-        final bytes = base64Decode(_selectedVehicleImage.split(',').last);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.memory(bytes, width: double.infinity, height: 120, fit: BoxFit.cover),
-        );
-      } catch (_) {}
-    }
-    if (_selectedVehicleImage.startsWith('http')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(_selectedVehicleImage, width: double.infinity, height: 120, fit: BoxFit.cover),
-      );
-    }
-    final assetPath = _selectedVehicleImage.startsWith('assets/') ? _selectedVehicleImage : 'assets/images/$_selectedVehicleImage';
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Image.asset(
-        assetPath,
-        width: double.infinity,
-        height: 120,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, stack) => Container(
-          height: 120,
-          color: Colors.grey.shade200,
-          child: const Center(child: Icon(Icons.directions_car, size: 50, color: AppColors.primary)),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (_showingRegistrationForm) {
+      return _buildRegistrationView();
+    }
+    return _buildCarouselView();
+  }
+
+  // VIEW 1: SWIPEABLE 3-IMAGE CAROUSEL ONBOARDING
+  Widget _buildCarouselView() {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Driver Onboarding (चालक पंजीकरण)'),
+        backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          TextButton(
+            onPressed: () => setState(() => _showingRegistrationForm = true),
+            child: const Text(
+              'Skip to Register (स्किप करें)',
+              style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF065F46), Color(0xFF059669)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DISTRICT CAR PARTNER REGISTRATION',
-                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'झारखंड वाहन एवं चालक विवरण',
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Enter your personal and vehicle details to start accepting rural and district trips.',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Section 1: Personal Details
-              _buildSectionHeader('1. DRIVER PERSONAL DETAILS (चालक की जानकारी)'),
-              const SizedBox(height: 12),
-
-              // Driver Photo Selection + Live Preview Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _onboardingSlides.length,
+                onPageChanged: (i) => setState(() => _currentSlide = i),
+                itemBuilder: (context, index) {
+                  final slide = _onboardingSlides[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildDriverPhotoPreviewWidget(),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Driver Photo Preview', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Text(
-                                _driverPhotoBytes != null ? 'Custom photo uploaded ✓' : 'Default partner avatar selected',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                        // High-Quality 3D Graphic Image
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            height: 290,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Image.asset(
+                              slide['image']!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.drive_eta, size: 70, color: Color(0xFF059669)),
                               ),
-                              const SizedBox(height: 8),
-                              OutlinedButton.icon(
-                                icon: const Icon(Icons.upload, size: 16),
-                                label: const Text('Upload Your Photo', style: TextStyle(fontSize: 12)),
-                                onPressed: _pickCustomDriverPhoto,
-                              ),
-                            ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Title & Subtitle
+                        Text(
+                          slide['title']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          slide['subtitle']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF059669),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            slide['description']!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.grey.shade600,
+                              height: 1.45,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
-                    const Text('Or Select Avatar:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildAvatarChoice('avatar_1', Icons.person, 'Driver 1'),
-                        const SizedBox(width: 12),
-                        _buildAvatarChoice('avatar_2', Icons.face, 'Driver 2'),
-                        const SizedBox(width: 12),
-                        _buildAvatarChoice('avatar_3', Icons.account_circle, 'Driver 3'),
-                      ],
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 16),
+            ),
 
-              // Full Name
-              const Text('Full Legal Name (पूरा नाम)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _nameCtrl,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Ramesh Mahto',
-                  prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Mobile Number
-              const Text('Driver Mobile Number (मोबाइल नंबर)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: '+91 94311 23456',
-                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.primary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Operational District & Block Selection Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.location_on, color: Color(0xFF059669), size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'OPERATIONAL LOCATION (कार्य क्षेत्र)',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Select your primary operating district and block so you receive nearby ride requests.',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // District Selector Dropdown
-                    const Text('Select District (ज़िला चुनें)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedDistrict,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
-                          items: JharkhandDistrictData.allDistricts.map((d) {
-                            return DropdownMenuItem<String>(
-                              value: d,
-                              child: Text(d, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                            );
-                          }).toList(),
-                          onChanged: (newDist) {
-                            if (newDist != null) {
-                              final blocks = JharkhandDistrictData.getBlocksForDistrict(newDist);
-                              setState(() {
-                                _selectedDistrict = newDist;
-                                _selectedBlock = blocks.isNotEmpty ? blocks.first : 'Sadar';
-                                _locationAddressCtrl.text = '$_selectedBlock, $_selectedDistrict, Jharkhand';
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Block Selector Dropdown
-                    const Text('Select Block / Tehsil (प्रखंड चुनें)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedBlock,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
-                          items: JharkhandDistrictData.getBlocksForDistrict(_selectedDistrict).map((b) {
-                            return DropdownMenuItem<String>(
-                              value: b,
-                              child: Text(b, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                            );
-                          }).toList(),
-                          onChanged: (newBlock) {
-                            if (newBlock != null) {
-                              setState(() {
-                                _selectedBlock = newBlock;
-                                _locationAddressCtrl.text = '$_selectedBlock, $_selectedDistrict, Jharkhand';
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Exact Location / Landmark
-                    const Text('Exact Stand / Chowk / Landmark (सटीक स्थान/चौक)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _locationAddressCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Murhu Chowk / Bus Stand, Khunti',
-                        prefixIcon: const Icon(Icons.pin_drop_outlined, color: AppColors.primary, size: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Section 2: Vehicle Details
-              _buildSectionHeader('2. VEHICLE DETAILS (वाहन की जानकारी)'),
-              const SizedBox(height: 14),
-
-              // Vehicle Category Picker
-              const Text('Select Vehicle Category (श्रेणी चुनें)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 10),
-              Row(
+            // Dots Indicator & Action Buttons
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
-                  _buildCategoryCard('car', '🚗 Car / Sedan', 'स्विफ्ट / डिजायर'),
-                  const SizedBox(width: 10),
-                  _buildCategoryCard('auto', '🛺 Auto', '3-व्हीलर ऑटो'),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _buildCategoryCard('bike', '🏍️ Bike', '2-व्हीलर बाइक'),
-                  const SizedBox(width: 10),
-                  _buildCategoryCard('suv', '🚙 Rural SUV', 'बोलेरो / स्कॉर्पियो'),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Vehicle Registration Number Plate
-              const Text('Vehicle Number Plate (गाड़ी नंबर)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _plateCtrl,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  hintText: 'e.g. JH 01 BZ 4892',
-                  prefixIcon: const Icon(Icons.pin, color: AppColors.primary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Vehicle Model & Make
-              const Text('Vehicle Make & Model (मॉडल)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _modelCtrl,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Maruti Suzuki Dzire AC',
-                  prefixIcon: const Icon(Icons.directions_car, color: AppColors.primary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Vehicle Photo Selection + Live Preview Card
-              const Text('Vehicle Photo & Live Preview (गाड़ी का फोटो)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildVehiclePhotoPreviewWidget(),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Current Vehicle Photo', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                        Text(
-                          _vehiclePhotoBytes != null ? 'Uploaded photo active ✓' : 'Selected vehicle asset',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _onboardingSlides.length,
+                      (idx) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentSlide == idx ? 28 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _currentSlide == idx ? const Color(0xFF059669) : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _buildVehiclePhotoCard('assets/images/car_blue.jpg', 'Dzire Blue'),
-                        const SizedBox(width: 12),
-                        _buildVehiclePhotoCard('assets/images/car_white.jpg', 'Swift White'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.upload, size: 18),
-                        label: const Text('Upload Your Own Vehicle Photo'),
-                        onPressed: _pickCustomVehiclePhoto,
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(_errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
-              ],
-              const SizedBox(height: 32),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF059669),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  onPressed: _isLoading ? null : _submitOnboarding,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save & Start Driving (प्रोफ़ाइल सुरक्षित करें)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      if (_currentSlide > 0)
+                        IconButton(
+                          onPressed: () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_back),
                         ),
-                ),
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () {
+                              if (_currentSlide < _onboardingSlides.length - 1) {
+                                _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                              } else {
+                                setState(() => _showingRegistrationForm = true);
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _currentSlide < _onboardingSlides.length - 1
+                                      ? 'NEXT (आगे बढ़ें)'
+                                      : 'REGISTER VEHICLE (पंजीकरण शुरू करें)',
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, letterSpacing: 0.5),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward, size: 18),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        color: AppColors.textMuted,
-        letterSpacing: 1.0,
-      ),
-    );
-  }
-
-  Widget _buildAvatarChoice(String id, IconData icon, String label) {
-    final isSelected = _selectedDriverPhoto == id && _driverPhotoBytes == null;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _selectedDriverPhoto = id;
-        _driverPhotoBytes = null;
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFDCFCE7) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF16A34A) : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 28, color: isSelected ? const Color(0xFF16A34A) : Colors.grey.shade700),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCategoryCard(String id, String title, String subtitle) {
-    final isSelected = _selectedCategory == id;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedCategory = id),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFDCFCE7) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF16A34A) : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
+  // VIEW 2: PREMIUM REGISTRATION & CAR LOCATION FORM
+  Widget _buildRegistrationView() {
+    final blocks = JharkhandDistrictData.getBlocksForDistrict(_selectedDistrict);
+    if (!blocks.contains(_selectedBlock)) {
+      _selectedBlock = blocks.isNotEmpty ? blocks.first : '';
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text('Partner Registration (वाहन पंजीकरण)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => setState(() => _showingRegistrationForm = false),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? const Color(0xFF15803D) : Colors.black87)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              // Error banner
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Section 1: Driver Details
+              _buildSectionTitle('1. DRIVER PARTNER DETAILS (चालक विवरण)'),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: _pickCustomDriverPhoto,
+                          borderRadius: BorderRadius.circular(40),
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundColor: const Color(0xFFDCFCE7),
+                                backgroundImage: _driverPhotoBytes != null
+                                    ? MemoryImage(_driverPhotoBytes!)
+                                    : const AssetImage('assets/images/avatar_commuter_3d.jpg') as ImageProvider,
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF059669),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Driver Photo / सेल्फी', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              SizedBox(height: 2),
+                              Text('Tap icon to upload custom profile photo', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Driver Full Name (पूरा नाम) *',
+                        prefixIcon: const Icon(Icons.person, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'WhatsApp / Mobile Number *',
+                        prefixIcon: const Icon(Icons.phone, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Section 2: Fixed Car-Address & Stand Location
+              _buildSectionTitle('2. FIXED CAR ADDRESS & STAND (गाड़ी का मुख्य स्टैंड / हॉटस्पॉट)'),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // District Dropdown (24 Districts of Jharkhand)
+                    DropdownButtonFormField<String>(
+                      value: _selectedDistrict,
+                      decoration: InputDecoration(
+                        labelText: 'Home District (जिला) *',
+                        prefixIcon: const Icon(Icons.map, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                      items: JharkhandDistrictData.allDistricts.map((d) {
+                        return DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 13.5)));
+                      }).toList(),
+                      onChanged: (newDist) {
+                        if (newDist != null) {
+                          setState(() {
+                            _selectedDistrict = newDist;
+                            final newBlocks = JharkhandDistrictData.getBlocksForDistrict(newDist);
+                            _selectedBlock = newBlocks.isNotEmpty ? newBlocks.first : '';
+                            _locationAddressCtrl.text = '$_selectedBlock Stand / Chowk, $newDist';
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Block Dropdown
+                    DropdownButtonFormField<String>(
+                      value: blocks.contains(_selectedBlock) ? _selectedBlock : (blocks.isNotEmpty ? blocks.first : null),
+                      decoration: InputDecoration(
+                        labelText: 'Block / Tehsil (प्रखंड / ब्लॉक) *',
+                        prefixIcon: const Icon(Icons.location_city, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                      items: blocks.map((b) {
+                        return DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 13.5)));
+                      }).toList(),
+                      onChanged: (newBlk) {
+                        if (newBlk != null) {
+                          setState(() {
+                            _selectedBlock = newBlk;
+                            _locationAddressCtrl.text = '$newBlk Stand / Chowk, $_selectedDistrict';
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Fixed Stand / Hotspot Address
+                    TextField(
+                      controller: _locationAddressCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Fixed Stand / Chowk Address (गाड़ी रुकने का स्थान) *',
+                        prefixIcon: const Icon(Icons.my_location, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Section 3: Dynamic Category Selection with Car Images
+              _buildSectionTitle('3. VEHICLE CATEGORY & DETAILS (वाहन श्रेणी व फोटो)'),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Select Your Vehicle Category (श्रेणी चुनें):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 12),
+
+                    // Horizontal / Wrap Category Cards
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _vehicleCategories.map((cat) {
+                        final isSelected = _selectedCategory == cat['id'];
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = cat['id'];
+                              _modelCtrl.text = cat['defaultModel'];
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: (MediaQuery.of(context).size.width - 70) / 2,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF059669) : Colors.grey.shade200,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.asset(
+                                    cat['image'],
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.directions_car, color: Color(0xFF059669), size: 36),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  cat['name'],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
+                                    color: isSelected ? const Color(0xFF065F46) : const Color(0xFF0F172A),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                Text(
+                                  cat['hindi'],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isSelected ? const Color(0xFF059669) : Colors.grey.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Plate Number
+                    TextField(
+                      controller: _plateCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        labelText: 'Vehicle Plate Number (गाड़ी नंबर, उदा. JH 01 BZ 4892) *',
+                        prefixIcon: const Icon(Icons.pin, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Vehicle Model
+                    TextField(
+                      controller: _modelCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Car Model / Name (गाड़ी का मॉडल) *',
+                        prefixIcon: const Icon(Icons.directions_car, color: Color(0xFF059669)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Car Image Upload
+                    InkWell(
+                      onTap: _pickCustomVehiclePhoto,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                        ),
+                        child: Row(
+                          children: [
+                            if (_vehiclePhotoBytes != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(_vehiclePhotoBytes!, width: 50, height: 50, fit: BoxFit.cover),
+                              )
+                            else
+                              const Icon(Icons.add_a_photo, color: Color(0xFF059669), size: 32),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _vehiclePhotoBytes != null ? 'Custom Vehicle Photo Added ✅' : 'Upload Vehicle Photo (गाड़ी की फोटो)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text('Tap to capture or upload from gallery', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Submit & Proceed to Consent Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: _isLoading ? null : _submitRegistration,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'PROCEED TO PARTNER CONSENT (सहमति पत्र)',
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, letterSpacing: 0.5),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward, size: 18),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -651,45 +784,12 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     );
   }
 
-  Widget _buildVehiclePhotoCard(String path, String label) {
-    final isSelected = _selectedVehicleImage == path && _vehiclePhotoBytes == null;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() {
-          _selectedVehicleImage = path;
-          _vehiclePhotoBytes = null;
-        }),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF16A34A) : Colors.grey.shade300,
-              width: isSelected ? 2.5 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  path,
-                  height: 60,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (ctx, err, stack) => const Icon(Icons.directions_car, size: 40, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF64748B), letterSpacing: 0.8),
       ),
     );
   }
