@@ -4,9 +4,34 @@
 * **App Name**: District Car - Cab Booking
 * **Package / Application ID**: `com.districtcarcustomerd.app`
 * **Version Name**: `1.0.0`
-* **Version Code**: `8`
-* **App Bundle File**: `customer_playstore/DistrictCar_Customer_Release.aab`
+* **Version Code**: `12`
+* **App Bundle File**: `customer_playstore/DistrictCar_Customer_Release_v12.aab`
 * **Target Android SDK**: `34` (Android 14) / Min SDK: `21` (Android 5.0)
+
+---
+
+## 1.1 Release Notes (What's new in this release)
+
+### Release Name:
+`1.0.0 (12) - Redesigned Radar Waiting & Enhanced Tours Flow`
+
+### Release Notes (English - en-IN / en-US):
+```
+• Redesigned Live Radar: Experience our all-new live driver search screen with animated radar sweep, expanding search radius, and live wait timer.
+• Enhanced Tours & Travels: Explore popular destinations and curated combo packages across Jharkhand with rich photo galleries, tour highlights, and transparent fares.
+• Safety & Support: Quick 1-tap WhatsApp and 24x7 phone helpline access directly during booking.
+• Performance & Smoothness: Fluid animations and optimizations for low-connectivity rural areas.
+• Bug fixes and stability improvements.
+```
+
+### Release Notes (Hindi - hi-IN):
+```
+• नया लाइव रडार स्क्रीन: लाइव ड्राइवर सर्च, बढ़ता हुआ सर्च दायरा और रियल-टाइम टाइमर के साथ बिल्कुल नया अनुभव।
+• टूर्स एवं ट्रेवल्स: झारखंड के प्रमुख पर्यटन स्थल और विशेष कॉम्बो टूर पैकेजेस अब आसान बुकिंग और पारदर्शी किराए के साथ।
+• सुरक्षा एवं सहायता: बुकिंग के दौरान अब 1-टैप में व्हाट्सएप और फोन सपोर्ट सहायता उपलब्ध।
+• बेहतर परफॉरमेंस: कम इंटरनेट नेटवर्क में भी तेज़ और स्मूथ राइड बुकिंग।
+• बग फिक्स और स्थिरता में सुधार।
+```
 
 ---
 
