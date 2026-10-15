@@ -14,14 +14,9 @@ import 'tour_booking_screen.dart';
 /// Editorial layout: Hero photo pager, 2x3 quick facts, season bar, bilingual about,
 /// safety tips, nearby stops multi-stop upsell, guarantee card, and sticky package fare bar.
 class DestinationDetailScreen extends StatefulWidget {
-  final PopularDestinationModel? destination;
-  final String? destinationId;
+  final PopularDestinationModel destination;
 
-  const DestinationDetailScreen({
-    super.key,
-    this.destination,
-    this.destinationId,
-  });
+  const DestinationDetailScreen({super.key, required this.destination});
 
   /// Sanitize image URLs to prevent 404s or stale URLs
   static String sanitizeUrl(String url) {
@@ -32,8 +27,6 @@ class DestinationDetailScreen extends StatefulWidget {
   }
 
   /// Universal entry point to open DestinationDetailScreen across any router or navigation context.
-  /// Uses addPostFrameCallback to ensure all mouse pointer & hover events finish cleanly,
-  /// completely preventing mouse_tracker assertion failures on Flutter Web.
   static Future<void> open(BuildContext context, PopularDestinationModel destination) {
     HapticService.selectionClick();
     debugPrint('>>> [DESTINATION_DETAIL] Opening destination: ${destination.id} (${destination.name})');
@@ -47,14 +40,12 @@ class DestinationDetailScreen extends StatefulWidget {
       }
 
       try {
-        // Direct root Navigator push: 100% reliable across Web, Mobile, and Desktop
         await Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             settings: RouteSettings(name: '/destination-details?id=${destination.id}'),
             builder: (_) => DestinationDetailScreen(
               key: ValueKey(destination.id),
               destination: destination,
-              destinationId: destination.id,
             ),
           ),
         );
@@ -84,69 +75,26 @@ class DestinationDetailScreen extends StatefulWidget {
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   int _currentPhotoIndex = 0;
   bool _isFavorite = false;
+  bool _isHindi = false;
   bool _isAboutExpanded = false;
   final Set<String> _selectedNearbyStopIds = <String>{};
   int? _expandedFaqIndex;
-  bool _isNavigatingToBooking = false;
 
-  PopularDestinationModel get _dest {
-    if (widget.destination != null) return widget.destination!;
-    if (widget.destinationId != null && widget.destinationId!.isNotEmpty) {
-      return DestinationsService.defaultDestinations.firstWhere(
-        (d) => d.id == widget.destinationId,
-        orElse: () => DestinationsService.defaultDestinations.first,
-      );
-    }
-    return DestinationsService.defaultDestinations.first;
-  }
-
-  late List<String> _allPhotos;
-
-  void _loadPhotos() {
-    final d = _dest;
-    final primaryImg = DestinationDetailScreen.sanitizeUrl(d.imageUrl);
-    _allPhotos = [
-      if (primaryImg.isNotEmpty) primaryImg,
-      ...d.galleryImages
-          .map(DestinationDetailScreen.sanitizeUrl)
-          .where((img) => img.isNotEmpty && img != primaryImg),
-    ];
-    if (_allPhotos.isEmpty) {
-      _allPhotos = [primaryImg.isNotEmpty ? primaryImg : 'placeholder'];
-    }
-  }
+  late final List<String> _allPhotos;
 
   @override
   void initState() {
     super.initState();
-    _loadPhotos();
-  }
-
-  @override
-  void didUpdateWidget(covariant DestinationDetailScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.destination?.id != widget.destination?.id ||
-        oldWidget.destinationId != widget.destinationId) {
-      _loadPhotos();
-      _currentPhotoIndex = 0;
-    }
-  }
-
-  Widget _buildSafeHeroImage(String rawUrl) {
-    final url = DestinationDetailScreen.sanitizeUrl(rawUrl);
-    if (url.isEmpty || url == 'placeholder' || !url.startsWith('http')) {
-      return const BrandedDestinationPlaceholder();
-    }
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-    );
+    final d = widget.destination;
+    _allPhotos = [
+      d.imageUrl,
+      ...d.galleryImages.where((img) => img != d.imageUrl),
+    ];
   }
 
   void _shareViaWhatsApp() async {
     HapticService.selectionClick();
-    final d = _dest;
+    final d = widget.destination;
     final text = 'Namaste! Check out this tour to ${d.name} (${d.district}, Jharkhand) on District Car: round-trip fixed packages from ₹${d.startingFare.round()}. Verified local drivers & doorstep pickup: https://districtcar.in/tours/${d.id}';
     final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
     if (await canLaunchUrl(url)) {
@@ -156,223 +104,209 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
   void _openFullScreenGallery(int initialIndex) {
     HapticService.selectionClick();
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (ctx) => _FullScreenGalleryViewer(
           images: _allPhotos,
           initialIndex: initialIndex,
-          destinationName: _dest.name,
-          credit: _dest.imageCredit,
-          license: _dest.imageLicense,
+          destinationName: widget.destination.name,
+          credit: widget.destination.imageCredit,
+          license: widget.destination.imageLicense,
         ),
       ),
     );
   }
 
-  void _handleBack(BuildContext context) {
-    HapticService.selectionClick();
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-      return;
-    }
-    try {
-      if (context.canPop()) {
-        context.pop();
-        return;
-      }
-    } catch (_) {}
-    try {
-      context.go('/tours');
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
-    final dest = _dest;
-    final heroHeight = (MediaQuery.of(context).size.height * 0.40).clamp(280.0, 420.0);
+    final dest = widget.destination;
+    final heroHeight = MediaQuery.of(context).size.height * 0.44;
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _handleBack(context);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppTokens.background,
-        bottomNavigationBar: _buildStickyBottomBar(dest),
-        body: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-                // 1. Pinned Hero App Bar (Back button ALWAYS visible, never stuck)
-                SliverAppBar(
-                  expandedHeight: heroHeight,
-                  pinned: true,
-                  elevation: 0,
-                  backgroundColor: AppTokens.darkSurface,
-                  leading: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Center(
-                      child: _buildFrostedButton(
-                        icon: Icons.arrow_back_ios_new_rounded,
-                        onTap: () => _handleBack(context),
-                      ),
-                    ),
-                  ),
-                  actions: [
-                    _buildFrostedButton(
-                      icon: Icons.share_rounded,
-                      onTap: _shareViaWhatsApp,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildFrostedButton(
-                      icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      iconColor: _isFavorite ? AppTokens.terracotta : Colors.white,
-                      onTap: () {
-                        setState(() => _isFavorite = !_isFavorite);
-                        if (_isFavorite) {
-                          HapticService.success();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Saved to your Favorites ❤️')),
+    return Scaffold(
+      backgroundColor: AppTokens.background,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              // 1. Hero (45% height): Swipeable Photo Pager with Parallax & Scrim
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: heroHeight,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Photo PageView
+                      PageView.builder(
+                        itemCount: _allPhotos.length,
+                        onPageChanged: (i) {
+                          HapticService.selectionClick();
+                          setState(() => _currentPhotoIndex = i);
+                        },
+                        itemBuilder: (context, index) {
+                          final imgUrl = _allPhotos[index];
+                          return GestureDetector(
+                            onTap: () => _openFullScreenGallery(index),
+                            child: Image.network(
+                              imgUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
+                            ),
                           );
-                        } else {
-                          HapticService.lightImpact();
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Photo PageView
-                        PageView.builder(
-                          itemCount: _allPhotos.length,
-                          onPageChanged: (i) {
-                            HapticService.selectionClick();
-                            setState(() => _currentPhotoIndex = i);
-                          },
-                          itemBuilder: (context, index) {
-                            final imgUrl = _allPhotos[index];
-                            return GestureDetector(
-                              onTap: () => _openFullScreenGallery(index),
-                              child: _buildSafeHeroImage(imgUrl),
-                            );
-                          },
-                        ),
+                        },
+                      ),
 
-                        // Dark Hero Scrim
-                        Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black45,
-                                Colors.transparent,
-                                Color.fromRGBO(16, 26, 20, 0.90),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              stops: [0.0, 0.35, 1.0],
-                            ),
+                      // Dark Hero Scrim (Never blue-black)
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black45,
+                              Colors.transparent,
+                              Color.fromRGBO(16, 26, 20, 0.88),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: [0.0, 0.4, 1.0],
                           ),
                         ),
+                      ),
 
-                        // Photo Counter Pill (e.g. "1/6")
-                        Positioned(
-                          right: 16,
-                          bottom: 72,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child: Text(
-                              '${_currentPhotoIndex + 1}/${_allPhotos.length} Photos',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Bottom Scrim Details: Category, City, Serif Title, Hindi Title
-                        Positioned(
-                          left: 20,
-                          right: 20,
-                          bottom: 12,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+                      // Top Navigation Controls (Frosted Circles)
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              _buildFrostedButton(
+                                icon: Icons.arrow_back_ios_new_rounded,
+                                onTap: () => context.pop(),
+                              ),
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: AppTokens.primary,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      dest.category.toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 11,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
+                                  _buildFrostedButton(
+                                    icon: Icons.share_rounded,
+                                    onTap: _shareViaWhatsApp,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: AppTokens.marigold,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      dest.district,
-                                      style: const TextStyle(
-                                        color: AppTokens.ink,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 11,
-                                      ),
-                                    ),
+                                  const SizedBox(width: 10),
+                                  _buildFrostedButton(
+                                    icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    iconColor: _isFavorite ? AppTokens.terracotta : Colors.white,
+                                    onTap: () {
+                                      setState(() => _isFavorite = !_isFavorite);
+                                      if (_isFavorite) {
+                                        HapticService.success();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Saved to your Favorites ❤️')),
+                                        );
+                                      } else {
+                                        HapticService.lightImpact();
+                                      }
+                                    },
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                dest.name,
-                                style: const TextStyle(
-                                  fontFamily: 'Georgia',
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.4,
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Photo Counter Pill (e.g. "1/6")
+                      Positioned(
+                        right: 16,
+                        bottom: 80,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Text(
+                            '${_currentPhotoIndex + 1}/${_allPhotos.length} Photos',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Bottom Scrim Details: Category, City, Serif Title, Hindi Title
+                      Positioned(
+                        left: 20,
+                        right: 20,
+                        bottom: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTokens.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    dest.category.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTokens.marigold,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    dest.district,
+                                    style: const TextStyle(
+                                      color: AppTokens.ink,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // Editorial Serif Title
+                            Text(
+                              dest.name,
+                              style: const TextStyle(
+                                fontFamily: 'Georgia',
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.4,
                               ),
-                              const SizedBox(height: 3),
+                            ),
+                            if (dest.hindiName.isNotEmpty) ...[
+                              const SizedBox(height: 2),
                               Text(
-                                '${dest.district}, Jharkhand • ${dest.approxDistanceKm.round()} km from hub',
+                                dest.hindiName,
                                 style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: AppTokens.marigold,
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-
+              ),
 
               // 2. Photo License & Attribution Bar (Rule 0a: Real attribution stored in data)
               SliverToBoxAdapter(
@@ -454,9 +388,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               icon: Icons.wb_sunny_rounded,
                               iconColor: AppTokens.marigoldDark,
                               label: 'Best Season',
-                              value: dest.bestTimeToVisit.isNotEmpty
-                                  ? dest.bestTimeToVisit.split('(').first.trim()
-                                  : 'Oct to Feb',
+                              value: dest.bestTimeToVisit.split('(').first.trim(),
                             ),
                             _buildQuickFactItem(
                               icon: Icons.local_parking_rounded,
@@ -563,19 +495,26 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               'About this Place',
                               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTokens.primaryTint,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTokens.primary.withValues(alpha: 0.3)),
-                              ),
-                              child: const Text(
-                                'Overview',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTokens.primaryDark,
+                            // Language Toggle
+                            GestureDetector(
+                              onTap: () {
+                                HapticService.selectionClick();
+                                setState(() => _isHindi = !_isHindi);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTokens.primaryTint,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppTokens.primary.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  _isHindi ? 'हिन्दी / EN' : 'EN / हिन्दी',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTokens.primaryDark,
+                                  ),
                                 ),
                               ),
                             ),
@@ -703,7 +642,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                           ),
                           const SizedBox(height: 14),
                           ...dest.nearbyStops.map((stop) {
-                            final stopId = stop['id']?.toString() ?? '';
+                            final stopId = stop['id'] as String;
                             final isAdded = _selectedNearbyStopIds.contains(stopId);
                             return _buildNearbyStopTile(stop, isAdded);
                           }),
@@ -751,7 +690,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Jharkhand Tour Safety & Trust',
+                                    'झारखंड टूर सुरक्षा एवं भरोसा',
                                     style: TextStyle(color: AppTokens.marigold, fontSize: 12),
                                   ),
                                 ],
@@ -811,94 +750,90 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
               ),
 
+              // Space for bottom sticky bar
               const SliverToBoxAdapter(
-                child: SizedBox(height: 24),
+                child: SizedBox(height: 120),
               ),
             ],
           ),
-        ),
-      );
-  }
 
-  Widget _buildStickyBottomBar(PopularDestinationModel dest) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        MediaQuery.of(context).padding.bottom + 14,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Color.fromRGBO(28, 27, 24, 0.12),
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'From ₹${dest.startingFare.round()}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: AppTokens.ink,
-                    letterSpacing: -0.4,
+          // 11. Sticky Bottom Package Fare Bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                MediaQuery.of(context).padding.bottom + 14,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color.fromRGBO(28, 27, 24, 0.12),
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
                   ),
-                ),
-                Text(
-                  'Round trip from ${dest.district}',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppTokens.primary,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'From ₹${dest.startingFare.round()}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppTokens.ink,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        Text(
+                          'Round trip from ${dest.district}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTokens.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton(
-            onPressed: () {
-              if (_isNavigatingToBooking) return;
-              _isNavigatingToBooking = true;
-              HapticService.buttonPress();
-              TourBookingScreen.open(context, dest).then((_) {
-                if (mounted) {
-                  _isNavigatingToBooking = false;
-                }
-              }).catchError((_) {
-                if (mounted) {
-                  _isNavigatingToBooking = false;
-                }
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTokens.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 0,
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Plan this trip',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                SizedBox(width: 6),
-                Icon(Icons.arrow_forward_rounded, size: 18),
-              ],
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      TourBookingScreen.open(context, dest);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTokens.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Plan this trip',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -911,23 +846,18 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     Color iconColor = Colors.white,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.50),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white30),
-          ),
-          child: Center(
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Center(
+          child: Icon(icon, color: iconColor, size: 18),
         ),
       ),
     );
@@ -1044,10 +974,6 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   Widget _buildNearbyStopTile(Map<String, dynamic> stop, bool isAdded) {
-    final stopId = stop['id']?.toString() ?? '';
-    final stopName = stop['name']?.toString() ?? 'Nearby Spot';
-    final distanceKm = stop['distanceKm']?.toString() ?? '10';
-    final fare = stop['fare']?.toString() ?? '200';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1067,11 +993,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  stopName,
+                  stop['name'] as String,
                   style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
                 ),
                 Text(
-                  '+$distanceKm km · +₹$fare',
+                  '+${stop['distanceKm']} km · +₹${stop['fare']}',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.primary),
                 ),
               ],
@@ -1083,10 +1009,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             onChanged: (val) {
               HapticService.selectionClick();
               setState(() {
+                final id = stop['id'] as String;
                 if (val) {
-                  _selectedNearbyStopIds.add(stopId);
+                  _selectedNearbyStopIds.add(id);
                 } else {
-                  _selectedNearbyStopIds.remove(stopId);
+                  _selectedNearbyStopIds.remove(id);
                 }
               });
             },
@@ -1221,17 +1148,13 @@ class _FullScreenGalleryViewerState extends State<_FullScreenGalleryViewer> {
                 minScale: 1.0,
                 maxScale: 4.0,
                 child: Center(
-                  child: (widget.images[idx].isNotEmpty && widget.images[idx].startsWith('http'))
-                      ? Image.network(
-                          widget.images[idx],
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.broken_image, color: Colors.white54, size: 54),
-                          ),
-                        )
-                      : const Center(
-                          child: Icon(Icons.photo_library_rounded, color: Colors.white54, size: 54),
-                        ),
+                  child: Image.network(
+                    widget.images[idx],
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white54, size: 54),
+                    ),
+                  ),
                 ),
               );
             },
