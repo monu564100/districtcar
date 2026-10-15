@@ -280,8 +280,7 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildConsentCard({

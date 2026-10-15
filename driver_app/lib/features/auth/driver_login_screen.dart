@@ -49,8 +49,6 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
