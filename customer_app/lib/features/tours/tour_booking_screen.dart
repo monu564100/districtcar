@@ -101,6 +101,12 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
       minute: ((initialSchedule.minute / 15).ceil() * 15) % 60,
     );
 
+    // Initial realistic distance & duration so pricing is non-zero from the very first frame
+    _calculatedDistanceKm = widget.destination.approxDistanceKm > 0 ? widget.destination.approxDistanceKm : 45.0;
+    _durationText = TourPricingService.formatDurationText(
+      TourPricingService.calculateRuralDurationMinutes(_calculatedDistanceKm),
+    );
+
     // Auto-detect GPS pickup & calculate distance
     _detectUserCurrentGpsOnStart();
   }
@@ -209,7 +215,11 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
   }
 
   TourPricingBreakdown _calculatePricing([String? overrideVehicle]) {
-    return TourPricingService.calculateTourPackageFare(
+    final effectiveDist = _calculatedDistanceKm > 0
+        ? _calculatedDistanceKm
+        : (widget.destination.approxDistanceKm > 0 ? widget.destination.approxDistanceKm : 45.0);
+
+    var p = TourPricingService.calculateTourPackageFare(
       destination: widget.destination,
       pickupLat: _pickupLocation.latitude,
       pickupLng: _pickupLocation.longitude,
@@ -217,8 +227,52 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
       isRoundTrip: _isRoundTrip,
       stayHours: _stayHours,
       passengerCount: _passengerCount,
-      overrideDistanceKm: _calculatedDistanceKm > 0 ? _calculatedDistanceKm : null,
+      overrideDistanceKm: effectiveDist,
     );
+
+    if (p.totalFare <= 0 || !p.isServiceable) {
+      final nearestHub = TourPricingService.findNearestHubCity(
+        widget.destination.latitude,
+        widget.destination.longitude,
+      );
+      final hubDist = TourPricingService.calculateRoadDistanceKm(
+        nearestHub.latitude,
+        nearestHub.longitude,
+        widget.destination.latitude,
+        widget.destination.longitude,
+      );
+      p = TourPricingService.calculateTourPackageFare(
+        destination: widget.destination,
+        pickupLat: nearestHub.latitude,
+        pickupLng: nearestHub.longitude,
+        vehicleType: overrideVehicle ?? _selectedVehicle,
+        isRoundTrip: _isRoundTrip,
+        stayHours: _stayHours,
+        passengerCount: _passengerCount,
+        overrideDistanceKm: hubDist > 0 ? hubDist : 45.0,
+      );
+    }
+
+    if (p.totalFare <= 0) {
+      final fallbackBase = widget.destination.startingFare > 0 ? widget.destination.startingFare : 1299.0;
+      return TourPricingBreakdown(
+        basePackageFare: fallbackBase,
+        extraWaitingFare: 0,
+        nearbyStopsFare: 0,
+        driverAllowance: 0,
+        tollsAndTaxes: 0,
+        totalFare: fallbackBase,
+        perPersonFare: (fallbackBase / max(1, _passengerCount)).roundToDouble(),
+        distanceKm: effectiveDist,
+        durationMinutes: 75,
+        durationText: '1 hr 15 mins',
+        isServiceable: true,
+        hubCityName: 'Ranchi',
+        stayHours: _stayHours,
+      );
+    }
+
+    return p;
   }
 
   bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;

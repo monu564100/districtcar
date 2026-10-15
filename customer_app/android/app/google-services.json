@@ -51,11 +51,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "319163006406-u711pd6mqa2j4n5b1fp9uvdc8m9vf7cj.apps.googleusercontent.com",
+          "client_id": "319163006406-ev4davj6q3jaj7pie2nhs7v36jq458s8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.drivercardistrict.app",
-            "certificate_hash": "a1043aa49f40241374dbd29ca99657e197198eb8"
+            "certificate_hash": "b196180a0980924e888c792737a0abdb60270bca"
           }
         },
         {
@@ -88,11 +88,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "319163006406-lg3olsc2i0ujlvq5ujq2uenk05nj7dj5.apps.googleusercontent.com",
+          "client_id": "319163006406-4qqae0agdb0t26v6fpcu9n5lqvtu8ob6.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.solostackdev.pashuraksha",
-            "certificate_hash": "ad07d17b76371ddbe795828772b3ae2353a4bae5"
+            "certificate_hash": "de2d95c89a4c365541decfe0c47bf46472f4d998"
           }
         },
         {

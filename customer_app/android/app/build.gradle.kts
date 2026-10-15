@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.solostackdev.pashuraksha"
+    namespace = "com.districtcarcustomerd.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.solostackdev.pashuraksha"
+        applicationId = "com.districtcarcustomerd.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -40,10 +40,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias") ?: "fd8a21b96c069258bff9fdcb07510e70"
-            keyPassword = keystoreProperties.getProperty("keyPassword") ?: "bb19a679646232d92322632bb82a4212"
-            storeFile = file(keystoreProperties.getProperty("storeFile") ?: "keystore.jks")
-            storePassword = keystoreProperties.getProperty("storePassword") ?: "7707c360458568b7c05fd2b4d768024a"
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: "upload"
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: "DistrictCar@2026"
+            storeFile = file(keystoreProperties.getProperty("storeFile") ?: "upload-keystore.jks")
+            storePassword = keystoreProperties.getProperty("storePassword") ?: "DistrictCar@2026"
         }
     }
 

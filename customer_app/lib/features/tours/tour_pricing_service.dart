@@ -170,14 +170,17 @@ class TourPricingService {
     List<Map<String, dynamic>> selectedAddonStops = const [],
     double? overrideDistanceKm,
   }) {
-    // 1. Calculate one-way distance
-    final distanceKm = overrideDistanceKm ??
+    // 1. Calculate one-way distance (fallback to destination.approxDistanceKm if <= 0)
+    double distanceKm = overrideDistanceKm ??
         calculateRoadDistanceKm(
           pickupLat,
           pickupLng,
           destination.latitude,
           destination.longitude,
         );
+    if (distanceKm <= 0.0) {
+      distanceKm = destination.approxDistanceKm > 0 ? destination.approxDistanceKm : 45.0;
+    }
 
     // 2. Geofence & Serviceability Check
     final isServiceable = distanceKm <= kMaxTourServiceRadiusKm;
