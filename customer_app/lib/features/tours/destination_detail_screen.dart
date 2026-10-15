@@ -57,8 +57,15 @@ class DestinationDetailScreen extends StatefulWidget {
 }
 
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
+  final ScrollController _scrollController = ScrollController();
   bool _isDescriptionExpanded = false;
   bool _isFavorite = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   PopularDestinationModel get _dest {
     if (widget.destination != null) return widget.destination!;
@@ -174,14 +181,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       },
       child: Scaffold(
         backgroundColor: AppTokens.background,
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Stack(
-              children: [
-                CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
+        body: Stack(
+          children: [
+            Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
                     // 1. Hero Image App Bar
                     SliverAppBar(
                       expandedHeight: 320,
@@ -318,9 +326,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
                     // 2. Main Content Body
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
-                        child: Column(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+                            child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Location & Rating Header Card
@@ -613,15 +624,21 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
 
-                // 3. Sticky Bottom Booking Bar
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
+          // 3. Sticky Bottom Booking Bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Container(
                     padding: EdgeInsets.fromLTRB(
                       20,
                       14,
@@ -692,9 +709,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
