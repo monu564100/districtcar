@@ -45,7 +45,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 8,
+          currentBuildNumber: 9,
         );
       }
 
@@ -577,10 +577,37 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
     if (user == null) {
       return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
         body: Center(
-          child: ElevatedButton(
-            onPressed: () => context.go('/driver-login'),
-            child: const Text('Driver Sign In'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/app_logo.jpg'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const CircularProgressIndicator(color: Color(0xFF059669)),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () => context.go('/driver-login'),
+                icon: const Icon(Icons.login, size: 18),
+                label: const Text('Driver Partner Sign In', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
         ),
       );
@@ -704,10 +731,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 200),
-                      child: Column(
+                    Positioned.fill(
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 200),
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Driver Info & Vehicle Strip
@@ -929,6 +957,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         ],
                       ),
                     ),
+                  ),
 
                     // Persistent Active Booking Card Floating Above Dock
                     if (_activeBooking != null)

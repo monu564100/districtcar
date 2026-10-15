@@ -12,18 +12,22 @@ import '../features/profile/driver_profile_screen.dart';
 import '../features/profile/driver_legal_screen.dart';
 import '../features/profile/driver_support_screen.dart';
 import '../features/profile/driver_delete_account_screen.dart';
+import '../services/driver_service.dart';
 
 final driverRouterProvider = Provider<GoRouter>((ref) {
+  final driverService = ref.watch(driverServiceProvider);
+  final user = driverService.currentUser;
+
   return GoRouter(
-    initialLocation: '/driver-home',
+    initialLocation: user != null ? '/driver-home' : '/driver-login',
     routes: [
-      GoRoute(
-        path: '/driver-home',
-        builder: (context, state) => const DriverHomeScreen(),
-      ),
       GoRoute(
         path: '/driver-login',
         builder: (context, state) => const DriverLoginScreen(),
+      ),
+      GoRoute(
+        path: '/driver-home',
+        builder: (context, state) => const DriverHomeScreen(),
       ),
       GoRoute(
         path: '/driver-onboarding',
