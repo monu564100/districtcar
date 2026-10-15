@@ -24,7 +24,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen>
 
   final List<String> _cinematicScenes = [
     'assets/images/login_hero_illustration.jpg',
-    'assets/images/promo_outstation_hills.jpg',
+    'assets/images/driver_onboarding_1_earn.jpg',
     'assets/images/driver_onboarding_2_rural.jpg',
   ];
 
@@ -135,11 +135,11 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen>
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: const Color(0xFF065F46),
-                            child: const Center(
-                              child: Icon(Icons.directions_car, size: 80, color: Colors.white54),
-                            ),
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/images/login_hero_illustration.jpg',
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
                           ),
                         ),
                       ),
@@ -157,6 +157,68 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen>
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+
+                  // Floating Top-Left Brand Logo & Name
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 20,
+                    left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              image: const DecorationImage(
+                                image: AssetImage('assets/images/app_logo.jpg'),
+                                fit: BoxFit.cover,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Text(
+                                'District Car',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              Text(
+                                'PARTNER MOBILITY',
+                                style: TextStyle(
+                                  color: Color(0xFF34D399),
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
