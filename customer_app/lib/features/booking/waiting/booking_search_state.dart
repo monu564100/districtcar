@@ -93,18 +93,18 @@ class DriverFoundState extends BookingSearchState {
         );
 }
 
-/// 5. No Driver Found State (Timeout > 7-8 min or backend no_driver_found)
+/// 5. No Driver Found State (Timeout > 30 min threshold or backend no_driver_found)
 class NoDriverFoundState extends BookingSearchState {
   final String failureReason;
 
   const NoDriverFoundState({
     required super.elapsedSeconds,
-    this.failureReason = 'No driver immediate for immediate ride',
+    this.failureReason = 'No rider available now',
   }) : super(
           radiusKm: 12.0,
           matchedDriversCount: 0,
-          statusHeadline: 'No driver immediate for immediate ride',
-          statusSubMessage: '7-8 minute intezaar ke baad abhi koi driver uplabdh nahi ho paya. Kripya punah prayas karein.',
+          statusHeadline: 'कोई राइडर अभी उपलब्ध नहीं है',
+          statusSubMessage: '30 मिनट खोज के बाद अभी कोई राइडर उपलब्ध नहीं हो पाया। थोड़ा देर ही सही, पर आरामदायक यात्रा के लिए अभी शेड्यूल करें।',
           activeProgressStep: 2,
         );
 }
@@ -130,13 +130,13 @@ class BookingSearchController extends ChangeNotifier {
   BookingSearchState _state;
   Timer? _tickerTimer;
   DateTime? _startedAt;
-  final int maxTimeoutSeconds; // Default 450s (7.5 mins, 7-8 minute threshold)
+  final int maxTimeoutSeconds; // Default 1800s (30 minutes threshold)
   final void Function(String eventName, Map<String, dynamic> params)? onAnalyticsEvent;
   final VoidCallback? onTimeout;
 
   BookingSearchController({
     DateTime? initialStartedAt,
-    this.maxTimeoutSeconds = 450,
+    this.maxTimeoutSeconds = 1800,
     this.onAnalyticsEvent,
     this.onTimeout,
   }) : _state = const SearchingNearbyState(elapsedSeconds: 0) {

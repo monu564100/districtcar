@@ -177,9 +177,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.byType(NoDriverState), findsOneWidget);
-    expect(find.text('Abhi koi driver free nahi hai'), findsOneWidget);
+    expect(find.text('कोई राइडर अभी उपलब्ध नहीं है'), findsOneWidget);
     expect(find.text('Try Again / दोबारा खोजें'), findsOneWidget);
-    expect(find.text('Schedule for Later / बाद के लिए समय तय करें'), findsOneWidget);
+    expect(find.text('सवारी शेड्यूल करें / Schedule Ride'), findsOneWidget);
     expect(find.text('Book on WhatsApp'), findsOneWidget);
     expect(find.text('Call Help Desk'), findsOneWidget);
   });

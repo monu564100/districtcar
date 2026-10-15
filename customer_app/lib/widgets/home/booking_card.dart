@@ -93,21 +93,13 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Unified Route Box (One continuous surface: removes gapping & alignment issues)
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
-            ),
-            child: Column(
-              children: [
-                // Pickup Row
-                InkWell(
-                  onTap: widget.onPickupTap,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+          // 1. Unified Route Inputs (Single clean surface, no double container)
+          // Pickup Row
+          InkWell(
+            onTap: widget.onPickupTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     child: Row(
                       children: [
                         // Pickup Dot (Sleek Onyx)
@@ -232,9 +224,9 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                 // Drop Row (Destination)
                 InkWell(
                   onTap: widget.onDestinationTap,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(15)),
+                  borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 10, 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     child: Row(
                       children: [
                         // Red Pin / Square
@@ -317,9 +309,6 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
 
           const SizedBox(height: 10),
 

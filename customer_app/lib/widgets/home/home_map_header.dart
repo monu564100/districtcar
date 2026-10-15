@@ -424,64 +424,7 @@ class _HomeMapHeaderState extends State<HomeMapHeader> with TickerProviderStateM
                   ),
                 ),
 
-                // 4. Status Badge (Live Cabs Nearby) - Only shown when serviceable, never shows unserviceable tag
-                if (widget.isServiceable)
-                  Positioned(
-                    top: widget.edgeToEdge ? (topPadding + 10) : 12,
-                    left: widget.edgeToEdge ? 16 : 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.94),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromRGBO(0, 0, 0, 0.08),
-                            blurRadius: 10,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Pulsing radar dot
-                          AnimatedBuilder(
-                            animation: _pulseController,
-                            builder: (context, child) {
-                              return Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFD97706),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFF59E0B).withValues(alpha: 0.6),
-                                      blurRadius: 4 + (_pulseController.value * 4),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            widget.isHindi ? 'लाइव गाड़ियाँ उपलब्ध • 2-4 मिनट' : 'Live Cabs Nearby • 2–4 min',
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFB45309),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+
 
                 // 5. GPS Recenter Button (Carbon Onyx)
                 Positioned(

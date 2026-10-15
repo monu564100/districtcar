@@ -422,6 +422,96 @@ class FCMNotificationService {
     );
   }
 
+  /// DISPATCH 3: When Customer creates a ride -> Push Notification to Customer (Searching or Scheduled)
+  static Future<void> sendCustomerSearchingNotification({
+    required String bookingId,
+    required String customerId,
+    required bool isScheduled,
+    String? scheduledInfo,
+    required String pickupAddress,
+    required String destinationAddress,
+  }) async {
+    final title = isScheduled
+        ? '📅 Ride Scheduled Confirmed!'
+        : '🔍 Finding Your District Driver...';
+    final body = isScheduled
+        ? 'Your ride for $scheduledInfo has been scheduled ($pickupAddress ➔ $destinationAddress).'
+        : 'Searching nearby partner drivers for your ride (30 min window). Tap to view live radar.';
+
+    final dataPayload = {
+      'type': isScheduled ? 'booking_scheduled' : 'booking_searching',
+      'bookingId': bookingId,
+      'customerId': customerId,
+      'pickup': pickupAddress,
+      'destination': destinationAddress,
+    };
+
+    // 1. Relay to background notification server
+    try {
+      final payload = jsonEncode({
+        'bookingId': bookingId,
+        'customerId': customerId,
+        'title': title,
+        'body': body,
+        'type': isScheduled ? 'booking_scheduled' : 'booking_searching',
+      });
+      await http.post(
+        Uri.parse('$notificationServerBaseUrl/api/notifications/customer-status'),
+        headers: {'Content-Type': 'application/json'},
+        body: payload,
+      ).timeout(const Duration(seconds: 3)).catchError((_) async {
+        return await http.post(
+          Uri.parse('http://localhost:4000/api/notifications/customer-status'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        ).timeout(const Duration(seconds: 2));
+      });
+    } catch (_) {}
+
+    // 2. Add to Firestore notifications collection for in-app broadcast
+    try {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': title,
+        'body': body,
+        'targetAudience': 'customers',
+        'targetUserId': customerId,
+        'type': isScheduled ? 'booking_scheduled' : 'booking_searching',
+        'bookingId': bookingId,
+        'status': 'delivered',
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+
+    // 3. Add to Customer inbox notifications
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(customerId)
+          .collection('inbox_notifications')
+          .add({
+        'title': title,
+        'body': body,
+        'bookingId': bookingId,
+        'sentAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (_) {}
+
+    // 4. Send FCM Push to customer token
+    try {
+      final custDoc = await FirebaseFirestore.instance.collection('users').doc(customerId).get();
+      final token = custDoc.data()?['fcmToken'] as String?;
+      if (token != null && token.isNotEmpty) {
+        await _sendFCMHttp(
+          target: token,
+          title: title,
+          body: body,
+          data: dataPayload,
+        );
+      }
+    } catch (_) {}
+  }
+
   /// Real-time In-App Push Notification Listener
   static void listenToLiveBroadcasts({
     required BuildContext context,

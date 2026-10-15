@@ -85,7 +85,7 @@ class NoDriverState extends StatelessWidget {
 
           // Title & Reassuring Subtitle
           const Text(
-            'Abhi koi driver free nahi hai',
+            'कोई राइडर अभी उपलब्ध नहीं है',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 22,
@@ -94,20 +94,70 @@ class NoDriverState extends StatelessWidget {
               letterSpacing: -0.4,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           const Text(
-            'Aapke kshetra ke sabhi partner drivers is samay vyast hain. Aap turant punah prayas kar sakte hain ya hamare local desk se sampark karein.',
+            '30 मिनट की खोज के बाद भी आसपास कोई राइडर उपलब्ध नहीं हो पाया।',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13.5,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
               color: AppTokens.secondaryText,
-              height: 1.4,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
 
-          // Action 1: "Try again" (Primary Gradient)
+          // High Quality Quote Container:
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF59E0B).withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.format_quote_rounded, color: Color(0xFFD97706), size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '“थोड़ा देर ही सही, पर आरामदायक यात्रा के लिए अभी शेड्यूल करें”',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF92400E),
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Thoda der hi sahi, par aaramdayak journey ke liye schedule karein',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          fontStyle: FontStyle.italic,
+                          color: const Color(0xFFB45309).withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Action 1: "Schedule Ride" (Primary High-Emphasis Gradient)
           SizedBox(
             height: 54,
             child: DecoratedBox(
@@ -124,12 +174,16 @@ class NoDriverState extends StatelessWidget {
               ),
               child: ElevatedButton.icon(
                 onPressed: () {
-                  HapticService.buttonPress();
-                  onRetry();
+                  HapticService.selectionClick();
+                  if (onScheduleLater != null) {
+                    onScheduleLater!();
+                  } else {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
                 },
-                icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 20),
+                icon: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 20),
                 label: const Text(
-                  'Try Again / दोबारा खोजें',
+                  'सवारी शेड्यूल करें / Schedule Ride',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -142,27 +196,17 @@ class NoDriverState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Action 2: "Schedule for later"
+          // Action 2: "Try again"
           SizedBox(
-            height: 52,
+            height: 50,
             child: OutlinedButton.icon(
               onPressed: () {
-                HapticService.selectionClick();
-                if (onScheduleLater != null) {
-                  onScheduleLater!();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Trip scheduling request submitted. We will notify you.'),
-                      backgroundColor: AppTokens.primaryDark,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
+                HapticService.buttonPress();
+                onRetry();
               },
-              icon: const Icon(Icons.schedule_rounded, size: 18, color: AppTokens.primaryDark),
+              icon: const Icon(Icons.replay_rounded, size: 18, color: AppTokens.primaryDark),
               label: const Text(
-                'Schedule for Later / बाद के लिए समय तय करें',
+                'Try Again / दोबारा खोजें',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.primaryDark),
               ),
               style: OutlinedButton.styleFrom(

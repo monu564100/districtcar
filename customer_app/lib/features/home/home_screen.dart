@@ -67,7 +67,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   // Time Slot & Date Schedule State
   DateTime _selectedDate = DateTime.now();
-  String _selectedTimeSlot = 'Now (Within 10 mins)';
+  String _selectedTimeSlot = 'Now (Within 30 mins)';
+  bool _isScheduleMode = false;
+  late TimeOfDay _selectedScheduleTime;
 
   // Round Trip & Stopping Duration State
   bool _isRoundTrip = false;
@@ -76,7 +78,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _isBookingLoading = false;
 
   final List<String> _timeSlots = [
-    'Now (Within 10 mins)',
+    'Now (Within 30 mins)',
     '06:00 AM - 08:00 AM (Morning)',
     '08:00 AM - 10:00 AM (Office/Mandi)',
     '10:00 AM - 12:00 PM',
@@ -94,6 +96,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Default schedule time is current time + 1 hour (rounded to nearest 15 mins)
+    final initialScheduleDt = DateTime.now().add(const Duration(hours: 1));
+    _selectedScheduleTime = TimeOfDay(
+      hour: initialScheduleDt.hour,
+      minute: ((initialScheduleDt.minute / 15).ceil() * 15) % 60,
+    );
     _scrollController.addListener(() {
       if (mounted) {
         setState(() {
@@ -418,6 +426,81 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     return '$hours hr $remainingMins min';
   }
 
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _formatTimeOfDay(TimeOfDay tod) {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, tod.hour, tod.minute);
+    return DateFormat('hh:mm a').format(dt);
+  }
+
+  void _validateAndSetScheduleTime(TimeOfDay picked) {
+    final now = DateTime.now();
+    if (_isSameDay(_selectedDate, now)) {
+      final minimumAllowed = now.add(const Duration(hours: 1));
+      final pickedDateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        picked.hour,
+        picked.minute,
+      );
+      if (pickedDateTime.isBefore(minimumAllowed)) {
+        // Clamp to current time + 1 hour (rounded up to next 5 mins)
+        final clampedMinutes = ((minimumAllowed.minute / 5).ceil() * 5);
+        final clampedHour = minimumAllowed.hour + (clampedMinutes >= 60 ? 1 : 0);
+        final finalMin = clampedMinutes % 60;
+        final clampedTime = TimeOfDay(hour: clampedHour % 24, minute: finalMin);
+
+        setState(() {
+          _selectedScheduleTime = clampedTime;
+        });
+        HapticService.selection();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isHindi
+                  ? 'आज के शेड्यूल के लिए कम से कम 1 घंटे बाद का समय (${_formatTimeOfDay(clampedTime)}) सेट किया गया।'
+                  : 'For today, schedule must be at least 1 hour in advance (${_formatTimeOfDay(clampedTime)}).',
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: const Color(0xFF0F172A),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+    setState(() {
+      _selectedScheduleTime = picked;
+    });
+  }
+
+  Future<void> _pickScheduleTime() async {
+    HapticService.selection();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedScheduleTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0F172A),
+              onPrimary: Colors.white,
+              onSurface: AppTokens.ink,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      _validateAndSetScheduleTime(picked);
+    }
+  }
+
   void _pickDate() async {
     HapticService.selection();
     final now = DateTime.now();
@@ -441,6 +524,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+      _validateAndSetScheduleTime(_selectedScheduleTime);
     }
   }
 
@@ -546,7 +630,35 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
     try {
       final bookingService = ref.read(bookingServiceProvider);
-      final formattedDate = DateFormat('EEE, d MMM yyyy').format(_selectedDate);
+      final now = DateTime.now();
+      String formattedDate;
+      String timeSlot;
+
+      if (_isScheduleMode) {
+        // Enforce 1-hour rule for today
+        if (_isSameDay(_selectedDate, now)) {
+          final minimumAllowed = now.add(const Duration(hours: 1));
+          final selectedDt = DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            _selectedScheduleTime.hour,
+            _selectedScheduleTime.minute,
+          );
+          if (selectedDt.isBefore(minimumAllowed)) {
+            _selectedScheduleTime = TimeOfDay(
+              hour: minimumAllowed.hour,
+              minute: minimumAllowed.minute,
+            );
+          }
+        }
+        formattedDate = DateFormat('EEE, d MMM yyyy').format(_selectedDate);
+        final dateLabel = _isSameDay(_selectedDate, now) ? 'Today' : DateFormat('d MMM').format(_selectedDate);
+        timeSlot = '$dateLabel at ${_formatTimeOfDay(_selectedScheduleTime)}';
+      } else {
+        formattedDate = 'Today';
+        timeSlot = 'Now (Within 30 mins)';
+      }
 
       final categories = ref.read(vehicleCategoriesProvider).valueOrNull ?? defaultVehicleCategories;
       final activeCategoryId = _getActiveCategoryId(categories);
@@ -559,8 +671,20 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         isRoundTrip: _isRoundTrip,
         roundTripStoppingHours: _roundTripStoppingHours,
         scheduledDate: formattedDate,
-        scheduledTimeSlot: _selectedTimeSlot,
+        scheduledTimeSlot: timeSlot,
       );
+
+      // Trigger live searching/scheduled notification to customer
+      try {
+        await FCMNotificationService.sendCustomerSearchingNotification(
+          bookingId: bookingResult['bookingId'],
+          customerId: user.uid,
+          isScheduled: _isScheduleMode,
+          scheduledInfo: _isScheduleMode ? timeSlot : null,
+          pickupAddress: _pickupLocation.address,
+          destinationAddress: _destinationLocation.address,
+        );
+      } catch (_) {}
 
       setState(() => _isBookingLoading = false);
 
@@ -878,66 +1002,59 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     AsyncValue<List<VehicleCategoryModel>> categoriesAsync,
     double distanceKm,
   ) {
-    return categoriesAsync.when(
-      data: (categories) {
-        if (categories.isEmpty) return const SizedBox.shrink();
-        final activeSelectedId = _getActiveCategoryId(categories);
+    final categories = (categoriesAsync.valueOrNull?.isNotEmpty == true)
+        ? categoriesAsync.valueOrNull!
+        : defaultVehicleCategories;
+    final activeSelectedId = _getActiveCategoryId(categories);
 
-        // Find cheapest fare
-        double minFare = double.infinity;
-        for (final c in categories) {
-          final f = _calculateFare(c, distanceKm);
-          if (f < minFare) minFare = f;
-        }
+    // Find cheapest fare
+    double minFare = double.infinity;
+    for (final c in categories) {
+      final f = _calculateFare(c, distanceKm);
+      if (f < minFare) minFare = f;
+    }
 
-        return SizedBox(
-          height: 110,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              final isSelected = cat.id == activeSelectedId;
-              final estCategoryFare = _calculateFare(cat, distanceKm);
-              final isCatServiceable = _isVehicleServiceable(cat.name, distanceKm);
+    return SizedBox(
+      height: 110,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          final isSelected = cat.id == activeSelectedId;
+          final estCategoryFare = _calculateFare(cat, distanceKm);
+          final isCatServiceable = _isVehicleServiceable(cat.name, distanceKm);
 
-              // Badge tag assignment
-              String? tag;
-              if (estCategoryFare <= minFare) {
-                tag = _isHindi ? 'सबसे सस्ता' : 'Cheapest';
-              } else if (cat.name.toLowerCase().contains('bike')) {
-                tag = _isHindi ? 'सबसे तेज़' : 'Fastest';
-              } else if (cat.name.toLowerCase().contains('cab') || cat.name.toLowerCase().contains('auto')) {
-                tag = _isHindi ? 'पॉपुलर' : 'Popular';
-              }
+          // Badge tag assignment
+          String? tag;
+          if (estCategoryFare <= minFare) {
+            tag = _isHindi ? 'सबसे सस्ता' : 'Cheapest';
+          } else if (cat.name.toLowerCase().contains('bike')) {
+            tag = _isHindi ? 'सबसे तेज़' : 'Fastest';
+          } else if (cat.name.toLowerCase().contains('cab') || cat.name.toLowerCase().contains('auto')) {
+            tag = _isHindi ? 'पॉपुलर' : 'Popular';
+          }
 
-              return VehicleCard(
-                id: cat.id,
-                name: cat.name,
-                displayName: cat.displayName,
-                imageAsset: _getVehicleIconAsset('${cat.id} ${cat.name} ${cat.displayName}'),
-                fare: estCategoryFare,
-                eta: '${3 + index * 2} min',
-                seats: cat.name.toLowerCase().contains('bike') ? 1 : (cat.name.toLowerCase().contains('auto') ? 3 : (cat.name.toLowerCase().contains('suv') ? 6 : 4)),
-                badgeTag: tag,
-                isSelected: isSelected,
-                isServiceable: isCatServiceable,
-                onSelect: () {
-                  HapticService.selection();
-                  setState(() => _selectedCategory = cat.id);
-                },
-              );
+          return VehicleCard(
+            id: cat.id,
+            name: cat.name,
+            displayName: cat.displayName,
+            imageAsset: _getVehicleIconAsset('${cat.id} ${cat.name} ${cat.displayName}'),
+            fare: estCategoryFare,
+            eta: '${3 + index * 2} min',
+            seats: cat.name.toLowerCase().contains('bike') ? 1 : (cat.name.toLowerCase().contains('auto') ? 3 : (cat.name.toLowerCase().contains('suv') ? 6 : 4)),
+            badgeTag: tag,
+            isSelected: isSelected,
+            isServiceable: isCatServiceable,
+            onSelect: () {
+              HapticService.selection();
+              setState(() => _selectedCategory = cat.id);
             },
-          ),
-        );
-      },
-      loading: () => const SizedBox(
-        height: 110,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        },
       ),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -1040,9 +1157,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  /// E. Options Row (compact): Date/Time chip, Passengers stepper, Payment chip, Round-trip toggle
+  /// E. Options Row: Ride Timing Selector (Ride Now vs Schedule Ride), Payment chip, Round-trip toggle
   Widget _buildOptionsRow() {
     final dayDate = DateFormat('d MMM').format(_selectedDate);
+    final isToday = _isSameDay(_selectedDate, DateTime.now());
+    final isTomorrow = _isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)));
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1060,92 +1179,407 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Date/Time + Passengers + Payment Chips
+          // Section Headline: Ride Mode (Ride Now vs Schedule)
           Row(
             children: [
-              // Date/Time Chip
-              Expanded(
-                flex: 5,
-                child: InkWell(
-                  onTap: () {
-                    HapticService.selection();
-                    _selectTimeSlotModal();
-                  },
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF0F172A)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _selectedTimeSlot.startsWith('Now') ? 'Now' : '$dayDate, ${_selectedTimeSlot.split('(').first.trim()}',
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppTokens.ink,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+              const Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF0F172A)),
+              const SizedBox(width: 6),
+              Text(
+                _isHindi ? 'राइड का समय चुनें' : 'Choose Ride Timing',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const Spacer(),
+              if (!_isScheduleMode)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    '⚡ 30 Min Search',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-
-              // Payment Chip
-              Expanded(
-                flex: 3,
-                child: InkWell(
-                  onTap: () {
-                    HapticService.selection();
-                    setState(() {
-                      _paymentMethod = _paymentMethod == 'Cash / UPI' ? 'Cash' : 'Cash / UPI';
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChips),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.payments_rounded, size: 14, color: Color(0xFF0F172A)),
-                        const SizedBox(width: 5),
-                        Text(
-                          _paymentMethod == 'Cash / UPI' ? 'Cash/UPI' : _paymentMethod,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ],
+          ),
+          const SizedBox(height: 10),
+
+          // 1. Segmented Mode Switcher: "Ride Now" vs "Schedule Ride"
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                // Option A: Ride Now (तुरंत)
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticService.selection();
+                      setState(() {
+                        _isScheduleMode = false;
+                        _selectedTimeSlot = 'Now (Within 30 mins)';
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_isScheduleMode ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: !_isScheduleMode
+                            ? const [
+                                BoxShadow(
+                                  color: Color.fromRGBO(0, 0, 0, 0.06),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 16,
+                            color: !_isScheduleMode ? const Color(0xFFD97706) : AppTokens.secondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _isHindi ? 'अभी चलें (Now)' : 'Ride Now',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: !_isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                              color: !_isScheduleMode ? const Color(0xFF0F172A) : AppTokens.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Option B: Schedule Ride (शेड्यूल करें)
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticService.selection();
+                      setState(() {
+                        _isScheduleMode = true;
+                      });
+                      _validateAndSetScheduleTime(_selectedScheduleTime);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _isScheduleMode ? const Color(0xFF0F172A) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _isScheduleMode
+                            ? const [
+                                BoxShadow(
+                                  color: Color.fromRGBO(15, 23, 42, 0.20),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.calendar_month_rounded,
+                            size: 15,
+                            color: _isScheduleMode ? Colors.white : AppTokens.secondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _isHindi ? 'शेड्यूल करें' : 'Schedule',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: _isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                              color: _isScheduleMode ? Colors.white : AppTokens.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Animated Date & Time Selector when Schedule mode is active
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 260),
+            crossFadeState: _isScheduleMode ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date chips: Today, Tomorrow, Calendar
+                    Row(
+                      children: [
+                        // Today Chip
+                        InkWell(
+                          onTap: () {
+                            HapticService.selection();
+                            setState(() => _selectedDate = DateTime.now());
+                            _validateAndSetScheduleTime(_selectedScheduleTime);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isToday ? const Color(0xFF0F172A) : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isToday ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            child: Text(
+                              _isHindi ? 'आज (Today)' : 'Today',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isToday ? Colors.white : AppTokens.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // Tomorrow Chip
+                        InkWell(
+                          onTap: () {
+                            HapticService.selection();
+                            setState(() => _selectedDate = DateTime.now().add(const Duration(days: 1)));
+                            _validateAndSetScheduleTime(_selectedScheduleTime);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isTomorrow ? const Color(0xFF0F172A) : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isTomorrow ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            child: Text(
+                              _isHindi ? 'कल (Tomorrow)' : 'Tomorrow',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isTomorrow ? Colors.white : AppTokens.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // Pick Other Date Chip
+                        Expanded(
+                          child: InkWell(
+                            onTap: _pickDate,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: (!isToday && !isTomorrow) ? const Color(0xFF0F172A) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: (!isToday && !isTomorrow) ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.edit_calendar_rounded,
+                                    size: 13,
+                                    color: (!isToday && !isTomorrow) ? Colors.white : AppTokens.ink,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      dayDate,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: (!isToday && !isTomorrow) ? Colors.white : AppTokens.ink,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Time Picker Button
+                    InkWell(
+                      onTap: _pickScheduleTime,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time_filled_rounded, size: 16, color: Color(0xFFD97706)),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _isHindi ? 'प्रस्थान का समय' : 'Departure Time',
+                                  style: const TextStyle(fontSize: 10, color: AppTokens.secondary, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  _formatTimeOfDay(_selectedScheduleTime),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _isHindi ? 'बदलें' : 'Change',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF0F172A)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Edge Case Note for Today
+                    if (isToday) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.info_outline_rounded, size: 12, color: Color(0xFFD97706)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _isHindi
+                                  ? 'नोट: आज के शेड्यूल के लिए कम से कम 1 घंटे बाद का समय रहेगा।'
+                                  : 'Note: Same-day schedules require at least 1 hour advance notice.',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFB45309),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Row 2: Payment Method Chip
+          InkWell(
+            onTap: () {
+              HapticService.selection();
+              setState(() {
+                _paymentMethod = _paymentMethod == 'Cash / UPI' ? 'Cash' : 'Cash / UPI';
+              });
+            },
+            borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(AppTokens.radiusChips),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.payments_rounded, size: 15, color: Color(0xFF0F172A)),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isHindi ? 'भुगतान: ${_paymentMethod}' : 'Payment: ${_paymentMethod}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    'Change / बदलें',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTokens.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
 
           const SizedBox(height: 10),
 
-          // Row 2: Round Trip Toggle with 1 Hr Free Wait
+          // Row 3: Round Trip Toggle with 1 Hr Free Wait
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
@@ -1272,9 +1706,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-
-
   /// Persistent Rectangle Popup showing active booking status (Searching now, Scheduled, or Accepted)
+  /// Styled like Zomato / Swiggy live food preparation & order tracker
   Widget _buildActiveTripPersistentPopup() {
     final user = ref.watch(authServiceProvider).currentUser;
     if (user == null) return const SizedBox.shrink();
@@ -1292,13 +1725,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
         final elapsedSeconds = DateTime.now().difference(booking.createdAt).inSeconds;
 
-        // If it's an immediate ride and has exceeded 7-8 minutes (450 seconds):
-        if (!isScheduled && status == 'searching_driver' && elapsedSeconds >= 450) {
-          // Auto-mark timeout in Firestore and close popup from home screen
+        // Threshold for Now mode is 30 minutes (1800 seconds)
+        if (!isScheduled && status == 'searching_driver' && elapsedSeconds >= 1800) {
           try {
             FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
               'status': 'no_driver_found',
-              'closedReason': 'No driver immediate for immediate ride',
+              'closedReason': 'No rider available now (30 min timeout)',
               'closedAt': FieldValue.serverTimestamp(),
             });
           } catch (_) {}
@@ -1318,11 +1750,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           if (isScheduled) {
             statusLabel = 'RIDE SCHEDULED';
             statusIcon = Icons.event_available_rounded;
-            statusBg = AppTokens.primary;
+            statusBg = const Color(0xFF1E7B4F);
           } else {
             statusLabel = 'SEARCHING DRIVER (NOW)';
             statusIcon = Icons.radar_rounded;
-            statusBg = AppTokens.marigoldDark;
+            statusBg = const Color(0xFFD97706);
           }
         } else if (status == 'driver_arrived') {
           statusLabel = 'DRIVER AT PICKUP';
@@ -1334,153 +1766,187 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           statusBg = AppTokens.primaryDark;
         }
 
+        final elapsedMins = (elapsedSeconds ~/ 60);
+        final elapsedRemainingSecs = (elapsedSeconds % 60);
+        final elapsedFormatted = '${elapsedMins.toString().padLeft(2, '0')}:${elapsedRemainingSecs.toString().padLeft(2, '0')}';
+
         return Positioned(
-          left: 16,
-          right: 16,
+          left: 14,
+          right: 14,
           bottom: 12,
           child: Material(
-            elevation: 12,
+            elevation: 14,
             borderRadius: BorderRadius.circular(22),
-            shadowColor: Colors.black.withOpacity(0.20),
+            shadowColor: Colors.black.withOpacity(0.22),
             child: InkWell(
               borderRadius: BorderRadius.circular(22),
               onTap: () => context.push('/active-trip/${booking.id}'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
                     color: isAccepted
                         ? AppTokens.primary
-                        : (isScheduled ? AppTokens.primary : AppTokens.marigold),
+                        : (isScheduled ? AppTokens.primary : const Color(0xFFF59E0B)),
                     width: 1.5,
                   ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: statusBg,
-                            borderRadius: BorderRadius.circular(16),
+                    // Zomato/Swiggy Live Pulse Linear Progress Indicator on Top Edge
+                    if (isSearching)
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: LinearProgressIndicator(
+                          minHeight: 3.5,
+                          backgroundColor: const Color(0xFFFEF3C7),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isScheduled ? const Color(0xFF1E7B4F) : const Color(0xFFD97706),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        ),
+                      ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
                             children: [
-                              Icon(statusIcon, color: Colors.white, size: 12),
-                              const SizedBox(width: 4),
-                              Text(
-                                statusLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.3,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: statusBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(statusIcon, color: Colors.white, size: 12),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      statusLabel,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              if (isSearching && !isScheduled)
+                                Text(
+                                  '$elapsedFormatted (Max 30m)',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ),
+                              const Spacer(),
+                              if (isSearching) ...[
+                                Text(
+                                  isScheduled ? 'Scheduled' : 'Live Radar',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: isScheduled ? const Color(0xFF1E7B4F) : const Color(0xFFD97706),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 11,
+                                  color: isScheduled ? const Color(0xFF1E7B4F) : const Color(0xFFD97706),
+                                ),
+                              ] else if (booking.rideOtp != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTokens.surface2,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppTokens.border),
+                                  ),
+                                  child: Text(
+                                    'OTP: ${booking.rideOtp}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                      color: AppTokens.ink,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward_ios, size: 12, color: AppTokens.ink),
+                              ],
                             ],
                           ),
-                        ),
-                        const Spacer(),
-                        if (isSearching) ...[
-                          Text(
-                            isScheduled ? 'Scheduled' : 'Tap to open radar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isScheduled ? AppTokens.primaryDark : AppTokens.marigoldDark,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 11,
-                            color: isScheduled ? AppTokens.primaryDark : AppTokens.marigoldDark,
-                          ),
-                        ] else if (booking.rideOtp != null) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppTokens.surface2,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTokens.border),
-                            ),
-                            child: Text(
-                              'OTP: ${booking.rideOtp}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                                color: AppTokens.ink,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_ios, size: 12, color: AppTokens.ink),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTokens.surface2,
-                            image: DecorationImage(
-                              image: AssetImage('assets/images/app_logo.jpg'),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 8),
+                          Row(
                             children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTokens.surface2,
+                                  image: DecorationImage(
+                                    image: AssetImage('assets/images/app_logo.jpg'),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isSearching
+                                          ? (isScheduled
+                                              ? '${booking.scheduledDate ?? "Today"} · ${booking.scheduledTimeSlot ?? "Scheduled"}'
+                                              : 'Searching nearby partner drivers...')
+                                          : (booking.driverName ?? 'Nearby Partner Driver'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                        color: AppTokens.ink,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      isSearching
+                                          ? '${booking.pickup.address.split(",").first} → ${booking.destination.address.split(",").first}'
+                                          : '${booking.vehicleModel ?? "District Car"} · ${booking.vehiclePlate ?? "JH Reg"}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppTokens.secondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
                               Text(
-                                isSearching
-                                    ? (isScheduled
-                                        ? '${booking.scheduledDate ?? "Today"} · ${booking.scheduledTimeSlot ?? "Scheduled"}'
-                                        : 'Searching for nearby drivers...')
-                                    : (booking.driverName ?? 'Nearby Partner Driver'),
+                                '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
                                   color: AppTokens.ink,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                isSearching
-                                    ? '${booking.pickup.address} → ${booking.destination.address}'
-                                    : '${booking.vehicleModel ?? "District Car"} · ${booking.vehiclePlate ?? "JH Reg"}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppTokens.secondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
-                        ),
-                        Text(
-                          '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: AppTokens.ink,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

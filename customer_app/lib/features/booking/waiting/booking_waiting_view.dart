@@ -57,15 +57,15 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
   @override
   void initState() {
     super.initState();
-    // Immediate rides timeout after 450s (7.5 minutes, 7-8 min range)
+    // Immediate rides threshold: 1800s (30 minutes)
     _searchController = BookingSearchController(
       initialStartedAt: widget.booking.createdAt,
-      maxTimeoutSeconds: 450,
+      maxTimeoutSeconds: 1800,
       onTimeout: () {
         try {
           FirebaseFirestore.instance.collection('bookings').doc(widget.booking.id).update({
             'status': 'no_driver_found',
-            'closedReason': 'No driver immediate for immediate ride',
+            'closedReason': 'No rider available now (30 min timeout)',
             'closedAt': FieldValue.serverTimestamp(),
           });
         } catch (_) {}
@@ -82,7 +82,7 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
       rawData: widget.rawData,
     );
 
-    // If it's a scheduled ride and still searching/pending, show scheduled animation then minimize
+    // If it's a scheduled ride, show scheduled confirmation then minimize in 2.5s
     if (_isScheduled && widget.booking.status == 'searching_driver') {
       _scheduledProgressController = AnimationController(
         vsync: this,
@@ -92,9 +92,24 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
       _autoMinimizeTimer = Timer(const Duration(milliseconds: 2500), () {
         if (mounted && !_hasAutoMinimized) {
           _hasAutoMinimized = true;
-          context.go('/');
+          try {
+            context.go('/');
+          } catch (_) {}
         }
       });
+    } else if (!_isScheduled && widget.booking.status == 'searching_driver') {
+      // Now mode: Searching splash with radar auto-minimizes in 5 seconds to home screen persistent popup
+      final elapsed = DateTime.now().difference(widget.booking.createdAt).inSeconds;
+      if (elapsed < 5) {
+        _autoMinimizeTimer = Timer(Duration(seconds: (5 - elapsed).clamp(1, 5)), () {
+          if (mounted && !_hasAutoMinimized) {
+            _hasAutoMinimized = true;
+            try {
+              context.go('/');
+            } catch (_) {}
+          }
+        });
+      }
     }
   }
 
@@ -257,6 +272,11 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
                             onRetry: () {
                               _searchController.retry();
                               widget.onRetrySearch?.call();
+                            },
+                            onScheduleLater: () {
+                              try {
+                                context.go('/?mode=schedule');
+                              } catch (_) {}
                             },
                           ),
                         ),
