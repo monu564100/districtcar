@@ -22,12 +22,21 @@ class LocationModel {
     };
   }
 
-  factory LocationModel.fromMap(Map<String, dynamic> map) {
+  factory LocationModel.fromMap(dynamic raw) {
+    if (raw == null) {
+      return LocationModel(latitude: 0.0, longitude: 0.0, address: '');
+    }
+    final Map map = (raw is Map) ? raw : {};
+    double toDbl(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString()) ?? 0.0;
+    }
     return LocationModel(
-      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
-      address: map['address'] as String? ?? '',
-      geohash: map['geohash'] as String?,
+      latitude: toDbl(map['latitude']),
+      longitude: toDbl(map['longitude']),
+      address: map['address']?.toString() ?? '',
+      geohash: map['geohash']?.toString(),
     );
   }
 }
@@ -218,44 +227,60 @@ class BookingModel {
     };
   }
 
-  factory BookingModel.fromMap(Map<String, dynamic> map, String docId) {
+  factory BookingModel.fromMap(dynamic rawMap, String docId) {
+    final Map map = (rawMap is Map) ? rawMap : {};
+
+    double toDbl(dynamic v, [double fallback = 0.0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString()) ?? fallback;
+    }
+
+    DateTime parseDate(dynamic d) {
+      if (d == null) return DateTime.now();
+      try {
+        if (d.toString().contains('Timestamp')) {
+          return (d as dynamic).toDate();
+        }
+        final parsed = DateTime.tryParse(d.toString());
+        if (parsed != null) return parsed;
+      } catch (_) {}
+      return DateTime.now();
+    }
+
     return BookingModel(
       id: docId,
-      readableId: map['readableId'] as String? ?? docId,
-      customerId: map['customerId'] as String? ?? '',
-      customerName: map['customerName'] as String?,
-      customerPhone: map['customerPhone'] as String?,
-      bookingType: map['bookingType'] as String?,
-      tourDestinationName: map['tourDestinationName'] as String?,
-      stayHours: (map['stayHours'] as num?)?.toInt(),
-      driverId: map['driverId'] as String?,
-      driverName: map['driverName'] as String?,
-      driverPhone: map['driverPhone'] as String?,
-      driverPhoto: map['driverPhoto'] as String?,
-      vehiclePlate: map['vehiclePlate'] as String?,
-      vehicleModel: map['vehicleModel'] as String?,
-      vehicleImage: map['vehicleImage'] as String?,
-      vehicleCategoryId: map['vehicleCategoryId'] as String? ?? '',
-      vehicleId: map['vehicleId'] as String?,
-      pickup: LocationModel.fromMap(map['pickup'] as Map<String, dynamic>? ?? {}),
-      destination: LocationModel.fromMap(map['destination'] as Map<String, dynamic>? ?? {}),
-      estimatedDistanceKm: (map['estimatedDistanceKm'] as num?)?.toDouble() ?? 0.0,
-      estimatedDurationMinutes: (map['estimatedDurationMinutes'] as num?)?.toDouble() ?? 0.0,
-      estimatedFare: (map['estimatedFare'] as num?)?.toDouble() ?? 0.0,
-      finalFare: (map['finalFare'] as num?)?.toDouble(),
-      paymentMethod: map['paymentMethod'] as String? ?? 'cash',
-      paymentStatus: map['paymentStatus'] as String? ?? 'pending',
-      status: map['status'] as String? ?? 'requested',
-      rideOtp: map['rideOtp'] as String?,
-      isRoundTrip: map['isRoundTrip'] as bool? ?? false,
-      roundTripStoppingHours: (map['roundTripStoppingHours'] as num?)?.toDouble() ?? 1.0,
-      scheduledDate: map['scheduledDate'] as String?,
-      scheduledTimeSlot: map['scheduledTimeSlot'] as String?,
-      createdAt: (map['createdAt'] != null && map['createdAt'].toString().contains('Timestamp'))
-          ? (map['createdAt'] as dynamic).toDate()
-          : (map['createdAt'] != null && DateTime.tryParse(map['createdAt'].toString()) != null
-              ? DateTime.parse(map['createdAt'].toString())
-              : DateTime.now()),
+      readableId: map['readableId']?.toString() ?? docId,
+      customerId: map['customerId']?.toString() ?? '',
+      customerName: map['customerName']?.toString(),
+      customerPhone: map['customerPhone']?.toString(),
+      bookingType: map['bookingType']?.toString(),
+      tourDestinationName: map['tourDestinationName']?.toString(),
+      stayHours: int.tryParse(map['stayHours']?.toString() ?? ''),
+      driverId: map['driverId']?.toString(),
+      driverName: map['driverName']?.toString(),
+      driverPhone: map['driverPhone']?.toString(),
+      driverPhoto: map['driverPhoto']?.toString(),
+      vehiclePlate: (map['vehiclePlateNumber'] ?? map['vehiclePlate'])?.toString(),
+      vehicleModel: map['vehicleModel']?.toString(),
+      vehicleImage: map['vehicleImage']?.toString(),
+      vehicleCategoryId: map['vehicleCategoryId']?.toString() ?? '',
+      vehicleId: map['vehicleId']?.toString(),
+      pickup: LocationModel.fromMap(map['pickup']),
+      destination: LocationModel.fromMap(map['destination']),
+      estimatedDistanceKm: toDbl(map['estimatedDistanceKm']),
+      estimatedDurationMinutes: toDbl(map['estimatedDurationMinutes']),
+      estimatedFare: toDbl(map['estimatedFare']),
+      finalFare: map['finalFare'] != null ? toDbl(map['finalFare']) : null,
+      paymentMethod: map['paymentMethod']?.toString() ?? 'cash',
+      paymentStatus: map['paymentStatus']?.toString() ?? 'pending',
+      status: map['status']?.toString() ?? 'requested',
+      rideOtp: map['rideOtp']?.toString(),
+      isRoundTrip: map['isRoundTrip'] == true,
+      roundTripStoppingHours: toDbl(map['roundTripStoppingHours'], 1.0),
+      scheduledDate: map['scheduledDate']?.toString(),
+      scheduledTimeSlot: map['scheduledTimeSlot']?.toString(),
+      createdAt: parseDate(map['createdAt']),
     );
   }
 

@@ -364,41 +364,49 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
           }
         }
 
-        // 1. Direct targeted offers in bookingRequests
+        // 1. Direct targeted offers in bookingRequests (Index-free query)
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('bookingRequests')
               .where('driverId', isEqualTo: widget.driverId)
-              .where('status', isEqualTo: 'offered')
               .snapshots(),
           builder: (context, requestSnap) {
-            if (requestSnap.hasData && requestSnap.data!.docs.isNotEmpty) {
-              final requestDoc = requestSnap.data!.docs.first;
+            final offerDocs = (requestSnap.data?.docs ?? []).where((doc) {
+              final d = doc.data() as Map<String, dynamic>?;
+              return d?['status'] == 'offered';
+            }).toList();
+
+            if (offerDocs.isNotEmpty) {
+              final requestDoc = offerDocs.first;
               final reqData = requestDoc.data() as Map<String, dynamic>;
-              final bookingId = reqData['bookingId'] as String;
+              final bookingId = reqData['bookingId']?.toString() ?? '';
               final requestId = requestDoc.id;
 
-              if (!_dismissedIds.contains(bookingId) && !_dismissedIds.contains(requestId)) {
+              if (bookingId.isNotEmpty && !_dismissedIds.contains(bookingId) && !_dismissedIds.contains(requestId)) {
                 return StreamBuilder<DocumentSnapshot>(
                   stream: FirebaseFirestore.instance.collection('bookings').doc(bookingId).snapshots(),
                   builder: (context, bSnap) {
                     if (!bSnap.hasData || !bSnap.data!.exists) return const SizedBox.shrink();
-                    final bData = bSnap.data!.data() as Map<String, dynamic>;
-                    final status = bData['status'] as String? ?? '';
-                    final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString();
+                    try {
+                      final bData = bSnap.data!.data() as Map<String, dynamic>;
+                      final status = bData['status'] as String? ?? '';
+                      final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString();
 
-                    if (!_isCategoryEligible(bookedCategory, driverCat)) {
+                      if (!_isCategoryEligible(bookedCategory, driverCat)) {
+                        return const SizedBox.shrink();
+                      }
+                      if (status != 'searching_driver' && status != 'requested') {
+                        return const SizedBox.shrink();
+                      }
+                      final booking = BookingModel.fromMap(bData, bookingId);
+                      if (!_isDistanceEligible(booking, driverLat, driverLng)) {
+                        return const SizedBox.shrink();
+                      }
+                      final pickupDistKm = _calculatePickupDistanceKm(booking, driverLat, driverLng);
+                      return _buildPopupCard(booking, requestId, pickupDistKm);
+                    } catch (_) {
                       return const SizedBox.shrink();
                     }
-                    if (status != 'searching_driver' && status != 'requested') {
-                      return const SizedBox.shrink();
-                    }
-                    final booking = BookingModel.fromMap(bData, bookingId);
-                    if (!_isDistanceEligible(booking, driverLat, driverLng)) {
-                      return const SizedBox.shrink();
-                    }
-                    final pickupDistKm = _calculatePickupDistanceKm(booking, driverLat, driverLng);
-                    return _buildPopupCard(booking, requestId, pickupDistKm);
                   },
                 );
               }
@@ -420,28 +428,34 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                 double matchedPickupDist = 0.0;
 
                 for (final doc in bookingSnap.data!.docs) {
-                  final bData = doc.data() as Map<String, dynamic>;
-                  final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString();
-                  if (_dismissedIds.contains(doc.id)) continue;
+                  try {
+                    final bData = doc.data() as Map<String, dynamic>;
+                    final bookedCategory = (bData['vehicleCategoryId'] ?? 'car').toString();
+                    if (_dismissedIds.contains(doc.id)) continue;
 
-                  if (_isCategoryEligible(bookedCategory, driverCat)) {
-                    final booking = BookingModel.fromMap(bData, doc.id);
-                    if (_isDistanceEligible(booking, driverLat, driverLng)) {
-                      matchedDoc = doc;
-                      matchedPickupDist = _calculatePickupDistanceKm(booking, driverLat, driverLng);
-                      break;
+                    if (_isCategoryEligible(bookedCategory, driverCat)) {
+                      final booking = BookingModel.fromMap(bData, doc.id);
+                      if (_isDistanceEligible(booking, driverLat, driverLng)) {
+                        matchedDoc = doc;
+                        matchedPickupDist = _calculatePickupDistanceKm(booking, driverLat, driverLng);
+                        break;
+                      }
                     }
-                  }
+                  } catch (_) {}
                 }
 
                 if (matchedDoc == null) {
                   return const SizedBox.shrink();
                 }
 
-                final bookingId = matchedDoc.id;
-                final bData = matchedDoc.data() as Map<String, dynamic>;
-                final booking = BookingModel.fromMap(bData, bookingId);
-                return _buildPopupCard(booking, null, matchedPickupDist);
+                try {
+                  final bookingId = matchedDoc.id;
+                  final bData = matchedDoc.data() as Map<String, dynamic>;
+                  final booking = BookingModel.fromMap(bData, bookingId);
+                  return _buildPopupCard(booking, null, matchedPickupDist);
+                } catch (_) {
+                  return const SizedBox.shrink();
+                }
               },
             );
           },

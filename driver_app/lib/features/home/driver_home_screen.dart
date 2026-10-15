@@ -588,18 +588,29 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       );
     }
 
-    // Active Booking Sync Listener
+    // Active Booking Sync Listener (Index-free: query by driverId only, filter status in Dart)
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('bookings')
           .where('driverId', isEqualTo: user.uid)
-          .where('status', whereIn: ['driver_assigned', 'driver_arrived', 'trip_started'])
           .snapshots(),
       builder: (context, activeSnap) {
         if (activeSnap.hasData && activeSnap.data!.docs.isNotEmpty) {
-          final doc = activeSnap.data!.docs.first;
-          final b = BookingModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          _activeBooking = b;
+          final matchedDocs = activeSnap.data!.docs.where((doc) {
+            final m = doc.data() as Map<String, dynamic>?;
+            final st = m?['status']?.toString();
+            return st == 'driver_assigned' || st == 'driver_arrived' || st == 'trip_started';
+          }).toList();
+
+          if (matchedDocs.isNotEmpty) {
+            try {
+              final doc = matchedDocs.first;
+              final b = BookingModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+              _activeBooking = b;
+            } catch (_) {}
+          } else if (_activeBooking != null) {
+            _activeBooking = null;
+          }
         } else if (activeSnap.hasData && activeSnap.data!.docs.isEmpty && _activeBooking != null) {
           // Trip finished or cancelled remotely
           _activeBooking = null;
@@ -624,19 +635,27 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                     'walletBalance': 6165.0,
                   };
 
-            final String name = (data?['name'] != null && (data!['name'] as String).isNotEmpty)
-                ? data['name']
+            double asDouble(dynamic val, [double fallback = 0.0]) {
+              if (val == null) return fallback;
+              if (val is num) return val.toDouble();
+              return double.tryParse(val.toString()) ?? fallback;
+            }
+
+            final String name = (data?['name'] != null && data!['name'].toString().trim().isNotEmpty)
+                ? data['name'].toString().trim()
                 : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
-            final String plate = data?['vehiclePlateNumber']?.toString() ?? 'Vehicle not registered';
+            final String plate = (data?['vehiclePlateNumber'] ?? data?['vehiclePlate'])?.toString() ?? 'Vehicle not registered';
             final String vehicleModel = data?['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
-            final double rating = (data?['rating'] as num?)?.toDouble() ?? 5.0;
-            final double totalEarnings = (data?['totalEarnings'] as num?)?.toDouble() ?? 0.0;
-            final double walletBalance = (data?['walletBalance'] as num?)?.toDouble() ?? (totalEarnings * 0.9);
-            final String driverCategory = (data?['vehicleCategoryId'] ?? 'car').toString().trim().toLowerCase();
+            final double rating = asDouble(data?['rating'], 5.0);
+            final double totalEarnings = asDouble(data?['totalEarnings'], 0.0);
+            final double walletBalance = asDouble(data?['walletBalance'], totalEarnings * 0.9);
+            final String driverCategory = (data?['vehicleCategoryId'] ?? data?['category'] ?? 'car').toString().trim().toLowerCase();
 
             if (_subscribedCategory != driverCategory) {
               _subscribedCategory = driverCategory;
-              FCMNotificationService.subscribeToTopic('driver_$driverCategory');
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                FCMNotificationService.subscribeToTopic('driver_$driverCategory');
+              });
             }
 
             return Scaffold(
@@ -910,15 +929,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
                   // 1. Full-screen Pop-up Notification for Incoming Eligible Rides (Hidden when Busy)
                   if (_isOnline && !isCurrentlyBusy)
-                    IncomingRequestOverlay(
-                      driverId: user.uid,
-                      vehicleCategory: driverCategory,
-                      driverLocation: _driverLocation,
-                      onAccepted: (booking) {
-                        setState(() {
-                          _activeBooking = booking.copyWith(status: 'driver_assigned');
-                        });
-                      },
+                    Positioned.fill(
+                      child: IncomingRequestOverlay(
+                        driverId: user.uid,
+                        vehicleCategory: driverCategory,
+                        driverLocation: _driverLocation,
+                        onAccepted: (booking) {
+                          setState(() {
+                            _activeBooking = booking.copyWith(status: 'driver_assigned');
+                          });
+                        },
+                      ),
                     ),
 
                   // 2. Persistent Active Booking Card Floating Above Dock
@@ -947,16 +968,24 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         final allDocs = snapshot.data?.docs ?? [];
-        final eligibleDocs = allDocs.where((doc) {
-          final d = doc.data() as Map<String, dynamic>;
-          final cat = (d['vehicleCategoryId'] ?? 'car').toString();
-          if (!_isCategoryEligible(cat, driverCategory)) return false;
+        final List<BookingModel> eligibleBookings = [];
 
-          final booking = BookingModel.fromMap(d, doc.id);
-          return _isDistanceEligible(booking, _driverLocation.latitude, _driverLocation.longitude);
-        }).toList();
+        for (final doc in allDocs) {
+          try {
+            final d = doc.data() as Map<String, dynamic>;
+            final cat = (d['vehicleCategoryId'] ?? 'car').toString();
+            if (!_isCategoryEligible(cat, driverCategory)) continue;
 
-        if (eligibleDocs.isEmpty) {
+            final booking = BookingModel.fromMap(d, doc.id);
+            if (_isDistanceEligible(booking, _driverLocation.latitude, _driverLocation.longitude)) {
+              eligibleBookings.add(booking);
+            }
+          } catch (e) {
+            debugPrint('Notice: Error parsing booking: $e');
+          }
+        }
+
+        if (eligibleBookings.isEmpty) {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -965,8 +994,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Column(
-              children: const [
+            child: const Column(
+              children: [
                 Icon(Icons.radar, size: 40, color: Color(0xFF059669)),
                 SizedBox(height: 10),
                 Text('Radar Active — Waiting for Rides', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -978,9 +1007,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         }
 
         return Column(
-          children: eligibleDocs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final booking = BookingModel.fromMap(data, doc.id);
+          children: eligibleBookings.map((booking) {
             final pickupDistKm = _calculatePickupDistanceKm(booking);
 
             return Container(
