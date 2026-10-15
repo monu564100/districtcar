@@ -47,34 +47,6 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
     }
   }
 
-  void _signInAsTestReviewer() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await ref.read(driverServiceProvider).signInAsPlayStoreReviewer();
-      final prefs = await SharedPreferences.getInstance();
-      final hasConsent = prefs.getBool('driver_consent_given') ?? false;
-
-      if (mounted) {
-        if (!hasConsent) {
-          context.go('/driver-consent');
-        } else {
-          context.go('/driver-home');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Reviewer sign-in notice: $e';
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -320,35 +292,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // 2. Play Store Reviewer & Instant Demo Login
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0F172A),
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _isLoading ? null : _signInAsTestReviewer,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.play_arrow, color: Color(0xFF059669), size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            '1-Click Demo Partner Access (Play Store)',
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
                   // New Driver Registration Link
                   Center(
