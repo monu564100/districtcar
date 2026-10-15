@@ -719,69 +719,88 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                     const Text('Select Vehicle Category:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 12),
 
-                    // Horizontal / Wrap Category Cards
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: _vehicleCategories.map((cat) {
-                        final isSelected = _selectedCategory == cat['id'];
-                        return InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = cat['id'];
-                              _modelCtrl.text = cat['defaultModel'];
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: (MediaQuery.of(context).size.width - 70) / 2,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF059669) : Colors.grey.shade200,
-                                width: isSelected ? 2 : 1,
+                    // 2 Categories Per Row
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final cardWidth = (constraints.maxWidth - 12) / 2;
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: _vehicleCategories.map((cat) {
+                            final isSelected = _selectedCategory == cat['id'];
+                            return SizedBox(
+                              width: cardWidth,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCategory = cat['id'];
+                                    _modelCtrl.text = cat['defaultModel'];
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF059669) : Colors.grey.shade200,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: const Color(0xFF059669).withValues(alpha: 0.15),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ]
+                                        : [],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.asset(
+                                          cat['image'],
+                                          width: 52,
+                                          height: 52,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => const Icon(Icons.directions_car, color: Color(0xFF059669), size: 36),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        cat['name'],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 13,
+                                          color: isSelected ? const Color(0xFF065F46) : const Color(0xFF0F172A),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        cat['category'],
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected ? const Color(0xFF059669) : Colors.grey.shade600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.asset(
-                                    cat['image'],
-                                    width: 48,
-                                    height: 48,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.directions_car, color: Color(0xFF059669), size: 36),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  cat['name'],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                    color: isSelected ? const Color(0xFF065F46) : const Color(0xFF0F172A),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                Text(
-                                  cat['category'],
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: isSelected ? const Color(0xFF059669) : Colors.grey.shade600,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
+                      },
                     ),
                     const SizedBox(height: 18),
 
