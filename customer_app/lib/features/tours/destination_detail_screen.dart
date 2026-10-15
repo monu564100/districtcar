@@ -32,25 +32,20 @@ class DestinationDetailScreen extends StatefulWidget {
   }
 
   /// Universal entry point to open DestinationDetailScreen across any router or navigation context.
-  /// Uses addPostFrameCallback to ensure all mouse pointer & hover events finish cleanly,
-  /// completely preventing mouse_tracker assertion failures on Flutter Web.
-  static Future<void> open(BuildContext context, PopularDestinationModel destination) {
+  /// Uses GoRouter push directly for flawless browser URL sync on Flutter Web.
+  static Future<void> open(BuildContext context, PopularDestinationModel destination) async {
     HapticService.selectionClick();
     debugPrint('>>> [DESTINATION_DETAIL] Opening destination: ${destination.id} (${destination.name})');
 
-    final completer = Completer<void>();
+    if (!context.mounted) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!context.mounted) {
-        completer.complete();
-        return;
-      }
-
-      try {
-        // Direct root Navigator push: 100% reliable across Web, Mobile, and Desktop
-        await Navigator.of(context, rootNavigator: true).push(
+    try {
+      await context.push('/destination-details?id=${destination.id}', extra: destination);
+    } catch (e) {
+      debugPrint('>>> [DESTINATION_DETAIL] context.push fallback: $e');
+      if (context.mounted) {
+        await Navigator.of(context).push(
           MaterialPageRoute(
-            settings: RouteSettings(name: '/destination-details?id=${destination.id}'),
             builder: (_) => DestinationDetailScreen(
               key: ValueKey(destination.id),
               destination: destination,
@@ -58,23 +53,8 @@ class DestinationDetailScreen extends StatefulWidget {
             ),
           ),
         );
-      } catch (e) {
-        debugPrint('>>> [DESTINATION_DETAIL] Navigator.push fallback to context.push: $e');
-        if (context.mounted) {
-          try {
-            await context.push('/destination-details?id=${destination.id}', extra: destination);
-          } catch (routerError) {
-            debugPrint('>>> [DESTINATION_DETAIL] context.push also failed: $routerError');
-          }
-        }
-      } finally {
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
       }
-    });
-
-    return completer.future;
+    }
   }
 
   @override

@@ -29,6 +29,14 @@ void main() {
             return DestinationDetailScreen(destination: dest);
           },
         ),
+        GoRoute(
+          path: '/book-tour',
+          builder: (context, state) {
+            final dest = (state.extra as PopularDestinationModel?) ??
+                DestinationsService.defaultDestinations.first;
+            return TourBookingScreen(destination: dest);
+          },
+        ),
       ],
     );
 

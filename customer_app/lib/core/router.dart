@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/login_screen.dart';
@@ -36,12 +37,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.uri.queryParameters['id'];
           final dest = (state.extra as PopularDestinationModel?) ??
               (id != null
-                  ? DestinationsService.defaultDestinations.firstWhere(
-                      (d) => d.id == id,
-                      orElse: () => DestinationsService.defaultDestinations.first,
-                    )
+                  ? (DestinationsService.getById(id) ??
+                      DestinationsService.defaultDestinations.firstWhere(
+                        (d) => d.id == id,
+                        orElse: () => DestinationsService.defaultDestinations.first,
+                      ))
                   : DestinationsService.defaultDestinations.first);
-          return DestinationDetailScreen(destination: dest);
+          return DestinationDetailScreen(
+            key: ValueKey(dest.id),
+            destination: dest,
+            destinationId: dest.id,
+          );
         },
       ),
       GoRoute(
@@ -50,12 +56,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.uri.queryParameters['id'];
           final dest = (state.extra as PopularDestinationModel?) ??
               (id != null
-                  ? DestinationsService.defaultDestinations.firstWhere(
-                      (d) => d.id == id,
-                      orElse: () => DestinationsService.defaultDestinations.first,
-                    )
+                  ? (DestinationsService.getById(id) ??
+                      DestinationsService.defaultDestinations.firstWhere(
+                        (d) => d.id == id,
+                        orElse: () => DestinationsService.defaultDestinations.first,
+                      ))
                   : DestinationsService.defaultDestinations.first);
-          return TourBookingScreen(destination: dest);
+          return TourBookingScreen(
+            key: ValueKey(dest.id),
+            destination: dest,
+          );
         },
       ),
       GoRoute(

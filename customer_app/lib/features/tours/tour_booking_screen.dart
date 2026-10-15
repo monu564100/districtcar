@@ -22,43 +22,27 @@ class TourBookingScreen extends ConsumerStatefulWidget {
   const TourBookingScreen({super.key, required this.destination});
 
   /// Universal entry point to open TourBookingScreen across Web, Mobile, and Desktop
-  static Future<void> open(BuildContext context, PopularDestinationModel destination) {
+  static Future<void> open(BuildContext context, PopularDestinationModel destination) async {
     HapticService.selectionClick();
     debugPrint('>>> [TOUR_BOOKING] Opening booking for: ${destination.id} (${destination.name})');
 
-    final completer = Completer<void>();
+    if (!context.mounted) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!context.mounted) {
-        completer.complete();
-        return;
-      }
-
-      try {
-        await Navigator.of(context, rootNavigator: true).push(
+    try {
+      await context.push('/book-tour?id=${destination.id}', extra: destination);
+    } catch (e) {
+      debugPrint('>>> [TOUR_BOOKING] context.push fallback: $e');
+      if (context.mounted) {
+        await Navigator.of(context).push(
           MaterialPageRoute(
-            settings: RouteSettings(name: '/book-tour?id=${destination.id}'),
             builder: (_) => TourBookingScreen(
               key: ValueKey(destination.id),
               destination: destination,
             ),
           ),
         );
-      } catch (e) {
-        debugPrint('>>> [TOUR_BOOKING] Direct push failed, fallback to GoRouter: $e');
-        if (context.mounted) {
-          try {
-            await context.push('/book-tour?id=${destination.id}', extra: destination);
-          } catch (routerError) {
-            debugPrint('>>> [TOUR_BOOKING] router push also failed: $routerError');
-          }
-        }
-      } finally {
-        if (!completer.isCompleted) completer.complete();
       }
-    });
-
-    return completer.future;
+    }
   }
 
   @override
@@ -343,7 +327,15 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                context.pop();
+                try {
+                  if (context.canPop()) {
+                    context.pop();
+                    return;
+                  }
+                } catch (_) {}
+                try {
+                  context.go('/tours');
+                } catch (_) {}
               }
             }
           },
