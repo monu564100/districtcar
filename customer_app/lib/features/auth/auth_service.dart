@@ -8,14 +8,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:district_car_shared/models/models.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseAuth? _customAuth;
+  FirebaseFirestore? _customFirestore;
 
-  DistrictUser? _localUser;
-
-  AuthService() {
+  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _customAuth = auth,
+        _customFirestore = firestore {
     _initLocalSession();
   }
+
+  FirebaseAuth get _auth {
+    if (_customAuth != null) return _customAuth!;
+    return FirebaseAuth.instance;
+  }
+
+  FirebaseFirestore get _firestore {
+    if (_customFirestore != null) return _customFirestore!;
+    return FirebaseFirestore.instance;
+  }
+
+  DistrictUser? _localUser;
 
   Future<void> _initLocalSession() async {
     try {
@@ -26,6 +38,7 @@ class AuthService {
       final dob = prefs.getString('district_user_dob');
       final bloodGroup = prefs.getString('district_user_blood_group');
       final photo = prefs.getString('district_user_photo');
+      final address = prefs.getString('district_user_address');
       if (uid != null && uid.isNotEmpty) {
         _localUser = DistrictUser(
           uid: uid,
@@ -34,22 +47,28 @@ class AuthService {
           dateOfBirth: dob,
           bloodGroup: bloodGroup,
           profilePhotoUrl: photo,
+          address: address,
         );
       }
     } catch (_) {}
   }
 
   DistrictUser? get currentUser {
-    if (_auth.currentUser != null) {
-      return DistrictUser(
-        uid: _auth.currentUser!.uid,
-        email: _auth.currentUser!.email,
-        displayName: _localUser?.displayName ?? _auth.currentUser!.displayName,
-        phoneNumber: _auth.currentUser!.phoneNumber,
-        dateOfBirth: _localUser?.dateOfBirth,
-        bloodGroup: _localUser?.bloodGroup,
-        profilePhotoUrl: _localUser?.profilePhotoUrl,
-      );
+    try {
+      if (_auth.currentUser != null) {
+        return DistrictUser(
+          uid: _auth.currentUser!.uid,
+          email: _auth.currentUser!.email,
+          displayName: _localUser?.displayName ?? _auth.currentUser!.displayName,
+          phoneNumber: _auth.currentUser!.phoneNumber,
+          dateOfBirth: _localUser?.dateOfBirth,
+          bloodGroup: _localUser?.bloodGroup,
+          profilePhotoUrl: _localUser?.profilePhotoUrl,
+          address: _localUser?.address,
+        );
+      }
+    } catch (_) {
+      // Handles uninitialized Firebase in widget testing or offline modes
     }
     return _localUser;
   }
@@ -343,12 +362,16 @@ class AuthService {
   Future<bool> doesCustomerProfileExist(String uid) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final localOnboarded = prefs.getBool('district_user_onboarded');
       final localName = prefs.getString('district_user_name');
       final localPhone = prefs.getString('district_user_phone');
       final localDob = prefs.getString('district_user_dob');
-      if (localName != null && localName.isNotEmpty &&
+      final localAddress = prefs.getString('district_user_address');
+      if (localOnboarded == true &&
+          localName != null && localName.isNotEmpty &&
           localPhone != null && localPhone.isNotEmpty &&
-          localDob != null && localDob.isNotEmpty) {
+          localDob != null && localDob.isNotEmpty &&
+          localAddress != null && localAddress.isNotEmpty) {
         return true;
       }
     } catch (_) {}
@@ -361,7 +384,9 @@ class AuthService {
       final hasPhone = (data['phoneNumber'] != null && (data['phoneNumber'] as String).trim().isNotEmpty) ||
                        (data['phone'] != null && (data['phone'] as String).trim().isNotEmpty);
       final hasDob = data['dateOfBirth'] != null && (data['dateOfBirth'] as String).trim().isNotEmpty;
-      return hasName && hasPhone && hasDob;
+      final hasAddress = data['address'] != null && (data['address'] as String).trim().isNotEmpty;
+      final isOnboarded = data['isOnboarded'] == true;
+      return (hasName && hasPhone && hasDob && hasAddress) || isOnboarded;
     } catch (_) {
       return false;
     }
@@ -371,7 +396,8 @@ class AuthService {
     required String name,
     required String mobileNumber,
     required String dateOfBirth,
-    required String gender,
+    required String address,
+    String gender = 'Male',
   }) async {
     final user = currentUser;
     if (user == null) return;
@@ -388,7 +414,9 @@ class AuthService {
         'phoneNumber': cleanPhone,
         'phone': cleanPhone,
         'dateOfBirth': dateOfBirth,
+        'address': address,
         'gender': gender,
+        'isOnboarded': true,
         'walletBalance': 500.0, // Initial promotional ₹500 credit
         'isActive': true,
         'isBlocked': false,
@@ -404,6 +432,7 @@ class AuthService {
       displayName: name,
       phoneNumber: cleanPhone,
       dateOfBirth: dateOfBirth,
+      address: address,
     );
 
     try {
@@ -411,6 +440,8 @@ class AuthService {
       await prefs.setString('district_user_name', name);
       await prefs.setString('district_user_phone', cleanPhone);
       await prefs.setString('district_user_dob', dateOfBirth);
+      await prefs.setString('district_user_address', address);
+      await prefs.setBool('district_user_onboarded', true);
       await prefs.setString('district_user_uid', user.uid);
       await prefs.setString('district_user_email', userEmail);
     } catch (_) {}

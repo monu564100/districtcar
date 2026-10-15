@@ -6,6 +6,7 @@ class DistrictUser {
   final String? dateOfBirth;
   final String? bloodGroup;
   final String? profilePhotoUrl;
+  final String? address;
   final bool isBlocked;
 
   const DistrictUser({
@@ -16,6 +17,7 @@ class DistrictUser {
     this.dateOfBirth,
     this.bloodGroup,
     this.profilePhotoUrl,
+    this.address,
     this.isBlocked = false,
   });
 
@@ -27,6 +29,7 @@ class DistrictUser {
     'dateOfBirth': dateOfBirth,
     'bloodGroup': bloodGroup,
     'profilePhotoUrl': profilePhotoUrl,
+    'address': address,
     'isBlocked': isBlocked,
   };
 
@@ -38,6 +41,7 @@ class DistrictUser {
     dateOfBirth: map['dateOfBirth'] as String?,
     bloodGroup: map['bloodGroup'] as String?,
     profilePhotoUrl: map['profilePhotoUrl'] as String?,
+    address: map['address'] as String?,
     isBlocked: map['isBlocked'] as bool? ?? false,
   );
 }

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../auth/auth_service.dart';
+import '../auth/login_screen.dart';
 import '../../widgets/premium_empty_state.dart';
 import '../../widgets/trips/ghost_trip_preview.dart';
 import '../../widgets/floating_bottom_dock.dart';
@@ -484,13 +485,22 @@ class _TripsHistoryScreenState extends ConsumerState<TripsHistoryScreen> with Si
     } else if (index == 2) {
       // Already on trips
     } else if (index == 3) {
-      context.push('/profile');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        context.push('/login', extra: '/profile');
+      } else {
+        context.push('/profile');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authServiceProvider).currentUser;
+
+    if (user == null) {
+      return const LoginScreen(redirectPath: '/trips');
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -546,15 +556,7 @@ class _TripsHistoryScreenState extends ConsumerState<TripsHistoryScreen> with Si
           const SizedBox(width: 8),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 350),
-        child: user == null
-            ? GhostTripPreview(
-                key: const ValueKey('logged_out_preview'),
-                onSignInSuccess: () => setState(() {}),
-              )
-            : _buildLoggedInBody(user),
-      ),
+      body: _buildLoggedInBody(user),
       bottomNavigationBar: FloatingBottomDock(
         currentIndex: 2,
         onTabSelected: _onDockTabSelected,

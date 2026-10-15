@@ -10,6 +10,7 @@ import '../../widgets/tours/branded_destination_placeholder.dart';
 import '../../widgets/tours/tour_assets.dart';
 import 'tour_pricing_service.dart';
 import 'destination_detail_screen.dart';
+import '../auth/auth_service.dart';
 
 /// Redesigned Explore Screen (Tours & Travels Jharkhand)
 /// Concept: Sal forest + marigold + laterite earth, blue-free.
@@ -63,9 +64,19 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     } else if (index == 1) {
       // Already on Explore / Tours
     } else if (index == 2) {
-      context.push('/trips');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        context.push('/login', extra: '/trips');
+      } else {
+        context.push('/trips');
+      }
     } else if (index == 3) {
-      context.push('/profile');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        context.push('/login', extra: '/profile');
+      } else {
+        context.push('/profile');
+      }
     }
   }
 

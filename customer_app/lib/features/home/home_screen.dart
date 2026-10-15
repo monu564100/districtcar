@@ -169,9 +169,19 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     if (index == 1) {
       await context.push('/tours');
     } else if (index == 2) {
-      await context.push('/trips');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        await context.push('/login', extra: '/trips');
+      } else {
+        await context.push('/trips');
+      }
     } else if (index == 3) {
-      await context.push('/profile');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        await context.push('/login', extra: '/profile');
+      } else {
+        await context.push('/profile');
+      }
     }
     if (mounted) {
       setState(() => _currentDockIndex = 0);
@@ -800,7 +810,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                       borderRadius: BorderRadius.circular(20),
                       onTap: () {
                         HapticService.selection();
-                        context.push('/trips');
+                        final user = ref.read(authServiceProvider).currentUser;
+                        if (user == null) {
+                          context.push('/login', extra: '/trips');
+                        } else {
+                          context.push('/trips');
+                        }
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),

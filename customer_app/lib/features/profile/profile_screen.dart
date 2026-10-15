@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../auth/auth_service.dart';
+import '../auth/login_screen.dart';
 import '../../widgets/floating_bottom_dock.dart';
 import '../../widgets/profile/ghost_profile_preview.dart';
 
@@ -266,9 +267,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (index == 0) {
       context.go('/');
     } else if (index == 1) {
-      context.go('/destinations');
+      context.go('/tours');
     } else if (index == 2) {
-      context.go('/trips');
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        context.push('/login', extra: '/trips');
+      } else {
+        context.push('/trips');
+      }
     }
   }
 
@@ -276,6 +282,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final authService = ref.watch(authServiceProvider);
     final user = authService.currentUser;
+
+    if (user == null) {
+      return const LoginScreen(redirectPath: '/profile');
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -331,15 +341,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 350),
-        child: user == null
-            ? GhostProfilePreview(
-                key: const ValueKey('logged_out_profile_preview'),
-                onSignInSuccess: () => setState(() {}),
-              )
-            : _buildLoggedInProfile(user, authService),
-      ),
+      body: _buildLoggedInProfile(user, authService),
       bottomNavigationBar: FloatingBottomDock(
         currentIndex: 3,
         onTabSelected: _onDockTabSelected,

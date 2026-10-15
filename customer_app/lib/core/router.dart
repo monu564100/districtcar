@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/profile_setup_screen.dart';
+import '../features/auth/auth_service.dart';
 import '../features/home/home_screen.dart';
 import '../features/booking/active_trip_screen.dart';
 import '../features/booking/driver_selection_screen.dart';
@@ -59,11 +60,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => LoginScreen(redirectPath: state.extra as String?),
+        builder: (context, state) => LoginScreen(
+          redirectPath: (state.extra as String?) ?? state.uri.queryParameters['redirect'],
+        ),
       ),
       GoRoute(
         path: '/profile-setup',
-        builder: (context, state) => const ProfileSetupScreen(),
+        builder: (context, state) => ProfileSetupScreen(
+          redirectPath: (state.extra as String?) ?? state.uri.queryParameters['redirect'],
+        ),
       ),
       GoRoute(
         path: '/choose-driver',
@@ -78,11 +83,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/trips',
-        builder: (context, state) => const TripsHistoryScreen(),
+        builder: (context, state) {
+          final user = ref.watch(authServiceProvider).currentUser;
+          if (user == null) {
+            return const LoginScreen(redirectPath: '/trips');
+          }
+          return const TripsHistoryScreen();
+        },
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
+        builder: (context, state) {
+          final user = ref.watch(authServiceProvider).currentUser;
+          if (user == null) {
+            return const LoginScreen(redirectPath: '/profile');
+          }
+          return const ProfileScreen();
+        },
       ),
       GoRoute(
         path: '/about-us',
