@@ -39,7 +39,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Hundru Falls'), findsOneWidget);
-    expect(find.text('Plan this trip'), findsOneWidget);
+    expect(find.text('Book Tour / यात्रा बुक करें'), findsOneWidget);
 
     // Test scrolling
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));

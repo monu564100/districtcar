@@ -343,12 +343,12 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(
-                          height: 105,
+                          height: 155,
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             scrollDirection: Axis.horizontal,
                             itemCount: comboList.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            separatorBuilder: (_, __) => const SizedBox(width: 14),
                             itemBuilder: (context, index) {
                               final combo = comboList[index];
                               return _buildComboPackageCard(combo);
@@ -565,69 +565,168 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
 
   /// Curated Combo Card
   Widget _buildComboPackageCard(PopularDestinationModel combo) {
+    final hasRemote = combo.imageUrl.isNotEmpty;
+
     return InkWell(
       onTap: () => _openDetail(combo),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        width: 230,
-        padding: const EdgeInsets.all(12),
+        width: 270,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTokens.marigold.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: AppTokens.softCardShadow,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTokens.marigoldTint,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTokens.marigoldDark.withOpacity(0.3)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // High-graphic Combo Image (network with asset fallback)
+              if (hasRemote)
+                Image.network(
+                  DestinationDetailScreen.sanitizeUrl(combo.imageUrl),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Image.asset(
+                    'assets/images/combo_package_hero_3d.jpg',
+                    fit: BoxFit.cover,
                   ),
-                  child: const Text(
-                    'COMBO',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                )
+              else
+                Image.asset(
+                  'assets/images/combo_package_hero_3d.jpg',
+                  fit: BoxFit.cover,
+                ),
+
+              // Gradient Scrim
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.fromRGBO(16, 26, 20, 0.15),
+                      Color.fromRGBO(16, 26, 20, 0.45),
+                      Color.fromRGBO(16, 26, 20, 0.92),
+                    ],
+                    stops: [0.0, 0.45, 1.0],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    combo.packageType.isNotEmpty ? combo.packageType : '${combo.district} Circuit',
-                    style: const TextStyle(fontSize: 11, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              ),
+
+              // Top Badges
+              Positioned(
+                top: 10,
+                left: 10,
+                right: 10,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: AppTokens.marigold,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.auto_awesome_rounded, size: 11, color: AppTokens.ink),
+                            SizedBox(width: 3),
+                            Text(
+                              'COMBO',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: AppTokens.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (combo.comboDestinations.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white24, width: 0.8),
+                        ),
+                        child: Text(
+                          '${combo.comboDestinations.length} Spots',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            Text(
-              combo.name,
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    '${combo.district}, Jharkhand',
-                    style: const TextStyle(fontSize: 11, color: AppTokens.primary, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              ),
+
+              // Bottom Details
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      combo.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_rounded, size: 12, color: AppTokens.marigold),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  combo.packageType.isNotEmpty ? combo.packageType : '${combo.district} Circuit',
+                                  style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTokens.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Explore',
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_forward_rounded, size: 14, color: AppTokens.primary),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

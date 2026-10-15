@@ -200,8 +200,9 @@ class TourPricingService {
       );
     }
 
-    // 3. Base Package Pricing
-    // Determine vehicle rate per km multiplier for Jharkhand package standard
+    // 3. Base Package Pricing dynamically configured from Admin Panel (destination.startingFare)
+    final adminPackageBase = destination.startingFare > 0 ? destination.startingFare : 1299.0;
+
     double baseRatePerKm;
     double minPackageFloor;
     double extraWaitingRatePerHour;
@@ -209,23 +210,23 @@ class TourPricingService {
     switch (vehicleType.toLowerCase()) {
       case 'auto':
         baseRatePerKm = 13.0;
-        minPackageFloor = 849.0;
+        minPackageFloor = (adminPackageBase * 0.70).roundToDouble();
         extraWaitingRatePerHour = 100.0;
         break;
       case 'mini':
         baseRatePerKm = 17.0;
-        minPackageFloor = 1299.0;
+        minPackageFloor = adminPackageBase;
         extraWaitingRatePerHour = 120.0;
         break;
       case 'sedan':
         baseRatePerKm = 21.0;
-        minPackageFloor = 1699.0;
+        minPackageFloor = (adminPackageBase * 1.30).roundToDouble();
         extraWaitingRatePerHour = 150.0;
         break;
       case 'suv':
       default:
         baseRatePerKm = 27.0;
-        minPackageFloor = 2299.0;
+        minPackageFloor = (adminPackageBase * 1.75).roundToDouble();
         extraWaitingRatePerHour = 200.0;
         break;
     }

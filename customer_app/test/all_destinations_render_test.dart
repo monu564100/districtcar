@@ -19,7 +19,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(dest.name), findsOneWidget, reason: 'Failed on ${dest.id}');
-      expect(find.text('Plan this trip'), findsOneWidget, reason: 'Failed on ${dest.id}');
+      expect(find.text('Book Tour / यात्रा बुक करें'), findsOneWidget, reason: 'Failed on ${dest.id}');
     }
     debugPrint('ALL 13 DESTINATIONS PASSED IN TEST!');
   });

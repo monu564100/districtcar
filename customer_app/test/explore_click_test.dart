@@ -64,10 +64,10 @@ void main() {
     // 3. Verify DestinationDetailScreen opened immediately!
     expect(find.byType(DestinationDetailScreen), findsOneWidget);
     expect(find.text('About this Place'), findsOneWidget);
-    expect(find.text('Plan this trip'), findsOneWidget);
+    expect(find.text('Book Tour / यात्रा बुक करें'), findsOneWidget);
 
-    // 4. Tap "Plan this trip" button
-    await tester.tap(find.text('Plan this trip'));
+    // 4. Tap "Book Tour / यात्रा बुक करें" button
+    await tester.tap(find.text('Book Tour / यात्रा बुक करें'));
     await tester.pumpAndSettle();
 
     // 5. Verify TourBookingScreen opened!

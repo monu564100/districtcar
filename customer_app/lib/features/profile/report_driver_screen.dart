@@ -250,25 +250,32 @@ class _ReportDriverScreenState extends ConsumerState<ReportDriverScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Select Recent Booked Trip',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                  'Recent Driver & Trip Details',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
                 ),
-                Text(
-                  _selectedBooking != null ? 'Selected: #${_selectedBooking!.readableId}' : 'Required',
-                  style: TextStyle(fontSize: 11.5, color: _selectedBooking != null ? const Color(0xFF16A34A) : const Color(0xFFDC2626), fontWeight: FontWeight.bold),
-                ),
+                if (_selectedBooking != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Trip #${_selectedBooking!.readableId}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.bold),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
 
-            // Fetch recent bookings from Firestore for this user
+            // Fetch recent bookings from Firestore for this user (in-memory sort avoids composite index requirement)
             if (user != null)
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('bookings')
                     .where('customerId', isEqualTo: user.uid)
-                    .orderBy('createdAt', descending: true)
-                    .limit(5)
+                    .limit(10)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
@@ -300,91 +307,199 @@ class _ReportDriverScreenState extends ConsumerState<ReportDriverScreen> {
                   }
 
                   final bookings = docs.map((d) => BookingModel.fromMap(d.data() as Map<String, dynamic>, d.id)).toList();
+                  bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+                  // Auto-select latest trip if none selected yet
+                  final activeBooking = _selectedBooking ?? bookings.first;
 
                   return Column(
-                    children: bookings.map((b) {
-                      final isSelected = _selectedBooking?.id == b.id;
-                      final isCompleted = b.status == 'completed';
-
-                      return InkWell(
-                        onTap: () => setState(() => _selectedBooking = b),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFF0FDF4) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isSelected ? const Color(0xFF16A34A) : Colors.grey.shade200,
-                              width: isSelected ? 2 : 1,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Prominent Hero Card for the Selected/Recent Driver
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF16A34A).withOpacity(0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                                  shape: BoxShape.circle,
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Driver info row
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: const Color(0xFFF1F5F9),
+                                  child: const Icon(Icons.person, color: Color(0xFF0F172A), size: 28),
                                 ),
-                                child: Icon(
-                                  isCompleted ? Icons.check_circle_outline : Icons.local_taxi_rounded,
-                                  color: isCompleted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                                  size: 18,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              activeBooking.driverName ?? 'Assigned Driver',
+                                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Icon(Icons.verified, color: Color(0xFF16A34A), size: 16),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Phone: ${activeBooking.driverPhone ?? "Provided on Ride"}',
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                // Vehicle Plate Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFF59E0B)),
+                                  ),
+                                  child: Text(
+                                    activeBooking.vehiclePlate ?? 'Plate N/A',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF78350F)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 20),
+                            // Trip Details
+                            Row(
+                              children: [
+                                const Icon(Icons.directions_car_rounded, size: 16, color: Color(0xFF64748B)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Vehicle: ${activeBooking.vehicleModel ?? "District Cab"}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                  ),
+                                ),
+                                Text(
+                                  '₹${(activeBooking.finalFare ?? activeBooking.estimatedFare).toInt()}',
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.route_rounded, size: 16, color: Color(0xFF16A34A)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    '${activeBooking.pickup.address} ➔ ${activeBooking.destination.address}',
+                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  DateFormat('dd MMM yyyy, hh:mm a').format(activeBooking.createdAt),
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: activeBooking.status == 'completed' ? const Color(0xFFDCFCE7) : const Color(0xFFE2E8F0),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    activeBooking.status.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeBooking.status == 'completed' ? const Color(0xFF16A34A) : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // If there are other past trips, give an option to select another trip
+                      if (bookings.length > 1) ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Or select an earlier trip to report:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 8),
+                        ...bookings.where((b) => b.id != activeBooking.id).take(3).map((b) {
+                          return InkWell(
+                            onTap: () => setState(() => _selectedBooking = b),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.history_rounded, size: 18, color: Color(0xFF64748B)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          b.driverName ?? 'Assigned Driver',
-                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
+                                          '${b.driverName ?? "Driver"} · ${b.vehiclePlate ?? "Plate N/A"}',
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF0F172A)),
                                         ),
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF1F5F9),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            b.vehiclePlate ?? 'Plate N/A',
-                                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-                                          ),
+                                        Text(
+                                          '${DateFormat('dd MMM').format(b.createdAt)} · ${b.pickup.address.split(',').first} ➔ ${b.destination.address.split(',').first}',
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      '${b.pickup.address} ➔ ${b.destination.address}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${DateFormat('dd MMM, hh:mm a').format(b.createdAt)} · ₹${(b.finalFare ?? b.estimatedFare).toInt()} · Status: ${b.status.toUpperCase()}',
-                                      style: TextStyle(fontSize: 10.5, color: Colors.grey.shade700, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => setState(() => _selectedBooking = b),
+                                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                    child: const Text('Select', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ),
+                                ],
                               ),
-                              Radio<String>(
-                                value: b.id,
-                                groupValue: _selectedBooking?.id,
-                                activeColor: const Color(0xFF16A34A),
-                                onChanged: (val) => setState(() => _selectedBooking = b),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
                   );
                 },
               ),

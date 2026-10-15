@@ -656,56 +656,33 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'From ₹${dest.startingFare.toInt()}',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppTokens.ink,
-                              ),
-                            ),
-                            Text(
-                              dest.isCombo ? 'Combo Package Price' : 'Round-trip from hub',
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppTokens.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            HapticService.buttonPress();
-                            TourBookingScreen.open(context, dest);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTokens.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 0,
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Plan this trip',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                              ),
-                              SizedBox(width: 6),
-                              Icon(Icons.arrow_forward_rounded, size: 17),
-                            ],
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          HapticService.buttonPress();
+                          TourBookingScreen.open(context, dest);
+                        },
+                        icon: const Icon(Icons.directions_car_filled_rounded, size: 20, color: Colors.white),
+                        label: const Text(
+                          'Book Tour / यात्रा बुक करें',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                            color: Colors.white,
                           ),
                         ),
-                      ],
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTokens.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

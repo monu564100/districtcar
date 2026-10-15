@@ -1,37 +1,34 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/location_search_service.dart';
+import 'package:district_car_shared/services/fcm_notification_service.dart';
+import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import '../../theme/theme.dart';
 import '../../services/haptic_service.dart';
-import '../../widgets/tours/tour_service_area_modal.dart';
-import '../../widgets/tours/branded_destination_placeholder.dart';
-import '../../widgets/tours/tour_assets.dart';
+import '../auth/auth_service.dart';
+import '../booking/booking_service.dart';
+import '../home/categories_provider.dart';
 import 'tour_pricing_service.dart';
 
-/// 3-Step Tour Booking Flow (Rule 4)
-/// Top Step Indicator: Trip → Vehicle → Review
-/// Sticky Bottom Bar on EVERY step: Fare + Breakdown Sheet + CTA
+/// Single-page unified Tour Booking Screen following the exact Home Screen model.
+/// Provides dynamic location routing, vehicle selection, ride now vs schedule timing,
+/// round-trip sightseeing wait stepper, and dynamic package pricing driven by Admin Panel.
 class TourBookingScreen extends ConsumerStatefulWidget {
   final PopularDestinationModel destination;
 
   const TourBookingScreen({super.key, required this.destination});
 
-  /// Universal entry point to open TourBookingScreen across Web, Mobile, and Desktop
   static Future<void> open(BuildContext context, PopularDestinationModel destination) async {
     HapticService.selectionClick();
-    debugPrint('>>> [TOUR_BOOKING] Opening booking for: ${destination.id} (${destination.name})');
-
     if (!context.mounted) return;
 
     try {
       await context.push('/book-tour?id=${destination.id}', extra: destination);
-    } catch (e) {
-      debugPrint('>>> [TOUR_BOOKING] context.push fallback: $e');
+    } catch (_) {
       if (context.mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute(
@@ -50,30 +47,38 @@ class TourBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
-  int _currentStep = 0; // 0: Trip, 1: Vehicle, 2: Review
-
-  // Step 1: Trip State
+  // Locations
   late LocationModel _pickupLocation;
   late LocationModel _destinationLocation;
-  String _tripType = 'round_trip'; // 'round_trip' or 'one_way'
-  int _stayHours = 1; // 1 free, 2, 3, 4...
-  final List<Map<String, dynamic>> _selectedAddonStops = [];
 
-  // Step 2: Vehicle State
-  String _selectedVehicle = 'mini'; // 'auto', 'mini', 'sedan', 'suv'
+  // Selected Vehicle: 'auto', 'mini', 'sedan', 'suv'
+  String _selectedVehicle = 'mini';
   int _passengerCount = 2;
 
-  // Step 3: Review State
+  // Ride Timing (Same model as Home page)
+  bool _isScheduleMode = false;
   DateTime _selectedDate = DateTime.now();
-  String _selectedTime = '08:00 AM';
-  String _paymentMethod = 'cash'; // 'cash', 'upi', 'advance'
-  final TextEditingController _pickupNoteCtrl = TextEditingController();
-  bool _agreedToTerms = true;
-  bool _isBookingConfirmed = false;
+  late TimeOfDay _selectedScheduleTime;
+
+  // Round Trip & Sightseeing hours
+  bool _isRoundTrip = true;
+  int _stayHours = 1; // 1 free hour included
+
+  // Payment
+  String _paymentMethod = 'Cash / UPI';
+
+  // Distance & Duration
+  double _calculatedDistanceKm = 0.0;
+  String _durationText = '';
+  bool _isCalculatingRoute = false;
+
+  // Booking dispatch
+  bool _isBookingLoading = false;
 
   @override
   void initState() {
     super.initState();
+    // Destination fixed to destination coordinates
     _destinationLocation = LocationModel(
       latitude: widget.destination.latitude,
       longitude: widget.destination.longitude,
@@ -82,347 +87,583 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
           : '${widget.destination.name}, ${widget.destination.district}',
     );
 
-    // Default pickup: Ranchi Hub Center
+    // Initial default pickup: Ranchi Hub
     _pickupLocation = LocationModel(
       latitude: 23.3441,
       longitude: 85.3096,
       address: 'Albert Ekka Chowk, Main Road, Ranchi, Jharkhand',
     );
+
+    // Initial schedule time: now + 1 hour (rounded to next 15 mins)
+    final initialSchedule = DateTime.now().add(const Duration(hours: 1));
+    _selectedScheduleTime = TimeOfDay(
+      hour: initialSchedule.hour,
+      minute: ((initialSchedule.minute / 15).ceil() * 15) % 60,
+    );
+
+    // Auto-detect GPS pickup & calculate distance
+    _detectUserCurrentGpsOnStart();
   }
 
-  @override
-  void dispose() {
-    _pickupNoteCtrl.dispose();
-    super.dispose();
+  void _detectUserCurrentGpsOnStart() async {
+    try {
+      final loc = await LocationSearchService().getCurrentDeviceLocation();
+      if (loc != null && mounted) {
+        setState(() {
+          _pickupLocation = loc.toLocationModel();
+        });
+      }
+    } catch (_) {}
+    _fetchRouteDistanceAndDuration();
   }
 
-  TourPricingBreakdown _calculateCurrentPricing([String? overrideVehicle]) {
+  void _fetchRouteDistanceAndDuration() async {
+    setState(() => _isCalculatingRoute = true);
+    try {
+      final res = await LocationSearchService().getDirectionsDistanceAndDuration(
+        originLat: _pickupLocation.latitude,
+        originLng: _pickupLocation.longitude,
+        destLat: _destinationLocation.latitude,
+        destLng: _destinationLocation.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _calculatedDistanceKm = (res['distanceKm'] as num).toDouble();
+          _durationText = (res['durationText'] as String?) ?? '${res['durationMinutes']} mins';
+          _isCalculatingRoute = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        final fallbackKm = TourPricingService.calculateRoadDistanceKm(
+          _pickupLocation.latitude,
+          _pickupLocation.longitude,
+          _destinationLocation.latitude,
+          _destinationLocation.longitude,
+        );
+        setState(() {
+          _calculatedDistanceKm = fallbackKm;
+          _durationText = TourPricingService.formatDurationText(
+            TourPricingService.calculateRuralDurationMinutes(fallbackKm),
+          );
+          _isCalculatingRoute = false;
+        });
+      }
+    }
+  }
+
+  void _openPickupLocationPicker() async {
+    HapticService.selection();
+    final picked = await LocationPickerSheet.show(
+      context,
+      title: 'Enter Tour Pickup Address (पिकअप का पता)',
+      initialValue: _pickupLocation.address,
+      isPickup: true,
+    );
+    if (picked != null) {
+      setState(() => _pickupLocation = picked);
+      _fetchRouteDistanceAndDuration();
+    }
+  }
+
+  void _openDestinationLocationPicker() async {
+    HapticService.selection();
+    final picked = await LocationPickerSheet.show(
+      context,
+      title: 'Change Destination (मंजिल)',
+      initialValue: _destinationLocation.address,
+      isPickup: false,
+    );
+    if (picked != null) {
+      setState(() => _destinationLocation = picked);
+      _fetchRouteDistanceAndDuration();
+    }
+  }
+
+  void _setCurrentGpsForPickup() async {
+    HapticService.selection();
+    try {
+      final loc = await LocationSearchService().getCurrentDeviceLocation();
+      if (loc != null && mounted) {
+        setState(() => _pickupLocation = loc.toLocationModel());
+        _fetchRouteDistanceAndDuration();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pickup set to current GPS location'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
+  void _swapLocations() {
+    HapticService.selection();
+    setState(() {
+      final temp = _pickupLocation;
+      _pickupLocation = _destinationLocation;
+      _destinationLocation = temp;
+    });
+    _fetchRouteDistanceAndDuration();
+  }
+
+  TourPricingBreakdown _calculatePricing([String? overrideVehicle]) {
     return TourPricingService.calculateTourPackageFare(
       destination: widget.destination,
       pickupLat: _pickupLocation.latitude,
       pickupLng: _pickupLocation.longitude,
       vehicleType: overrideVehicle ?? _selectedVehicle,
-      isRoundTrip: _tripType == 'round_trip',
+      isRoundTrip: _isRoundTrip,
       stayHours: _stayHours,
       passengerCount: _passengerCount,
-      selectedAddonStops: _selectedAddonStops,
+      overrideDistanceKm: _calculatedDistanceKm > 0 ? _calculatedDistanceKm : null,
     );
   }
 
-  void _checkServiceAreaAndProceed() {
-    final pricing = _calculateCurrentPricing();
-    if (!pricing.isServiceable) {
-      TourServiceAreaModal.show(
-        context: context,
-        distanceKm: pricing.distanceKm,
-        destinationName: widget.destination.name,
-        onSelectHubCity: (hub) {
-          setState(() {
-            _pickupLocation = LocationModel(
-              latitude: hub.latitude,
-              longitude: hub.longitude,
-              address: '${hub.name} City Center, Jharkhand',
+  bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _formatTimeOfDay(TimeOfDay tod) {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, tod.hour, tod.minute);
+    return DateFormat('hh:mm a').format(dt);
+  }
+
+  void _validateAndSetScheduleTime(TimeOfDay picked) {
+    final now = DateTime.now();
+    if (_isSameDay(_selectedDate, now)) {
+      final minimumAllowed = now.add(const Duration(hours: 1));
+      final pickedDateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        picked.hour,
+        picked.minute,
+      );
+      if (pickedDateTime.isBefore(minimumAllowed)) {
+        final clampedMinutes = ((minimumAllowed.minute / 5).ceil() * 5);
+        final clampedHour = minimumAllowed.hour + (clampedMinutes >= 60 ? 1 : 0);
+        final finalMin = clampedMinutes % 60;
+        final clampedTime = TimeOfDay(hour: clampedHour % 24, minute: finalMin);
+
+        setState(() => _selectedScheduleTime = clampedTime);
+        HapticService.selection();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('For today, schedule must be at least 1 hour in advance (${_formatTimeOfDay(clampedTime)}).'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: const Color(0xFF0F172A),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+    setState(() => _selectedScheduleTime = picked);
+  }
+
+  Future<void> _pickScheduleTime() async {
+    HapticService.selection();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedScheduleTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0F172A),
+              onPrimary: Colors.white,
+              onSurface: AppTokens.ink,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      _validateAndSetScheduleTime(picked);
+    }
+  }
+
+  void _pickDate() async {
+    HapticService.selection();
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 45)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0F172A),
+              onPrimary: Colors.white,
+              onSurface: AppTokens.ink,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      _validateAndSetScheduleTime(_selectedScheduleTime);
+    }
+  }
+
+  void _handleBookingSubmit(double totalFare) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      context.push('/login');
+      return;
+    }
+
+    setState(() => _isBookingLoading = true);
+
+    try {
+      final bookingService = ref.read(bookingServiceProvider);
+      final now = DateTime.now();
+      String formattedDate;
+      String timeSlot;
+
+      if (_isScheduleMode) {
+        if (_isSameDay(_selectedDate, now)) {
+          final minimumAllowed = now.add(const Duration(hours: 1));
+          final selectedDt = DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            _selectedScheduleTime.hour,
+            _selectedScheduleTime.minute,
+          );
+          if (selectedDt.isBefore(minimumAllowed)) {
+            _selectedScheduleTime = TimeOfDay(
+              hour: minimumAllowed.hour,
+              minute: minimumAllowed.minute,
             );
-          });
-        },
-        onSeeNearestPackages: () {
-          context.pop();
-        },
+          }
+        }
+        formattedDate = DateFormat('EEE, d MMM yyyy').format(_selectedDate);
+        final dateLabel = _isSameDay(_selectedDate, now) ? 'Today' : DateFormat('d MMM').format(_selectedDate);
+        timeSlot = '$dateLabel at ${_formatTimeOfDay(_selectedScheduleTime)}';
+      } else {
+        formattedDate = 'Today';
+        timeSlot = 'Now (Within 30 mins)';
+      }
+
+      // Map vehicle selection to active category ID
+      String categoryId;
+      switch (_selectedVehicle) {
+        case 'auto':
+          categoryId = 'auto';
+          break;
+        case 'sedan':
+          categoryId = 'sedan';
+          break;
+        case 'suv':
+          categoryId = 'suv';
+          break;
+        case 'mini':
+        default:
+          categoryId = 'car';
+          break;
+      }
+
+      final bookingResult = await bookingService.createBooking(
+        categoryId: categoryId,
+        pickup: _pickupLocation,
+        destination: _destinationLocation,
+        customFare: totalFare,
+        isRoundTrip: _isRoundTrip,
+        roundTripStoppingHours: _stayHours.toDouble(),
+        scheduledDate: formattedDate,
+        scheduledTimeSlot: timeSlot,
       );
-      return;
+
+      try {
+        await FCMNotificationService.sendCustomerSearchingNotification(
+          bookingId: bookingResult['bookingId'],
+          customerId: user.uid,
+          isScheduled: _isScheduleMode,
+          scheduledInfo: _isScheduleMode ? timeSlot : null,
+          pickupAddress: _pickupLocation.address,
+          destinationAddress: _destinationLocation.address,
+        );
+      } catch (_) {}
+
+      setState(() => _isBookingLoading = false);
+
+      if (mounted) {
+        final bookingId = bookingResult['bookingId'];
+        context.push('/active-trip/$bookingId');
+      }
+    } catch (e) {
+      setState(() => _isBookingLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Booking error: $e')),
+        );
+      }
     }
-
-    HapticService.lightImpact();
-    setState(() => _currentStep = 1);
-  }
-
-  void _showFareBreakdownSheet() {
-    HapticService.selectionClick();
-    final p = _calculateCurrentPricing();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppTokens.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.radiusSheets)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: AppTokens.border, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Package Fare Breakdown',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTokens.ink),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTokens.primaryTint,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'ALL INCLUSIVE',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTokens.primaryDark),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildBreakdownRow('Base Package Fare (${_tripType == 'round_trip' ? 'Round Trip' : 'One Way'})', '₹${p.basePackageFare.round()}'),
-            if (p.extraWaitingFare > 0)
-              _buildBreakdownRow('Extra Waiting Time (${_stayHours - 1} hr extra)', '+₹${p.extraWaitingFare.round()}'),
-            if (p.nearbyStopsFare > 0)
-              _buildBreakdownRow('Nearby Added Stops (${_selectedAddonStops.length})', '+₹${p.nearbyStopsFare.round()}'),
-            _buildBreakdownRow('Driver & Fuel Allowance', 'Included in Package'),
-            _buildBreakdownRow('Tolls, State Taxes & Parking', 'Included / ₹0 extra'),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(color: AppTokens.border, height: 1),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Total Guaranteed Fare', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTokens.ink)),
-                    Text('₹${p.perPersonFare.round()} / person for $_passengerCount riders', style: const TextStyle(fontSize: 12, color: AppTokens.secondaryText)),
-                  ],
-                ),
-                Text(
-                  '₹${p.totalFare.round()}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTokens.primary),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBreakdownRow(String title, String amount) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 13.5, color: AppTokens.secondaryText, fontWeight: FontWeight.w500))),
-          Text(amount, style: const TextStyle(fontSize: 13.5, color: AppTokens.ink, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-
-  void _showChangePickupModal() {
-    HapticService.selectionClick();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppTokens.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.radiusSheets)),
-        ),
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: AppTokens.border, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Choose Tour Pickup Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTokens.ink)),
-            const SizedBox(height: 12),
-            const Text('Major Hub Cities in Jharkhand:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.secondaryText)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: TourPricingService.hubCities.map((hub) {
-                final isSelected = _pickupLocation.address.contains(hub.name);
-                return ActionChip(
-                  onPressed: () {
-                    HapticService.selectionClick();
-                    setState(() {
-                      _pickupLocation = LocationModel(
-                        latitude: hub.latitude,
-                        longitude: hub.longitude,
-                        address: '${hub.name} City Center, Jharkhand',
-                      );
-                    });
-                    Navigator.pop(ctx);
-                  },
-                  backgroundColor: isSelected ? AppTokens.primaryTint : Colors.white,
-                  side: BorderSide(color: isSelected ? AppTokens.primary : AppTokens.border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  label: Text(
-                    hub.name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? AppTokens.primaryDark : AppTokens.ink,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmBooking() {
-    if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please accept the booking terms to proceed')),
-      );
-      return;
-    }
-
-    HapticService.success();
-    setState(() => _isBookingConfirmed = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isBookingConfirmed) {
-      return _buildBookingConfirmationScreen();
-    }
-
-    final pricing = _calculateCurrentPricing();
+    final pricing = _calculatePricing();
+    final totalFare = pricing.totalFare;
+    final dayDate = DateFormat('d MMM').format(_selectedDate);
+    final isToday = _isSameDay(_selectedDate, DateTime.now());
+    final isTomorrow = _isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)));
 
     return Scaffold(
       backgroundColor: AppTokens.background,
       appBar: AppBar(
-        elevation: 0,
         backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTokens.ink),
-          onPressed: () {
-            if (_currentStep > 0) {
-              setState(() => _currentStep--);
-            } else {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                try {
-                  if (context.canPop()) {
-                    context.pop();
-                    return;
-                  }
-                } catch (_) {}
-                try {
-                  context.go('/tours');
-                } catch (_) {}
-              }
-            }
-          },
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTokens.ink, size: 20),
+          onPressed: () => context.pop(),
         ),
         title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Plan Your Tour',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.ink),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTokens.ink),
             ),
             Text(
-              widget.destination.name,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.primary),
+              '${widget.destination.name} • ${widget.destination.district}',
+              style: const TextStyle(fontSize: 11.5, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
             ),
           ],
         ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  // 1. Persistent 3-Step Progress Bar
-                  _buildStepIndicator(),
-
-                  // Step Content Body
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-                      child: _buildCurrentStepContent(pricing),
-                    ),
-                  ),
-                ],
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTokens.primaryTint,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Text(
+                'Tour Package',
+                style: TextStyle(color: AppTokens.primaryDark, fontSize: 11, fontWeight: FontWeight.w800),
               ),
-
-              // 2. Sticky Bottom Bar on EVERY Step (Rolling total + Breakdown + Primary Button)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _buildStickyBottomActionBar(pricing),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Pickup to Destination Route Card (Same model as Home page)
+                _buildRouteCard(),
+
+                const SizedBox(height: 18),
+
+                // 2. Vehicle Selector Section (Same model as Home page)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      'Select Vehicle',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                    ),
+                    Text(
+                      'Admin Dynamic Fare',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTokens.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildVehicleCategorySelector(),
+
+                const SizedBox(height: 18),
+
+                // 3. Ride Timing: Ride Now vs Schedule Ride (Exact Home page model)
+                _buildRideTimingSection(dayDate, isToday, isTomorrow),
+
+                const SizedBox(height: 18),
+
+                // 4. Round Trip & Sightseeing Wait Section
+                _buildRoundTripSection(),
+
+                const SizedBox(height: 18),
+
+                // 5. All-Inclusive Package Fare Breakdown
+                _buildFareBreakdownCard(pricing),
+              ],
+            ),
+          ),
+
+          // Sticky Bottom Booking Bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildStickyBottomBar(totalFare),
+          ),
+        ],
       ),
     );
   }
 
-  /// Persistent 3-Step Indicator
-  Widget _buildStepIndicator() {
+  /// 1. Pickup to Destination Route Card
+  Widget _buildRouteCard() {
+    final distText = _calculatedDistanceKm > 0
+        ? '${_calculatedDistanceKm.toStringAsFixed(1)} km • $_durationText'
+        : 'Calculating route distance...';
+
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTokens.border),
+        boxShadow: AppTokens.softCardShadow,
+      ),
       child: Column(
         children: [
+          // Pickup Row
+          InkWell(
+            onTap: _openPickupLocationPicker,
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.my_location_rounded, color: Color(0xFF16A34A), size: 16),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pickup Point (पिकअप)',
+                        style: TextStyle(fontSize: 11, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        _pickupLocation.address,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.ink),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.gps_fixed_rounded, size: 18, color: AppTokens.primary),
+                  tooltip: 'Use current GPS location',
+                  onPressed: _setCurrentGpsForPickup,
+                ),
+              ],
+            ),
+          ),
+
+          // Divider with Swap button
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStepItem(0, '1. Trip Details'),
-              _buildStepDivider(0),
-              _buildStepItem(1, '2. Vehicle'),
-              _buildStepDivider(1),
-              _buildStepItem(2, '3. Review'),
+              const SizedBox(width: 15),
+              Container(width: 2, height: 16, color: Colors.grey.shade300),
+              const Spacer(),
+              InkWell(
+                onTap: _swapLocations,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.swap_vert_rounded, size: 14, color: AppTokens.ink),
+                      SizedBox(width: 3),
+                      Text('Swap', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTokens.ink)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Mini Persistent Summary Chip
+
+          // Destination Row
+          InkWell(
+            onTap: _openDestinationLocationPicker,
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.location_on_rounded, color: Color(0xFFDC2626), size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tour Destination (मंजिल)',
+                        style: TextStyle(fontSize: 11, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        _destinationLocation.address,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.ink),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.edit_location_alt_rounded, size: 18, color: AppTokens.secondaryText),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Distance and Duration Badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTokens.surface2,
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${widget.destination.name} · ${_tripType == 'round_trip' ? 'Round Trip' : 'One Way'}',
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTokens.secondaryText),
+                const Icon(Icons.route_rounded, size: 14, color: AppTokens.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    distText,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                  ),
                 ),
-                Text(
-                  DateFormat('dd MMM').format(_selectedDate),
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppTokens.primaryDark),
-                ),
+                if (_isCalculatingRoute)
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
               ],
             ),
           ),
@@ -431,277 +672,520 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     );
   }
 
-  Widget _buildStepItem(int stepIndex, String title) {
-    final isActive = _currentStep == stepIndex;
-    final isDone = _currentStep > stepIndex;
+  /// 2. Vehicle Selector (Dynamic pricing from Admin Panel)
+  Widget _buildVehicleCategorySelector() {
+    final vehicles = [
+      {
+        'id': 'mini',
+        'title': 'Mini Cab',
+        'seats': '4 Seats',
+        'asset': 'assets/images/icon_vehicle_mini.png',
+        'desc': 'WagonR / Alto AC',
+      },
+      {
+        'id': 'sedan',
+        'title': 'Prime Sedan',
+        'seats': '4 Seats',
+        'asset': 'assets/images/icon_vehicle_sedan.png',
+        'desc': 'Dzire / Etios AC',
+      },
+      {
+        'id': 'suv',
+        'title': 'Spacious SUV',
+        'seats': '6-7 Seats',
+        'asset': 'assets/images/icon_vehicle_suv.png',
+        'desc': 'Bolero / Ertiga AC',
+      },
+      {
+        'id': 'auto',
+        'title': 'Auto Rickshaw',
+        'seats': '3 Seats',
+        'asset': 'assets/images/icon_vehicle_auto.png',
+        'desc': 'Local Sightseeing',
+      },
+    ];
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: isDone || isActive ? AppTokens.primary : AppTokens.border,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: isDone
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                : Text(
-                    '${stepIndex + 1}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: isActive ? Colors.white : AppTokens.secondaryText,
-                    ),
+    return SizedBox(
+      height: 132,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: vehicles.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final v = vehicles[index];
+          final vid = v['id']! as String;
+          final isSel = _selectedVehicle == vid;
+          final vPricing = _calculatePricing(vid);
+
+          return InkWell(
+            onTap: () {
+              HapticService.selection();
+              setState(() => _selectedVehicle = vid);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 138,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSel ? const Color(0xFFF0FDF4) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSel ? AppTokens.primary : AppTokens.border,
+                  width: isSel ? 2 : 1,
+                ),
+                boxShadow: isSel
+                    ? [
+                        BoxShadow(
+                          color: AppTokens.primary.withOpacity(0.12),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : AppTokens.softCardShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Image.asset(
+                        v['asset']! as String,
+                        width: 32,
+                        height: 32,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.directions_car_rounded, size: 28, color: AppTokens.primary),
+                      ),
+                      Flexible(
+                        child: Text(
+                          v['seats']! as String,
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTokens.secondaryText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-            color: isActive ? AppTokens.primaryDark : AppTokens.secondaryText,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepDivider(int afterStep) {
-    final isPassed = _currentStep > afterStep;
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        color: isPassed ? AppTokens.primary : AppTokens.border,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        v['title']! as String,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${vPricing.totalFare.toInt()}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: isSel ? AppTokens.primary : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCurrentStepContent(TourPricingBreakdown pricing) {
-    switch (_currentStep) {
-      case 0:
-        return _buildStep1Trip(pricing);
-      case 1:
-        return _buildStep2Vehicle(pricing);
-      case 2:
-      default:
-        return _buildStep3Review(pricing);
-    }
-  }
-
-  /// Step 1: TRIP (Destination mini card, collapsed pickup with Change, Trip Type, Waiting stepper, Add-on stops)
-  Widget _buildStep1Trip(TourPricingBreakdown pricing) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Destination Mini Card
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTokens.border),
-            boxShadow: AppTokens.softCardShadow,
-          ),
-          child: Row(
+  /// 3. Ride Timing Section (Same model as Home screen)
+  Widget _buildRideTimingSection(String dayDate, bool isToday, bool isTomorrow) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTokens.border),
+        boxShadow: AppTokens.softCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: 72,
-                  height: 72,
-                  child: (widget.destination.imageUrl.isNotEmpty && widget.destination.imageUrl.startsWith('http'))
-                      ? Image.network(
-                          widget.destination.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const BrandedDestinationPlaceholder(),
-                        )
-                      : const BrandedDestinationPlaceholder(),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.destination.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTokens.ink),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${pricing.distanceKm.round()} km · ${pricing.durationText}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTokens.primary),
-                    ),
-                    Text(
-                      widget.destination.district,
-                      style: const TextStyle(fontSize: 12, color: AppTokens.secondaryText),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Route Card with Single-Line Pickup & "Change" Button (Rule 0d)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTokens.border),
-            boxShadow: AppTokens.softCardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF0F172A)),
+              const SizedBox(width: 6),
               const Text(
-                'Tour Route & Pickup',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                'Tour Ride Timing (यात्रा का समय)',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTokens.ink),
               ),
-              const SizedBox(height: 12),
-              // Pickup row with Change button
-              Row(
-                children: [
-                  const Icon(Icons.radio_button_checked_rounded, color: AppTokens.primary, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Pickup Location', style: TextStyle(fontSize: 11, color: AppTokens.hint)),
-                        Text(
-                          _pickupLocation.address,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTokens.ink),
-                        ),
-                      ],
-                    ),
+              const Spacer(),
+              if (!_isScheduleMode)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  TextButton(
-                    onPressed: _showChangePickupModal,
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTokens.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    ),
-                    child: const Text('Change', style: TextStyle(fontWeight: FontWeight.w800)),
+                  child: const Text(
+                    '⚡ 30 Min Search',
+                    style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFFB45309)),
                   ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.only(left: 10),
-                child: SizedBox(
-                  height: 18,
-                  child: VerticalDivider(color: AppTokens.border, thickness: 1.5),
                 ),
-              ),
-              // Destination Row
-              Row(
-                children: [
-                  const Icon(Icons.location_on_rounded, color: AppTokens.terracotta, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Destination', style: TextStyle(fontSize: 11, color: AppTokens.hint)),
-                        Text(
-                          widget.destination.locationAddress.isNotEmpty ? widget.destination.locationAddress : widget.destination.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTokens.ink),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
-        // Trip Type Selection (Round trip RECOMMENDED vs One Way)
-        const Text(
-          'Select Trip Type',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildTripTypeCard(
-                type: 'round_trip',
-                title: 'Round Trip',
-                subtitle: 'Includes Return & Wait',
-                badge: 'RECOMMENDED',
-                icon: Icons.sync_rounded,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildTripTypeCard(
-                type: 'one_way',
-                title: 'One Way Drop',
-                subtitle: 'Direct drop at destination',
-                badge: null,
-                icon: Icons.arrow_forward_rounded,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-
-        // Waiting Time Stepper (1h free, +1h increments)
-        if (_tripType == 'round_trip') ...[
+          // Segmented Toggle
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTokens.border),
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticService.selection();
+                      setState(() => _isScheduleMode = false);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_isScheduleMode ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: !_isScheduleMode
+                            ? const [
+                                BoxShadow(
+                                  color: Color.fromRGBO(0, 0, 0, 0.06),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 16,
+                            color: !_isScheduleMode ? const Color(0xFFD97706) : AppTokens.secondaryText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ride Now (तुरंत)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: !_isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                              color: !_isScheduleMode ? const Color(0xFF0F172A) : AppTokens.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticService.selection();
+                      setState(() => _isScheduleMode = true);
+                      _validateAndSetScheduleTime(_selectedScheduleTime);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _isScheduleMode ? const Color(0xFF0F172A) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _isScheduleMode
+                            ? const [
+                                BoxShadow(
+                                  color: Color.fromRGBO(15, 23, 42, 0.20),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.calendar_month_rounded,
+                            size: 15,
+                            color: _isScheduleMode ? Colors.white : AppTokens.secondaryText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Schedule Ride',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: _isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                              color: _isScheduleMode ? Colors.white : AppTokens.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Date & Time Picker when Schedule Mode is Active
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 240),
+            crossFadeState: _isScheduleMode ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Today
+                      InkWell(
+                        onTap: () {
+                          HapticService.selection();
+                          setState(() => _selectedDate = DateTime.now());
+                          _validateAndSetScheduleTime(_selectedScheduleTime);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isToday ? const Color(0xFF0F172A) : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isToday ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1)),
+                          ),
+                          child: Text(
+                            'Today',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isToday ? Colors.white : AppTokens.ink,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Tomorrow
+                      InkWell(
+                        onTap: () {
+                          HapticService.selection();
+                          setState(() => _selectedDate = DateTime.now().add(const Duration(days: 1)));
+                          _validateAndSetScheduleTime(_selectedScheduleTime);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isTomorrow ? const Color(0xFF0F172A) : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isTomorrow ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1)),
+                          ),
+                          child: Text(
+                            'Tomorrow',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isTomorrow ? Colors.white : AppTokens.ink,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Pick other date
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickDate,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: (!isToday && !isTomorrow) ? const Color(0xFF0F172A) : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: (!isToday && !isTomorrow) ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_calendar_rounded, size: 13, color: (!isToday && !isTomorrow) ? Colors.white : AppTokens.ink),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    dayDate,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: (!isToday && !isTomorrow) ? Colors.white : AppTokens.ink,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Departure Time Picker
+                  InkWell(
+                    onTap: _pickScheduleTime,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time_filled_rounded, size: 16, color: Color(0xFFD97706)),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Departure Time (प्रस्थान)',
+                                style: TextStyle(fontSize: 10, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                _formatTimeOfDay(_selectedScheduleTime),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: const [
+                                Text('Change', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                                SizedBox(width: 3),
+                                Icon(Icons.edit_rounded, size: 12, color: Color(0xFF0F172A)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (isToday) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: const [
+                        Icon(Icons.info_outline_rounded, size: 12, color: Color(0xFFD97706)),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Note: Same-day schedules require at least 1 hour advance notice.',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFFB45309)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 4. Round Trip & Sightseeing Section
+  Widget _buildRoundTripSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTokens.border),
+        boxShadow: AppTokens.softCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.repeat_rounded, size: 18, color: AppTokens.primary),
+                  SizedBox(width: 8),
+                  Text(
+                    'Round Trip Package (आना-जाना)',
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                  ),
+                ],
+              ),
+              Switch.adaptive(
+                value: _isRoundTrip,
+                activeColor: AppTokens.primary,
+                onChanged: (val) {
+                  HapticService.selection();
+                  setState(() => _isRoundTrip = val);
+                },
+              ),
+            ],
+          ),
+          if (_isRoundTrip) ...[
+            const Divider(height: 18),
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Destination Waiting Time', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTokens.ink)),
+                  children: const [
                     Text(
-                      _stayHours == 1 ? '1 hour wait is included free' : '$_stayHours hours total (${_stayHours - 1}h extra waiting)',
-                      style: const TextStyle(fontSize: 12, color: AppTokens.secondaryText),
+                      'Sightseeing & Waiting Hours',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTokens.ink),
+                    ),
+                    Text(
+                      '1st hour free included in tour package',
+                      style: TextStyle(fontSize: 10.5, color: AppTokens.secondaryText),
                     ),
                   ],
                 ),
+                // Stepper
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline_rounded, color: AppTokens.secondaryText),
+                      icon: const Icon(Icons.remove_circle_outline_rounded, size: 22, color: AppTokens.primary),
                       onPressed: _stayHours > 1
                           ? () {
-                              HapticService.selectionClick();
+                              HapticService.selection();
                               setState(() => _stayHours--);
                             }
                           : null,
                     ),
                     Text(
-                      '$_stayHours hr',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTokens.ink),
+                      '$_stayHours hr${_stayHours > 1 ? "s" : ""}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppTokens.ink),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline_rounded, color: AppTokens.primary),
+                      icon: const Icon(Icons.add_circle_outline_rounded, size: 22, color: AppTokens.primary),
                       onPressed: _stayHours < 8
                           ? () {
-                              HapticService.selectionClick();
+                              HapticService.selection();
                               setState(() => _stayHours++);
                             }
                           : null,
@@ -710,734 +1194,150 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 18),
-        ],
-
-        // Optional Add Nearby Stops
-        if (widget.destination.nearbyStops.isNotEmpty) ...[
-          const Text(
-            'Add Nearby Attractions (Optional)',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink),
-          ),
-          const SizedBox(height: 8),
-          ...widget.destination.nearbyStops.map((stop) {
-            final isAdded = _selectedAddonStops.any((s) => s['id'] == stop['id']);
-            return CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              activeColor: AppTokens.primary,
-              title: Text(stop['name'] as String, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.ink)),
-              subtitle: Text('+${stop['distanceKm']} km · +₹${stop['fare']}', style: const TextStyle(fontSize: 12, color: AppTokens.primary, fontWeight: FontWeight.w600)),
-              value: isAdded,
-              onChanged: (val) {
-                HapticService.selectionClick();
-                setState(() {
-                  if (val == true) {
-                    _selectedAddonStops.add(stop);
-                  } else {
-                    _selectedAddonStops.removeWhere((s) => s['id'] == stop['id']);
-                  }
-                });
-              },
-            );
-          }),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildTripTypeCard({
-    required String type,
-    required String title,
-    required String subtitle,
-    required String? badge,
-    required IconData icon,
-  }) {
-    final isSelected = _tripType == type;
-
-    return GestureDetector(
-      onTap: () {
-        HapticService.selectionClick();
-        setState(() => _tripType = type);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTokens.primaryTint : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? AppTokens.primary : AppTokens.border,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? AppTokens.elevationGlow : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: isSelected ? AppTokens.primaryDark : AppTokens.secondaryText, size: 20),
-                if (badge != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppTokens.marigold,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badge,
-                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTokens.ink),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isSelected ? AppTokens.primaryDark : AppTokens.ink)),
-            const SizedBox(height: 2),
-            Text(subtitle, style: const TextStyle(fontSize: 11.5, color: AppTokens.secondaryText)),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  /// Step 2: VEHICLE (Capacity stepper filter, vehicle cards with ETA, badge, and per-person price)
-  Widget _buildStep2Vehicle(TourPricingBreakdown currentPricing) {
-    final vehicles = [
-      {
-        'id': 'auto',
-        'name': 'District Auto',
-        'capacity': 3,
-        'tag': 'Best Value',
-        'desc': '3 Seats · Village roads & local sights',
-        'eta': 'Arrives in 5 min',
-      },
-      {
-        'id': 'mini',
-        'name': 'District Mini Cab',
-        'capacity': 4,
-        'tag': 'Most Popular',
-        'desc': '4 Seats · AC · 2 Luggage Bags',
-        'eta': 'Arrives in 7 min',
-      },
-      {
-        'id': 'sedan',
-        'name': 'Prime Sedan (Dzire)',
-        'capacity': 4,
-        'tag': 'Family Choice',
-        'desc': '4 Seats · AC · Spacious Boot Space',
-        'eta': 'Arrives in 8 min',
-      },
-      {
-        'id': 'suv',
-        'name': 'Bolero / Scorpio SUV',
-        'capacity': 7,
-        'tag': 'Hill & Forest Choice',
-        'desc': '6-7 Seats · AC · High Ground Clearance',
-        'eta': 'Arrives in 12 min',
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Passenger Stepper at the top
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTokens.border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Number of Passengers', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTokens.ink)),
-                  Text('Filters vehicles that fit your group', style: TextStyle(fontSize: 12, color: AppTokens.secondaryText)),
-                ],
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline_rounded, color: AppTokens.secondaryText),
-                    onPressed: _passengerCount > 1
-                        ? () {
-                            HapticService.selectionClick();
-                            setState(() => _passengerCount--);
-                          }
-                        : null,
-                  ),
-                  Text(
-                    '$_passengerCount',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTokens.ink),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline_rounded, color: AppTokens.primary),
-                    onPressed: _passengerCount < 7
-                        ? () {
-                            HapticService.selectionClick();
-                            setState(() {
-                              _passengerCount++;
-                              // Auto cannot fit > 3
-                              if (_passengerCount > 3 && _selectedVehicle == 'auto') {
-                                _selectedVehicle = 'mini';
-                              }
-                              // Mini/Sedan cannot fit > 4
-                              if (_passengerCount > 4 && (_selectedVehicle == 'mini' || _selectedVehicle == 'sedan')) {
-                                _selectedVehicle = 'suv';
-                              }
-                            });
-                          }
-                        : null,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        const Text(
-          'Select Vehicle',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTokens.ink),
-        ),
-        const SizedBox(height: 10),
-
-        ...vehicles.map((v) {
-          final id = v['id'] as String;
-          final capacity = v['capacity'] as int;
-          final isCapacitySufficient = _passengerCount <= capacity;
-          final isSelected = _selectedVehicle == id && isCapacitySufficient;
-          final p = _calculateCurrentPricing(id);
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: GestureDetector(
-              onTap: isCapacitySufficient
-                  ? () {
-                      HapticService.selectionClick();
-                      setState(() => _selectedVehicle = id);
-                    }
-                  : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isCapacitySufficient
-                      ? (isSelected ? AppTokens.primaryTint : Colors.white)
-                      : AppTokens.surface2.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AppTokens.primary : AppTokens.border,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected ? AppTokens.elevationGlow : AppTokens.softCardShadow,
-                ),
-                child: Row(
-                  children: [
-                    // Vehicle Icon / Badge
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.white : AppTokens.surface2,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        id == 'auto'
-                            ? Icons.electric_rickshaw_rounded
-                            : (id == 'suv' ? Icons.directions_car_filled_rounded : Icons.directions_car_rounded),
-                        size: 30,
-                        color: isCapacitySufficient ? AppTokens.primaryDark : AppTokens.hint,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                v['name'] as String,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: isCapacitySufficient ? AppTokens.ink : AppTokens.hint,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppTokens.marigoldTint,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  v['tag'] as String,
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTokens.ink),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            isCapacitySufficient
-                                ? '${v['desc']} · ${v['eta']}'
-                                : 'Fits up to $capacity passengers (Group is $_passengerCount)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isCapacitySufficient ? AppTokens.secondaryText : AppTokens.error,
-                              fontWeight: isCapacitySufficient ? FontWeight.w500 : FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Fare column
-                    if (isCapacitySufficient)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '₹${p.totalFare.round()}',
-                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.primary),
-                          ),
-                          if (_passengerCount > 1)
-                            Text(
-                              '₹${p.perPersonFare.round()}/person',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTokens.secondaryText),
-                            ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
-  /// Step 3: REVIEW (14-day horizontal date strip, time chips, payment method, all-inclusive fare card)
-  Widget _buildStep3Review(TourPricingBreakdown pricing) {
-    final now = DateTime.now();
-    final dates = List.generate(14, (i) => now.add(Duration(days: i)));
-    final times = ['Now', '06:00 AM', '08:00 AM', '10:00 AM', '02:00 PM'];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Horizontal Date Strip (14 days)
-        const Text('Select Departure Date', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink)),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 68,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: dates.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, idx) {
-              final d = dates[idx];
-              final isSel = d.day == _selectedDate.day && d.month == _selectedDate.month;
-
-              return GestureDetector(
-                onTap: () {
-                  HapticService.selectionClick();
-                  setState(() => _selectedDate = d);
-                },
-                child: Container(
-                  width: 58,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSel ? AppTokens.primary : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isSel ? AppTokens.primary : AppTokens.border),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        DateFormat('E').format(d).toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isSel ? Colors.white70 : AppTokens.secondaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${d.day}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: isSel ? Colors.white : AppTokens.ink,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Departure Time Chips
-        const Text('Departure Time', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink)),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: times.map((t) {
-            final isSel = _selectedTime == t;
-            return ChoiceChip(
-              label: Text(t),
-              selected: isSel,
-              selectedColor: AppTokens.primary,
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isSel ? Colors.white : AppTokens.ink,
-              ),
-              side: BorderSide(color: isSel ? AppTokens.primary : AppTokens.border),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              onSelected: (val) {
-                HapticService.selectionClick();
-                setState(() => _selectedTime = t);
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 18),
-
-        // Payment Method Options
-        const Text('Payment Method', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTokens.ink)),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _buildPaymentTile('cash', 'Cash to Driver', Icons.money_rounded)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildPaymentTile('upi', 'UPI / QR Code', Icons.qr_code_2_rounded)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildPaymentTile('advance', 'Pay 20% Advance', Icons.account_balance_wallet_rounded)),
-          ],
-        ),
-        const SizedBox(height: 18),
-
-        // Notes for Driver
-        TextField(
-          controller: _pickupNoteCtrl,
-          decoration: InputDecoration(
-            labelText: 'Pickup Note / Landmark for Driver (Optional)',
-            hintText: 'e.g. Near Shiv Mandir, Gate 2',
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Fare Card in Dark Forest Gradient (Rule 4: NOT teal/blue)
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: AppTokens.darkForestGradient,
-            borderRadius: BorderRadius.circular(AppTokens.radiusCards),
-            boxShadow: AppTokens.softCardShadow,
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Total Tour Package Fare', style: TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(
-                        '₹${pricing.totalFare.round()}',
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppTokens.marigold,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      'FIXED PRICE · NO SURGE',
-                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: AppTokens.ink),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(color: Colors.white24, height: 1),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Vehicle: ${_selectedVehicle.toUpperCase()}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                  Text('Trip: ${_tripType == 'round_trip' ? 'Round Trip' : 'One Way'}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Cancellation & Terms
-        Row(
-          children: const [
-            Icon(Icons.lock_clock_rounded, color: AppTokens.primary, size: 16),
-            SizedBox(width: 8),
-            Text('Free cancellation up to 2 hours before trip departure', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.secondaryText)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          activeColor: AppTokens.primary,
-          title: const Text('I agree to District Car travel terms & verified rural safety guidelines', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTokens.ink)),
-          value: _agreedToTerms,
-          onChanged: (val) => setState(() => _agreedToTerms = val ?? true),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentTile(String id, String title, IconData icon) {
-    final isSel = _paymentMethod == id;
-    return GestureDetector(
-      onTap: () {
-        HapticService.selectionClick();
-        setState(() => _paymentMethod = id);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSel ? AppTokens.primaryTint : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSel ? AppTokens.primary : AppTokens.border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: isSel ? AppTokens.primary : AppTokens.secondaryText, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                color: isSel ? AppTokens.primaryDark : AppTokens.ink,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Sticky Bottom Action Bar on EVERY Step
-  Widget _buildStickyBottomActionBar(TourPricingBreakdown pricing) {
+  /// 5. Fare Breakdown Card
+  Widget _buildFareBreakdownCard(TourPricingBreakdown p) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        MediaQuery.of(context).padding.bottom + 14,
-      ),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTokens.border),
+        boxShadow: AppTokens.softCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Tour Package Breakdown',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTokens.ink),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'ALL-INCLUSIVE',
+                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildBreakdownRow('Base Package (${_isRoundTrip ? "Round Trip" : "One Way"})', '₹${p.basePackageFare.toInt()}'),
+          if (p.extraWaitingFare > 0)
+            _buildBreakdownRow('Sightseeing Waiting (${_stayHours - 1} hr extra)', '+₹${p.extraWaitingFare.toInt()}'),
+          _buildBreakdownRow('Tolls, State Tax & Parking', 'Included / ₹0 Extra'),
+          _buildBreakdownRow('Driver & Fuel Allowance', 'Included in Package'),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Tour Fare',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTokens.ink),
+              ),
+              Text(
+                '₹${p.totalFare.toInt()}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTokens.primary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: AppTokens.secondaryText)),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTokens.ink)),
+        ],
+      ),
+    );
+  }
+
+  /// Sticky Bottom Bar
+  Widget _buildStickyBottomBar(double totalFare) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppTokens.border.withOpacity(0.8))),
         boxShadow: const [
-          BoxShadow(color: Color.fromRGBO(28, 27, 24, 0.12), blurRadius: 20, offset: Offset(0, -4)),
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.08),
+            blurRadius: 14,
+            offset: Offset(0, -4),
+          ),
         ],
       ),
       child: Row(
         children: [
-          // Total Fare with Breakdown Tap
-          GestureDetector(
-            onTap: _showFareBreakdownSheet,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '₹${pricing.totalFare.round()}',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTokens.ink),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.info_outline_rounded, size: 16, color: AppTokens.primary),
-                  ],
-                ),
-                const Text('View Breakdown ↗', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTokens.primary)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 20),
-
-          // Primary Step Action Button
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () {
-                if (_currentStep == 0) {
-                  _checkServiceAreaAndProceed();
-                } else if (_currentStep == 1) {
-                  HapticService.lightImpact();
-                  setState(() => _currentStep = 2);
-                } else {
-                  _confirmBooking();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTokens.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Estimated Fare',
+                style: TextStyle(fontSize: 11, color: AppTokens.secondaryText, fontWeight: FontWeight.w600),
               ),
-              child: Text(
-                _currentStep == 0
-                    ? 'Select Vehicle'
-                    : (_currentStep == 1 ? 'Review Trip' : 'Confirm & Book'),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              Text(
+                '₹${totalFare.toInt()}',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTokens.ink),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _isBookingLoading ? null : () => _handleBookingSubmit(totalFare),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTokens.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: _isBookingLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isScheduleMode ? Icons.calendar_month_rounded : Icons.directions_car_rounded,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isScheduleMode ? 'Schedule Tour Ride' : 'Book Tour Ride',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Booking Confirmation Screen with Confetti-lite & WhatsApp share
-  Widget _buildBookingConfirmationScreen() {
-    final p = _calculateCurrentPricing();
-
-    return Scaffold(
-      backgroundColor: AppTokens.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 3D Confirmation Art
-              Container(
-                width: 140,
-                height: 140,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: AppTokens.softCardShadow,
-                ),
-                child: ClipOval(
-                  child: Image.memory(
-                    kBookingConfirmedBytes,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              const Text(
-                'Tour Ride Confirmed!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTokens.ink),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Your tour ride has been successfully booked',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTokens.primary),
-              ),
-              const SizedBox(height: 20),
-
-              // Itinerary Summary Card
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTokens.border),
-                  boxShadow: AppTokens.softCardShadow,
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(widget.destination.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTokens.ink)),
-                        Text('₹${p.totalFare.round()}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTokens.primary)),
-                      ],
-                    ),
-                    const Divider(color: AppTokens.border, height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Date: ${DateFormat('dd MMM yyyy').format(_selectedDate)}', style: const TextStyle(fontSize: 13, color: AppTokens.secondaryText)),
-                        Text('Time: $_selectedTime', style: const TextStyle(fontSize: 13, color: AppTokens.secondaryText)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Vehicle: ${_selectedVehicle.toUpperCase()}', style: const TextStyle(fontSize: 13, color: AppTokens.secondaryText)),
-                        const Text('OTP: **** (Assigned 1h before)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.marigoldDark)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // WhatsApp Share Itinerary Button
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final text = 'Tour Booked to ${widget.destination.name} on ${DateFormat('dd MMM').format(_selectedDate)} at $_selectedTime. Total Fare: ₹${p.totalFare.round()} on District Car.';
-                  final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  }
-                },
-                icon: const Icon(Icons.share_rounded, size: 18, color: AppTokens.primary),
-                label: const Text('Share Itinerary on WhatsApp', style: TextStyle(color: AppTokens.primary, fontWeight: FontWeight.w700)),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  side: const BorderSide(color: AppTokens.primary, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Return Home Button
-              ElevatedButton(
-                onPressed: () => context.go('/'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTokens.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('Back to Home', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
