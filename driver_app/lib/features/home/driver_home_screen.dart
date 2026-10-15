@@ -312,7 +312,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                               ),
                               Text(
-                                'सवारी स्वीकार व समय पर पहुंचने की सहमति',
+                                'Ride Acceptance & Arrival Consent',
                                 style: TextStyle(fontSize: 11.5, color: Color(0xFF059669), fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -335,7 +335,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Trip Fare (कुल किराया):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                              const Text('Trip Fare:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                               Text(
                                 '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
                                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
@@ -406,12 +406,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: const [
                                 Text(
-                                  'Partner Commitment (वचन):',
+                                  'Partner Commitment:',
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF92400E)),
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'स्वीकार करने के बाद यात्री आपका इंतज़ार करता है। बिना आपात स्थिति के सवारी रद्द न करें। रद्द करने पर रेटिंग प्रभावित होगी।',
+                                  'After accepting, the rider is waiting for you. Do not cancel without an emergency. Unreasonable cancellations will affect driver rating.',
                                   style: TextStyle(fontSize: 11, color: Color(0xFF78350F), height: 1.3),
                                 ),
                               ],
@@ -501,7 +501,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                   )
                                 : const Text(
-                                    'CONFIRM & LOCK RIDE (कन्फर्म करें)',
+                                    'CONFIRM & LOCK RIDE',
                                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                                   ),
                           ),
@@ -699,9 +699,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                 ],
               ),
               body: Stack(
+                fit: StackFit.expand,
                 children: [
-                  SafeArea(
+                  Positioned.fill(
                     child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 240),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,7 +824,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                      'Wallet Balance (पार्टनर वॉलेट)',
+                                      'Wallet Balance',
                                       style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                                     ),
                                     const SizedBox(height: 3),
@@ -1036,7 +1038,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              booking.isRoundTrip ? '🔄 Round Trip (दो तरफा)' : '➡️ One-Way (एक तरफा)',
+                              booking.isRoundTrip ? '🔄 Round Trip' : '➡️ One-Way',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1085,7 +1087,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () => _showAcceptConfirmationModal(booking),
-                      child: const Text('ACCEPT THIS RIDE (सवारी स्वीकार करें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text('ACCEPT THIS RIDE', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1131,7 +1133,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  isStarted ? 'TRIP IN PROGRESS (यात्रा चालू)' : 'DRIVER ASSIGNED (पहुँच रहे हैं)',
+                  isStarted ? 'TRIP IN PROGRESS' : 'DRIVER ASSIGNED',
                   style: TextStyle(
                     color: isStarted ? const Color(0xFF15803D) : const Color(0xFFB45309),
                     fontWeight: FontWeight.w900,
@@ -1218,7 +1220,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => _completeTrip(booking),
-                child: const Text('COMPLETE TRIP (यात्रा समाप्त करें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text('COMPLETE TRIP', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],

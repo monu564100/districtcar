@@ -126,7 +126,7 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                               ),
                               Text(
-                                'सवारी स्वीकार व समय पर पहुंचने की सहमति',
+                                'Ride Acceptance & Arrival Consent',
                                 style: TextStyle(fontSize: 11.5, color: Color(0xFF059669), fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -149,7 +149,7 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Trip Fare (कुल किराया):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                              const Text('Trip Fare:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                               Text(
                                 '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
                                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
@@ -220,12 +220,12 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: const [
                                 Text(
-                                  'Partner Commitment (वचन):',
+                                  'Partner Commitment:',
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF92400E)),
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'स्वीकार करने के बाद यात्री आपका इंतज़ार करता है। बिना आपात स्थिति के सवारी रद्द न करें। रद्द करने पर रेटिंग प्रभावित होगी।',
+                                  'After accepting, the rider is waiting for you. Do not cancel without an emergency. Unreasonable cancellations will affect driver rating.',
                                   style: TextStyle(fontSize: 11, color: Color(0xFF78350F), height: 1.3),
                                 ),
                               ],
@@ -294,7 +294,7 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                   )
                                 : const Text(
-                                    'CONFIRM & LOCK RIDE (कन्फर्म करें)',
+                                    'CONFIRM & LOCK RIDE',
                                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                                   ),
                           ),
@@ -516,8 +516,8 @@ class _IncomingRequestOverlayState extends ConsumerState<IncomingRequestOverlay>
                       const SizedBox(width: 8),
                       Text(
                         isTour
-                            ? (booking.isRoundTrip ? '🌴 TOURS & TRAVELS (दो तरफा टूर)' : '🌴 TOURS & TRAVELS (टूर राइड)')
-                            : (booking.isRoundTrip ? '🔔 ROUND TRIP (दो तरफा राइड)' : '🔔 NEW RIDE BOOKING (नयी बुकिंग)'),
+                            ? (booking.isRoundTrip ? '🌴 TOURS & TRAVELS (ROUND TRIP)' : '🌴 TOURS & TRAVELS')
+                            : (booking.isRoundTrip ? '🔔 ROUND TRIP' : '🔔 NEW RIDE BOOKING'),
                         style: TextStyle(
                           color: isTour ? const Color(0xFF047857) : const Color(0xFFDC2626),
                           fontWeight: FontWeight.w900,
