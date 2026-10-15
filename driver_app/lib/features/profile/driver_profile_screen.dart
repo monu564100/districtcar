@@ -35,7 +35,8 @@ class DriverProfileScreen extends ConsumerWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+          final raw = snapshot.data?.data();
+          final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
           final name = (data['name'] != null && (data['name'] as String).isNotEmpty)
               ? data['name']
               : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');

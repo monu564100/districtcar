@@ -357,7 +357,8 @@ class DriverService {
     try {
       final doc = await _firestore.collection('drivers').doc(uid).get();
       if (!doc.exists) return false;
-      final data = doc.data() as Map<String, dynamic>? ?? {};
+      final raw = doc.data();
+      final Map<String, dynamic> data = (raw != null) ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
 
       final isCompleted = data['isProfileCompleted'] == true;
       final plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString().trim();

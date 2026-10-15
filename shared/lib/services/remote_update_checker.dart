@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +13,7 @@ class RemoteUpdateChecker {
     required String appKey, // 'customer_app' or 'driver_app'
     required int currentBuildNumber,
   }) async {
+    if (kIsWeb) return;
     if (_hasShown) return;
 
     try {

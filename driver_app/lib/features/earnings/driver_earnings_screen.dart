@@ -149,7 +149,8 @@ class _DriverEarningsScreenState extends ConsumerState<DriverEarningsScreen> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('drivers').doc(user.uid).snapshots(),
         builder: (context, driverSnap) {
-          final driverData = driverSnap.data?.data() as Map<String, dynamic>? ?? {};
+          final rawDriver = driverSnap.data?.data();
+          final driverData = rawDriver is Map ? Map<String, dynamic>.from(rawDriver) : <String, dynamic>{};
 
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -165,7 +166,8 @@ class _DriverEarningsScreenState extends ConsumerState<DriverEarningsScreen> {
               final docs = snapshot.data?.docs ?? [];
               double totalEarnings = 0;
               for (final doc in docs) {
-                final data = doc.data() as Map<String, dynamic>;
+                final raw = doc.data();
+                final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
                 totalEarnings +=
                     (data['finalFare'] as num?)?.toDouble() ?? (data['estimatedFare'] as num?)?.toDouble() ?? 0.0;
               }
@@ -393,7 +395,8 @@ class _DriverEarningsScreenState extends ConsumerState<DriverEarningsScreen> {
                       )
                     else
                       ...docs.map((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
+                        final raw = doc.data();
+                        final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
                         final fare = (data['finalFare'] as num?)?.toDouble() ??
                             (data['estimatedFare'] as num?)?.toDouble() ??
                             0.0;

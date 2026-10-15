@@ -115,7 +115,8 @@ class _DriverActiveTripScreenState extends ConsumerState<DriverActiveTripScreen>
       builder: (context, snapshot) {
         BookingModel booking;
         if (snapshot.hasData && snapshot.data?.data() != null) {
-          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final raw = snapshot.data!.data();
+          final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
           booking = BookingModel.fromMap(data, widget.bookingId);
         } else if (snapshot.hasError || (snapshot.connectionState == ConnectionState.active && !snapshot.hasData)) {
           booking = BookingModel(

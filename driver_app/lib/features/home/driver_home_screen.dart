@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,7 +12,6 @@ import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
 import 'package:district_car_shared/services/fcm_notification_service.dart';
 import '../../services/driver_service.dart';
-import '../requests/incoming_request_dialog.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
@@ -41,11 +41,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
     _loadOnlineStatus();
     _checkLocationPermissionAndFetch();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      RemoteUpdateChecker.checkAndShowUpdateDialog(
-        context: context,
-        appKey: 'driver_app',
-        currentBuildNumber: 8,
-      );
+      if (!kIsWeb) {
+        RemoteUpdateChecker.checkAndShowUpdateDialog(
+          context: context,
+          appKey: 'driver_app',
+          currentBuildNumber: 8,
+        );
+      }
 
       final user = ref.read(driverServiceProvider).currentUser;
       if (user == null) {
@@ -91,10 +93,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         role: 'driver',
         userId: user.uid,
         category: driverCat,
-      );
-      FCMNotificationService.listenToLiveBroadcasts(
-        context: context,
-        role: 'driver',
       );
     });
   }
@@ -597,7 +595,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       builder: (context, activeSnap) {
         if (activeSnap.hasData && activeSnap.data!.docs.isNotEmpty) {
           final matchedDocs = activeSnap.data!.docs.where((doc) {
-            final m = doc.data() as Map<String, dynamic>?;
+            final raw = doc.data();
+            final m = (raw is Map) ? Map<String, dynamic>.from(raw) : null;
             final st = m?['status']?.toString();
             return st == 'driver_assigned' || st == 'driver_arrived' || st == 'trip_started';
           }).toList();
@@ -605,7 +604,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
           if (matchedDocs.isNotEmpty) {
             try {
               final doc = matchedDocs.first;
-              final b = BookingModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+              final raw = doc.data();
+              final m = (raw is Map) ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+              final b = BookingModel.fromMap(m, doc.id);
               _activeBooking = b;
             } catch (_) {}
           } else if (_activeBooking != null) {
@@ -621,8 +622,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('drivers').doc(user.uid).snapshots(),
           builder: (context, snapshot) {
-            final data = (snapshot.hasData && snapshot.data!.exists)
-                ? snapshot.data!.data() as Map<String, dynamic>?
+            final rawDoc = (snapshot.hasData && snapshot.data!.exists) ? snapshot.data!.data() : null;
+            final Map<String, dynamic> data = (rawDoc is Map)
+                ? Map<String, dynamic>.from(rawDoc)
                 : {
                     'name': user.displayName ?? 'Ramesh Mahto',
                     'vehiclePlateNumber': 'JH 01 BZ 4892',
@@ -641,15 +643,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
               return double.tryParse(val.toString()) ?? fallback;
             }
 
-            final String name = (data?['name'] != null && data!['name'].toString().trim().isNotEmpty)
+            final String name = (data['name'] != null && data['name'].toString().trim().isNotEmpty)
                 ? data['name'].toString().trim()
                 : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
-            final String plate = (data?['vehiclePlateNumber'] ?? data?['vehiclePlate'])?.toString() ?? 'Vehicle not registered';
-            final String vehicleModel = data?['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
-            final double rating = asDouble(data?['rating'], 5.0);
-            final double totalEarnings = asDouble(data?['totalEarnings'], 0.0);
-            final double walletBalance = asDouble(data?['walletBalance'], totalEarnings * 0.9);
-            final String driverCategory = (data?['vehicleCategoryId'] ?? data?['category'] ?? 'car').toString().trim().toLowerCase();
+            final String plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'])?.toString() ?? 'Vehicle not registered';
+            final String vehicleModel = data['vehicleModel']?.toString() ?? 'Add Vehicle in Profile';
+            final double rating = asDouble(data['rating'], 5.0);
+            final double totalEarnings = asDouble(data['totalEarnings'], 0.0);
+            final double walletBalance = asDouble(data['walletBalance'], totalEarnings * 0.9);
+            final String driverCategory = (data['vehicleCategoryId'] ?? data['category'] ?? 'car').toString().trim().toLowerCase();
 
             if (_subscribedCategory != driverCategory) {
               _subscribedCategory = driverCategory;
@@ -698,13 +700,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                   ),
                 ],
               ),
-              body: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned.fill(
-                    child: SingleChildScrollView(
+              body: SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 240),
+                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 200),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -927,32 +929,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         ],
                       ),
                     ),
-                  ),
 
-                  // 1. Full-screen Pop-up Notification for Incoming Eligible Rides (Hidden when Busy)
-                  if (_isOnline && !isCurrentlyBusy)
-                    Positioned.fill(
-                      child: IncomingRequestOverlay(
-                        driverId: user.uid,
-                        vehicleCategory: driverCategory,
-                        driverLocation: _driverLocation,
-                        onAccepted: (booking) {
-                          setState(() {
-                            _activeBooking = booking.copyWith(status: 'driver_assigned');
-                          });
-                        },
+                    // Persistent Active Booking Card Floating Above Dock
+                    if (_activeBooking != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: _buildActiveBookingCard(_activeBooking!),
                       ),
-                    ),
-
-                  // 2. Persistent Active Booking Card Floating Above Dock
-                  if (_activeBooking != null)
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 16,
-                      child: _buildActiveBookingCard(_activeBooking!),
-                    ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -974,7 +961,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
         for (final doc in allDocs) {
           try {
-            final d = doc.data() as Map<String, dynamic>;
+            final raw = doc.data();
+            if (raw is! Map) continue;
+            final d = Map<String, dynamic>.from(raw);
             final cat = (d['vehicleCategoryId'] ?? 'car').toString();
             if (!_isCategoryEligible(cat, driverCategory)) continue;
 
