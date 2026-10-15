@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:district_car_shared/models/models.dart';
 import '../../../../services/haptic_service.dart';
 import '../../../../theme/theme.dart';
@@ -15,7 +18,8 @@ import 'trip_summary_card.dart';
 
 /// Top-Tier "Finding Drivers" Booking Waiting Screen
 /// Redesigned with live animated radar map scene, 1-second dynamic feedback,
-/// expandable search radius, segmented progress, and zero blue tokens.
+/// expandable search radius, segmented progress, scheduled-ride auto-minimization,
+/// and 7-8 minute immediate ride timeout handling.
 class BookingWaitingView extends StatefulWidget {
   final BookingModel booking;
   final Map<String, dynamic> rawData;
@@ -34,15 +38,38 @@ class BookingWaitingView extends StatefulWidget {
   State<BookingWaitingView> createState() => _BookingWaitingViewState();
 }
 
-class _BookingWaitingViewState extends State<BookingWaitingView> {
+class _BookingWaitingViewState extends State<BookingWaitingView>
+    with SingleTickerProviderStateMixin {
   late final BookingSearchController _searchController;
+  bool _hasAutoMinimized = false;
+  AnimationController? _scheduledProgressController;
+  Timer? _autoMinimizeTimer;
+
+  bool get _isScheduled {
+    final type = widget.booking.bookingType;
+    final slot = widget.booking.scheduledTimeSlot;
+    final date = widget.booking.scheduledDate;
+    return type == 'scheduled' ||
+        (slot != null && !slot.contains('Now')) ||
+        (date != null && date.isNotEmpty && date != 'Today');
+  }
 
   @override
   void initState() {
     super.initState();
+    // Immediate rides timeout after 450s (7.5 minutes, 7-8 min range)
     _searchController = BookingSearchController(
       initialStartedAt: widget.booking.createdAt,
-      maxTimeoutSeconds: 150,
+      maxTimeoutSeconds: 450,
+      onTimeout: () {
+        try {
+          FirebaseFirestore.instance.collection('bookings').doc(widget.booking.id).update({
+            'status': 'no_driver_found',
+            'closedReason': 'No driver immediate for immediate ride',
+            'closedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
+      },
       onAnalyticsEvent: (name, params) {
         debugPrint('[WAITING_SCREEN_ANALYTICS] $name => $params');
       },
@@ -54,6 +81,21 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
       driverId: widget.booking.driverId,
       rawData: widget.rawData,
     );
+
+    // If it's a scheduled ride and still searching/pending, show scheduled animation then minimize
+    if (_isScheduled && widget.booking.status == 'searching_driver') {
+      _scheduledProgressController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2400),
+      )..forward();
+
+      _autoMinimizeTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (mounted && !_hasAutoMinimized) {
+          _hasAutoMinimized = true;
+          context.go('/');
+        }
+      });
+    }
   }
 
   @override
@@ -68,11 +110,20 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
 
   @override
   void dispose() {
+    _autoMinimizeTimer?.cancel();
+    _scheduledProgressController?.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _handleBackOrCancel() {
+  /// Top back button minimizes to home screen while searching continues in background
+  void _handleTopBack() {
+    HapticService.selectionClick();
+    context.go('/');
+  }
+
+  /// Explicit Cancel button at the bottom opens CancelSheet
+  void _handleCancelRide() {
     CancelSheet.show(
       context: context,
       secondsWaited: _searchController.state.elapsedSeconds,
@@ -107,11 +158,16 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
         final isDriverFound = state is DriverFoundState;
         final isNoDriver = state is NoDriverFoundState;
 
+        // If user is scheduled ride and driver is NOT yet found, show scheduled animation screen
+        if (_isScheduled && !isDriverFound && !isNoDriver) {
+          return _buildScheduledAnimationScreen();
+        }
+
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            _handleBackOrCancel();
+            _handleTopBack();
           },
           child: Scaffold(
             backgroundColor: AppTokens.background,
@@ -121,8 +177,8 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
               foregroundColor: Colors.white,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-                onPressed: _handleBackOrCancel,
-                tooltip: 'Back',
+                onPressed: _handleTopBack,
+                tooltip: 'Back to Home (Searching in background)',
               ),
               title: InkWell(
                 onTap: _copyBookingId,
@@ -231,7 +287,7 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
                             padding: const EdgeInsets.only(top: 8, bottom: 24),
                             child: Center(
                               child: TextButton(
-                                onPressed: _handleBackOrCancel,
+                                onPressed: _handleCancelRide,
                                 child: const Text(
                                   'Cancel ride / राइड रद्द करें',
                                   style: TextStyle(
@@ -266,6 +322,228 @@ class _BookingWaitingViewState extends State<BookingWaitingView> {
           ),
         );
       },
+    );
+  }
+
+  /// Scheduled Ride Confirmation Animation Screen
+  Widget _buildScheduledAnimationScreen() {
+    final dateStr = widget.booking.scheduledDate ?? 'Today';
+    final timeStr = widget.booking.scheduledTimeSlot ?? 'Scheduled Slot';
+
+    return Scaffold(
+      backgroundColor: AppTokens.background,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: AppTokens.ink,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => context.go('/'),
+        ),
+        title: Text(
+          widget.booking.readableId,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+
+              // Celebratory Calendar Icon Badge
+              Center(
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: AppTokens.primaryTint,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTokens.primary, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTokens.primary.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.event_available_rounded, size: 48, color: AppTokens.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Title
+              const Text(
+                'Ride Scheduled Successfully!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppTokens.ink,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'आपकी राइड सफलतापूर्वक शेड्यूल कर दी गई है',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTokens.secondaryText,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Schedule Details Box
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: AppTokens.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.access_time_filled_rounded, size: 18, color: AppTokens.marigoldDark),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$dateStr · $timeStr',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppTokens.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, color: AppTokens.border),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, size: 18, color: AppTokens.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.booking.pickup.address,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.flag_rounded, size: 18, color: AppTokens.terracotta),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.booking.destination.address,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Reassurance message
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTokens.surface2,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.notifications_active_outlined, size: 18, color: AppTokens.primaryDark),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Pickup se pehle aapko driver details mil jayegi aur screen par notify kiya jayega.',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.ink),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Spacer(),
+
+              // Automatic minimization progress bar indicator
+              if (_scheduledProgressController != null) ...[
+                AnimatedBuilder(
+                  animation: _scheduledProgressController!,
+                  builder: (context, _) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _scheduledProgressController!.value,
+                        backgroundColor: AppTokens.border,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppTokens.primary),
+                        minHeight: 4,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Minimizing to home screen in 2 seconds...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTokens.secondaryText,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Manual Return to Home button
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    _hasAutoMinimized = true;
+                    context.go('/');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTokens.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text(
+                    'Return to Home / होम स्क्रीन पर जाएं',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

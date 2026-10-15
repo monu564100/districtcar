@@ -11,6 +11,7 @@ import 'package:district_car_shared/services/rural_fare_calculator.dart';
 import 'package:district_car_shared/services/location_search_service.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
 import 'package:district_car_shared/services/fcm_notification_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../theme/theme.dart';
@@ -1273,7 +1274,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
 
 
-  /// Persistent Rectangle Popup showing accepted booking status until trip completed
+  /// Persistent Rectangle Popup showing active booking status (Searching now, Scheduled, or Accepted)
   Widget _buildActiveTripPersistentPopup() {
     final user = ref.watch(authServiceProvider).currentUser;
     if (user == null) return const SizedBox.shrink();
@@ -1285,21 +1286,52 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         if (booking == null) return const SizedBox.shrink();
 
         final status = booking.status;
-        final isAccepted = status == 'driver_assigned' || status == 'driver_arrived' || status == 'trip_started';
+        final isScheduled = (booking.bookingType == 'scheduled') ||
+            (booking.scheduledTimeSlot != null && !booking.scheduledTimeSlot!.contains('Now')) ||
+            (booking.scheduledDate != null && booking.scheduledDate!.isNotEmpty && booking.scheduledDate != 'Today');
 
-        if (!isAccepted) return const SizedBox.shrink();
+        final elapsedSeconds = DateTime.now().difference(booking.createdAt).inSeconds;
+
+        // If it's an immediate ride and has exceeded 7-8 minutes (450 seconds):
+        if (!isScheduled && status == 'searching_driver' && elapsedSeconds >= 450) {
+          // Auto-mark timeout in Firestore and close popup from home screen
+          try {
+            FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
+              'status': 'no_driver_found',
+              'closedReason': 'No driver immediate for immediate ride',
+              'closedAt': FieldValue.serverTimestamp(),
+            });
+          } catch (_) {}
+          return const SizedBox.shrink();
+        }
+
+        final isSearching = status == 'searching_driver';
+        final isAccepted = status == 'confirmed' || status == 'driver_assigned' || status == 'driver_arrived' || status == 'trip_started';
+
+        if (!isSearching && !isAccepted) return const SizedBox.shrink();
 
         String statusLabel = 'DRIVER ACCEPTED';
         IconData statusIcon = Icons.check_circle_rounded;
-        Color statusBg = const Color(0xFF0F172A);
-        if (status == 'driver_arrived') {
+        Color statusBg = AppTokens.primaryDark;
+
+        if (isSearching) {
+          if (isScheduled) {
+            statusLabel = 'RIDE SCHEDULED';
+            statusIcon = Icons.event_available_rounded;
+            statusBg = AppTokens.primary;
+          } else {
+            statusLabel = 'SEARCHING DRIVER (NOW)';
+            statusIcon = Icons.radar_rounded;
+            statusBg = AppTokens.marigoldDark;
+          }
+        } else if (status == 'driver_arrived') {
           statusLabel = 'DRIVER AT PICKUP';
           statusIcon = Icons.near_me_rounded;
-          statusBg = const Color(0xFF334155);
+          statusBg = const Color(0xFF1E7B4F);
         } else if (status == 'trip_started') {
           statusLabel = 'TRIP IN PROGRESS';
           statusIcon = Icons.directions_car_rounded;
-          statusBg = const Color(0xFF1E293B);
+          statusBg = AppTokens.primaryDark;
         }
 
         return Positioned(
@@ -1309,7 +1341,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           child: Material(
             elevation: 12,
             borderRadius: BorderRadius.circular(22),
-            shadowColor: Colors.black.withValues(alpha: 0.25),
+            shadowColor: Colors.black.withOpacity(0.20),
             child: InkWell(
               borderRadius: BorderRadius.circular(22),
               onTap: () => context.push('/active-trip/${booking.id}'),
@@ -1319,7 +1351,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: isAccepted ? const Color(0xFF0F172A) : const Color(0xFFFBBF24),
+                    color: isAccepted
+                        ? AppTokens.primary
+                        : (isScheduled ? AppTokens.primary : AppTokens.marigold),
                     width: 1.5,
                   ),
                 ),
@@ -1352,25 +1386,41 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           ),
                         ),
                         const Spacer(),
-                        if (booking.rideOtp != null)
+                        if (isSearching) ...[
+                          Text(
+                            isScheduled ? 'Scheduled' : 'Tap to open radar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isScheduled ? AppTokens.primaryDark : AppTokens.marigoldDark,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 11,
+                            color: isScheduled ? AppTokens.primaryDark : AppTokens.marigoldDark,
+                          ),
+                        ] else if (booking.rideOtp != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
+                              color: AppTokens.surface2,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                              border: Border.all(color: AppTokens.border),
                             ),
                             child: Text(
                               'OTP: ${booking.rideOtp}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
-                                color: Color(0xFF0F172A),
+                                color: AppTokens.ink,
                               ),
                             ),
                           ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFF0F172A)),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_ios, size: 12, color: AppTokens.ink),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -1379,9 +1429,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                         Container(
                           width: 38,
                           height: 38,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            image: const DecorationImage(
+                            color: AppTokens.surface2,
+                            image: DecorationImage(
                               image: AssetImage('assets/images/app_logo.jpg'),
                               fit: BoxFit.cover,
                             ),
@@ -1393,7 +1444,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                booking.driverName ?? 'Nearby Partner Driver',
+                                isSearching
+                                    ? (isScheduled
+                                        ? '${booking.scheduledDate ?? "Today"} · ${booking.scheduledTimeSlot ?? "Scheduled"}'
+                                        : 'Searching for nearby drivers...')
+                                    : (booking.driverName ?? 'Nearby Partner Driver'),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
@@ -1403,7 +1458,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                '${booking.vehicleModel ?? "District Car"} · ${booking.vehiclePlate ?? "JH Reg"}',
+                                isSearching
+                                    ? '${booking.pickup.address} → ${booking.destination.address}'
+                                    : '${booking.vehicleModel ?? "District Car"} · ${booking.vehiclePlate ?? "JH Reg"}',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: AppTokens.secondary,
@@ -1420,7 +1477,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
+                            color: AppTokens.ink,
                           ),
                         ),
                       ],

@@ -183,4 +183,36 @@ void main() {
     expect(find.text('Book on WhatsApp'), findsOneWidget);
     expect(find.text('Call Help Desk'), findsOneWidget);
   });
+
+  testWidgets('Scheduled ride shows scheduled animation screen with auto-minimization', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final scheduledBooking = testBooking.copyWith(
+      bookingType: 'scheduled',
+      scheduledDate: 'Fri, 16 Oct',
+      scheduledTimeSlot: '08:00 AM - 10:00 AM (Morning)',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BookingWaitingView(
+          booking: scheduledBooking,
+          rawData: const {},
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Verify Scheduled Animation Screen Elements
+    expect(find.text('Ride Scheduled Successfully!'), findsOneWidget);
+    expect(find.text('आपकी राइड सफलतापूर्वक शेड्यूल कर दी गई है'), findsOneWidget);
+    expect(find.text('Fri, 16 Oct · 08:00 AM - 10:00 AM (Morning)'), findsOneWidget);
+    expect(find.text('Minimizing to home screen in 2 seconds...'), findsOneWidget);
+    expect(find.text('Return to Home / होम स्क्रीन पर जाएं'), findsOneWidget);
+  });
 }
+

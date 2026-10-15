@@ -93,18 +93,18 @@ class DriverFoundState extends BookingSearchState {
         );
 }
 
-/// 5. No Driver Found State (Timeout > 150s or backend no_driver_found)
+/// 5. No Driver Found State (Timeout > 7-8 min or backend no_driver_found)
 class NoDriverFoundState extends BookingSearchState {
   final String failureReason;
 
   const NoDriverFoundState({
     required super.elapsedSeconds,
-    this.failureReason = 'Aas-paas abhi koi driver uplabdh nahi hai',
+    this.failureReason = 'No driver immediate for immediate ride',
   }) : super(
           radiusKm: 12.0,
           matchedDriversCount: 0,
-          statusHeadline: 'Abhi koi driver free nahi hai',
-          statusSubMessage: 'Aap thodi der baad prayas karein ya WhatsApp par sampark karein',
+          statusHeadline: 'No driver immediate for immediate ride',
+          statusSubMessage: '7-8 minute intezaar ke baad abhi koi driver uplabdh nahi ho paya. Kripya punah prayas karein.',
           activeProgressStep: 2,
         );
 }
@@ -130,13 +130,15 @@ class BookingSearchController extends ChangeNotifier {
   BookingSearchState _state;
   Timer? _tickerTimer;
   DateTime? _startedAt;
-  final int maxTimeoutSeconds;
+  final int maxTimeoutSeconds; // Default 450s (7.5 mins, 7-8 minute threshold)
   final void Function(String eventName, Map<String, dynamic> params)? onAnalyticsEvent;
+  final VoidCallback? onTimeout;
 
   BookingSearchController({
     DateTime? initialStartedAt,
-    this.maxTimeoutSeconds = 150,
+    this.maxTimeoutSeconds = 450,
     this.onAnalyticsEvent,
+    this.onTimeout,
   }) : _state = const SearchingNearbyState(elapsedSeconds: 0) {
     _startedAt = initialStartedAt ?? DateTime.now();
     _startTimer();
@@ -159,7 +161,8 @@ class BookingSearchController extends ChangeNotifier {
       final elapsed = DateTime.now().difference(_startedAt!).inSeconds;
 
       if (elapsed >= maxTimeoutSeconds) {
-        _transitionToNoDriver('Timeout after ${maxTimeoutSeconds}s');
+        _transitionToNoDriver('No driver immediate for immediate ride');
+        onTimeout?.call();
         return;
       }
 

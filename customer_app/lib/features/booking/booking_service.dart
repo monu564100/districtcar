@@ -77,30 +77,31 @@ class BookingService {
       final rideOtp = (1000 + Random().nextInt(9000)).toString();
 
       final bookingRef = _firestore.collection('bookings').doc();
-      final newBooking = {
-        'id': bookingRef.id,
-        'readableId': readableId,
-        'customerId': customerId,
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'bookingType': 'regular',
-        'vehicleCategoryId': categoryId,
-        'pickup': pickup.toMap(),
-        'destination': destination.toMap(),
-        'estimatedDistanceKm': distanceKm,
-        'estimatedDurationMinutes': durationMinutes.toDouble(),
-        'estimatedFare': fare,
-        'finalFare': fare,
-        'paymentMethod': paymentMethod,
-        'paymentStatus': 'pending',
-        'status': 'searching_driver',
-        'rideOtp': rideOtp,
-        'isRoundTrip': isRoundTrip,
-        'roundTripStoppingHours': roundTripStoppingHours,
-        'scheduledDate': scheduledDate ?? 'Today',
-        'scheduledTimeSlot': scheduledTimeSlot ?? 'Now',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+        final isScheduled = scheduledTimeSlot != null && !scheduledTimeSlot.contains('Now');
+        final newBooking = {
+          'id': bookingRef.id,
+          'readableId': readableId,
+          'customerId': customerId,
+          'customerName': customerName,
+          'customerPhone': customerPhone,
+          'bookingType': isScheduled ? 'scheduled' : 'instant',
+          'vehicleCategoryId': categoryId,
+          'pickup': pickup.toMap(),
+          'destination': destination.toMap(),
+          'estimatedDistanceKm': distanceKm,
+          'estimatedDurationMinutes': durationMinutes.toDouble(),
+          'estimatedFare': fare,
+          'finalFare': fare,
+          'paymentMethod': paymentMethod,
+          'paymentStatus': 'pending',
+          'status': 'searching_driver',
+          'rideOtp': rideOtp,
+          'isRoundTrip': isRoundTrip,
+          'roundTripStoppingHours': roundTripStoppingHours,
+          'scheduledDate': scheduledDate ?? 'Today',
+          'scheduledTimeSlot': scheduledTimeSlot ?? 'Now (Within 10 mins)',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
 
       try {
         await bookingRef.set(newBooking);
