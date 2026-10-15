@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:district_car_shared/theme/app_theme.dart';
 
 class DriverSupportScreen extends StatelessWidget {
   const DriverSupportScreen({super.key});

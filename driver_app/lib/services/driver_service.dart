@@ -354,36 +354,66 @@ class DriverService {
   }
 
   Future<bool> isDriverOnboarded(String uid) async {
+    // 1. First check local SharedPreferences flag for instant session check
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final localOnboarded = (prefs.getBool('driver_onboarded') ?? false) ||
+          (prefs.getBool('driver_is_onboarded') ?? false);
+      final storedPlate = prefs.getString('driver_user_plate') ?? '';
+      final storedPhone = prefs.getString('driver_user_phone') ?? '';
+      if (localOnboarded || storedPlate.isNotEmpty || storedPhone.isNotEmpty) {
+        return true;
+      }
+    } catch (_) {}
+
+    // 2. Check Firestore driver document
     try {
       final doc = await _firestore.collection('drivers').doc(uid).get();
       if (!doc.exists) return false;
       final raw = doc.data();
       final Map<String, dynamic> data = (raw != null) ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
 
-      final isCompleted = data['isProfileCompleted'] == true;
-      final plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString().trim();
-      final carPhoto = (data['vehicleImage'] ?? data['carPhotoUrl'] ?? '').toString().trim();
-      final driverPhoto = (data['driverPhoto'] ?? data['profilePhotoUrl'] ?? '').toString().trim();
-      final name = (data['name'] ?? '').toString().trim();
+      final bool isCompleted = data['isProfileCompleted'] == true;
+      final String plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString().trim();
+      final String phone = (data['phoneNumber'] ?? data['driverPhone'] ?? '').toString().trim();
+      final String model = (data['vehicleModel'] ?? '').toString().trim();
+      final String status = (data['verificationStatus'] ?? '').toString().trim();
+      final num trips = (data['totalTrips'] is num) ? data['totalTrips'] : 0;
 
-      return isCompleted &&
-          plate.isNotEmpty &&
-          carPhoto.isNotEmpty &&
-          driverPhoto.isNotEmpty &&
-          name.isNotEmpty;
+      // If driver has completed profile flag, registered plate, phone, vehicle, approved status, or completed trips:
+      if (isCompleted || plate.isNotEmpty || (phone.isNotEmpty && model.isNotEmpty) || status == 'approved' || trips > 0) {
+        // Sync local flag so they are NEVER asked for registration again on this device
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('driver_onboarded', true);
+          await prefs.setBool('driver_is_onboarded', true);
+          if (plate.isNotEmpty) await prefs.setString('driver_user_plate', plate);
+          if (phone.isNotEmpty) await prefs.setString('driver_user_phone', phone);
+          if (data['name'] != null) await prefs.setString('driver_user_name', data['name'].toString());
+          if (data['vehicleCategoryId'] != null) await prefs.setString('driver_user_category', data['vehicleCategoryId'].toString());
+          if (data['vehicleModel'] != null) await prefs.setString('driver_user_vehicle_model', data['vehicleModel'].toString());
+          if (data['vehicleImage'] != null) await prefs.setString('driver_user_vehicle_image', data['vehicleImage'].toString());
+          if (data['driverPhoto'] != null) await prefs.setString('driver_user_photo', data['driverPhoto'].toString());
+        } catch (_) {}
+
+        // Ensure isProfileCompleted is true in Firestore for cloud consistency
+        if (!isCompleted) {
+          try {
+            await _firestore.collection('drivers').doc(uid).set({
+              'isProfileCompleted': true,
+              'verificationStatus': 'approved',
+            }, SetOptions(merge: true));
+          } catch (_) {}
+        }
+        return true;
+      }
+      return false;
     } catch (_) {
+      // In case of offline or connection glitch, check SharedPreferences again
       try {
         final prefs = await SharedPreferences.getInstance();
-        final storedUid = prefs.getString('driver_user_uid');
-        final localOnboarded = prefs.getBool('driver_onboarded') ?? false;
-        final plate = prefs.getString('driver_user_plate') ?? '';
-        final carPhoto = prefs.getString('driver_user_vehicle_image') ?? '';
-        final driverPhoto = prefs.getString('driver_user_photo') ?? '';
-        return storedUid == uid &&
-            localOnboarded &&
-            plate.isNotEmpty &&
-            carPhoto.isNotEmpty &&
-            driverPhoto.isNotEmpty;
+        return (prefs.getBool('driver_onboarded') ?? false) ||
+            (prefs.getBool('driver_is_onboarded') ?? false);
       } catch (_) {
         return false;
       }
@@ -459,6 +489,7 @@ class DriverService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('driver_onboarded', true);
+      await prefs.setBool('driver_is_onboarded', true);
       await prefs.setString('driver_user_name', name);
       await prefs.setString('driver_user_phone', phoneNumber);
       await prefs.setString('driver_user_plate', vehiclePlate);

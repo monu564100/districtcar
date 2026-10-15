@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/services/jharkhand_district_data.dart';
 import '../../services/driver_service.dart';
@@ -232,6 +233,12 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
         latitude: blockLoc.latitude,
         longitude: blockLoc.longitude,
       );
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('driver_onboarded', true);
+        await prefs.setBool('driver_is_onboarded', true);
+      } catch (_) {}
 
       if (mounted) {
         // Direct to Mandatory Consent Screen

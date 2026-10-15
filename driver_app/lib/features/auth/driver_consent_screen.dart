@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:district_car_shared/theme/app_theme.dart';
 import '../../services/driver_service.dart';
 
 class DriverConsentScreen extends ConsumerStatefulWidget {
