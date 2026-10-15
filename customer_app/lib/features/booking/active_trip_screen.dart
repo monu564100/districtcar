@@ -9,6 +9,7 @@ import 'package:district_car_shared/theme/app_theme.dart';
 import 'package:district_car_shared/models/models.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'booking_service.dart';
+import 'waiting/booking_waiting_view.dart';
 
 class ActiveTripScreen extends ConsumerStatefulWidget {
   final String bookingId;
@@ -359,12 +360,29 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
         final isSearching = booking.status == 'searching_driver' || booking.driverId == null;
 
+        if (isSearching) {
+          return BookingWaitingView(
+            booking: booking,
+            rawData: rawData,
+            onCancelConfirmed: (reason) async {
+              await ref.read(bookingServiceProvider).cancelBooking(widget.bookingId, reason);
+              if (mounted) context.go('/');
+            },
+            onRetrySearch: () async {
+              await FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).update({
+                'status': 'searching_driver',
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            },
+          );
+        }
+
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: const Color(0xFFFAF8F4),
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF0F172A),
+            foregroundColor: const Color(0xFF1C1B18),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -372,12 +390,12 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                   booking.readableId,
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                 ),
-                Text(
-                  isSearching ? 'Booking is Pending...' : 'Booking Confirmed',
+                const Text(
+                  'Booking Confirmed',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isSearching ? const Color(0xFFE65100) : const Color(0xFF16A34A),
+                    color: Color(0xFF2E9E5B),
                   ),
                 ),
               ],
@@ -387,9 +405,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
               onPressed: () => context.go('/'),
             ),
           ),
-          body: isSearching
-              ? _buildPendingSearchingView(booking, rawData)
-              : _buildBookingAcceptedView(booking),
+          body: _buildBookingAcceptedView(booking),
         );
       },
     );

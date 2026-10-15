@@ -63,6 +63,62 @@ class HapticService {
     HapticFeedback.heavyImpact();
   }
 
+  /// Screen enters (request sent) → lightImpact once
+  static void requestSent() {
+    if (!isEnabled) return;
+    HapticFeedback.lightImpact();
+  }
+
+  /// Radius expands → selectionClick
+  static void radiusExpanded() {
+    if (!isEnabled) return;
+    HapticFeedback.selectionClick();
+  }
+
+  /// Each progress segment completes → selectionClick
+  static void progressSegmentCompleted() {
+    if (!isEnabled) return;
+    HapticFeedback.selectionClick();
+  }
+
+  /// DRIVER FOUND → success pattern [0, 30, 60, 30, 60, 80] ms
+  static Future<void> driverFound() async {
+    if (!isEnabled) return;
+    try {
+      HapticFeedback.mediumImpact();
+      await Future.delayed(const Duration(milliseconds: 60));
+      HapticFeedback.lightImpact();
+      await Future.delayed(const Duration(milliseconds: 60));
+      HapticFeedback.heavyImpact();
+    } catch (_) {}
+  }
+
+  /// Driver arrived → strong double pulse [0, 80, 100, 80]
+  static Future<void> driverArrived() async {
+    if (!isEnabled) return;
+    try {
+      HapticFeedback.heavyImpact();
+      await Future.delayed(const Duration(milliseconds: 100));
+      HapticFeedback.heavyImpact();
+    } catch (_) {}
+  }
+
+  /// NO DRIVER FOUND → heavyImpact + [0, 60, 40, 60]
+  static Future<void> noDriverFound() async {
+    if (!isEnabled) return;
+    try {
+      HapticFeedback.heavyImpact();
+      await Future.delayed(const Duration(milliseconds: 60));
+      HapticFeedback.mediumImpact();
+    } catch (_) {}
+  }
+
+  /// Cancel confirmed → mediumImpact
+  static void cancelConfirmed() {
+    if (!isEnabled) return;
+    HapticFeedback.mediumImpact();
+  }
+
   // Standard aliases
   static void selectionClick() {
     if (!isEnabled) return;
