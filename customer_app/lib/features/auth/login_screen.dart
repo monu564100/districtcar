@@ -158,29 +158,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
-  Future<void> _handleReviewerSignIn() async {
-    setState(() {
-      _googleButtonStatus = GoogleButtonStatus.loading;
-      _errorMessage = null;
-    });
-
-    final user = await ref.read(authControllerProvider.notifier).signInAsReviewer();
-
-    if (!mounted) return;
-
-    if (user != null) {
-      setState(() => _googleButtonStatus = GoogleButtonStatus.success);
-      await Future.delayed(const Duration(milliseconds: 250));
-      if (mounted) {
-        _onLoginSuccess(user);
-      }
-    } else {
-      setState(() {
-        _googleButtonStatus = GoogleButtonStatus.error;
-        _errorMessage = 'Demo sign-in could not be completed.';
-      });
-    }
-  }
 
   Future<void> _launchLegalUrl(String url) async {
     HapticService.selectionClick();
@@ -494,27 +471,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     loadingLabel: 'Signing in with Google...',
                     height: 56,
                   ),
-                  const SizedBox(height: 14),
-
-                  // Demo / Reviewer 1-Tap Sign In
-                  TextButton.icon(
-                    onPressed: _googleButtonStatus == GoogleButtonStatus.loading
-                        ? null
-                        : _handleReviewerSignIn,
-                    icon: const Icon(Icons.flash_on_rounded, size: 16, color: AppTokens.primary),
-                    label: const Text(
-                      'Explore with Instant Demo Account',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppTokens.primaryDark,
-                      ),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
                   // Security & Terms Notice
                   Center(
