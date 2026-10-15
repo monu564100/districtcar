@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +13,61 @@ class DriverLoginScreen extends ConsumerStatefulWidget {
   ConsumerState<DriverLoginScreen> createState() => _DriverLoginScreenState();
 }
 
-class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
+class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   String? _errorMessage;
+
+  late final AnimationController _motionController;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<Alignment> _panAnimation;
+
+  final List<String> _cinematicScenes = [
+    'assets/images/login_hero_illustration.jpg',
+    'assets/images/promo_outstation_hills.jpg',
+    'assets/images/driver_onboarding_2_rural.jpg',
+  ];
+
+  int _currentSceneIndex = 0;
+  Timer? _sceneTimer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 8-second continuous cinematic motion loop
+    _motionController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 1.05, end: 1.25).animate(
+      CurvedAnimation(parent: _motionController, curve: Curves.easeInOutSine),
+    );
+
+    _panAnimation = Tween<Alignment>(
+      begin: const Alignment(-0.2, -0.1),
+      end: const Alignment(0.2, 0.1),
+    ).animate(
+      CurvedAnimation(parent: _motionController, curve: Curves.easeInOutSine),
+    );
+
+    // Cross-fade to next cinematic landscape scene every 7 seconds
+    _sceneTimer = Timer.periodic(const Duration(seconds: 7), (_) {
+      if (mounted) {
+        setState(() {
+          _currentSceneIndex = (_currentSceneIndex + 1) % _cinematicScenes.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _motionController.dispose();
+    _sceneTimer?.cancel();
+    super.dispose();
+  }
 
   void _signInWithGoogle() async {
     setState(() {
@@ -55,29 +108,51 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
         top: false,
         child: Column(
           children: [
-            // TOP SECTION: Full-width Hero Illustration / Graphic
+            // TOP SECTION: Full-width Cinematic Motion Video Background
             Expanded(
               flex: 5,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    'assets/images/login_hero_illustration.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFF065F46),
-                      child: const Center(
-                        child: Icon(Icons.directions_car, size: 80, color: Colors.white54),
+                  // Animated Cinematic Motion Scene
+                  ClipRect(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 1400),
+                      switchInCurve: Curves.easeIn,
+                      switchOutCurve: Curves.easeOut,
+                      child: AnimatedBuilder(
+                        key: ValueKey<int>(_currentSceneIndex),
+                        animation: _motionController,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _scaleAnimation.value,
+                            alignment: _panAnimation.value,
+                            child: child,
+                          );
+                        },
+                        child: Image.asset(
+                          _cinematicScenes[_currentSceneIndex],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFF065F46),
+                            child: const Center(
+                              child: Icon(Icons.directions_car, size: 80, color: Colors.white54),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  // Dark Vignette Gradient Overlay
+
+                  // Dark Vignette Multi-Stop Gradient Overlay
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.black.withValues(alpha: 0.15),
-                          Colors.black.withValues(alpha: 0.7),
+                          Colors.black.withValues(alpha: 0.25),
+                          Colors.black.withValues(alpha: 0.60),
                           const Color(0xFF0F172A),
                         ],
                         begin: Alignment.topCenter,
@@ -85,7 +160,8 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                       ),
                     ),
                   ),
-                  // Tagline banner near bottom of image
+
+                  // Tagline banner near bottom of motion area
                   Positioned(
                     bottom: 24,
                     left: 24,
