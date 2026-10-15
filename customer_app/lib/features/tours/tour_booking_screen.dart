@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,46 @@ class TourBookingScreen extends ConsumerStatefulWidget {
   final PopularDestinationModel destination;
 
   const TourBookingScreen({super.key, required this.destination});
+
+  /// Universal entry point to open TourBookingScreen across Web, Mobile, and Desktop
+  static Future<void> open(BuildContext context, PopularDestinationModel destination) {
+    HapticService.selectionClick();
+    debugPrint('>>> [TOUR_BOOKING] Opening booking for: ${destination.id} (${destination.name})');
+
+    final completer = Completer<void>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!context.mounted) {
+        completer.complete();
+        return;
+      }
+
+      try {
+        await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            settings: RouteSettings(name: '/book-tour?id=${destination.id}'),
+            builder: (_) => TourBookingScreen(
+              key: ValueKey(destination.id),
+              destination: destination,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('>>> [TOUR_BOOKING] Direct push failed, fallback to GoRouter: $e');
+        if (context.mounted) {
+          try {
+            await context.push('/book-tour?id=${destination.id}', extra: destination);
+          } catch (routerError) {
+            debugPrint('>>> [TOUR_BOOKING] router push also failed: $routerError');
+          }
+        }
+      } finally {
+        if (!completer.isCompleted) completer.complete();
+      }
+    });
+
+    return completer.future;
+  }
 
   @override
   ConsumerState<TourBookingScreen> createState() => _TourBookingScreenState();
@@ -320,31 +361,36 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
           ],
         ),
       ),
-      body: Stack(
-        children: [
-          Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Stack(
             children: [
-              // 1. Persistent 3-Step Progress Bar
-              _buildStepIndicator(),
+              Column(
+                children: [
+                  // 1. Persistent 3-Step Progress Bar
+                  _buildStepIndicator(),
 
-              // Step Content Body
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-                  child: _buildCurrentStepContent(pricing),
-                ),
+                  // Step Content Body
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                      child: _buildCurrentStepContent(pricing),
+                    ),
+                  ),
+                ],
+              ),
+
+              // 2. Sticky Bottom Bar on EVERY Step (Rolling total + Breakdown + Primary Button)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildStickyBottomActionBar(pricing),
               ),
             ],
           ),
-
-          // 2. Sticky Bottom Bar on EVERY Step (Rolling total + Breakdown + Primary Button)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildStickyBottomActionBar(pricing),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -24,13 +24,14 @@ class PopularDestinationsScreen extends ConsumerStatefulWidget {
 class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsScreen> {
   String _selectedCategory = 'all';
   String _searchQuery = '';
-  String _sortBy = 'popular'; // 'popular', 'nearest', 'price'
+  String _sortBy = 'popular'; // 'popular', 'name', 'district'
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   final Set<String> _savedPlaceIds = <String>{};
 
   final List<Map<String, dynamic>> _categories = [
     {'id': 'all', 'label': 'All Places', 'icon': Icons.auto_awesome_rounded},
+    {'id': 'combo', 'label': 'Combo Tours', 'icon': Icons.card_giftcard_rounded},
     {'id': 'trending', 'label': 'Trending', 'icon': Icons.local_fire_department_rounded},
     {'id': 'waterfall', 'label': 'Waterfalls', 'icon': Icons.water_rounded},
     {'id': 'temple', 'label': 'Temples & Spiritual', 'icon': Icons.temple_hindu_rounded},
@@ -39,7 +40,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
     {'id': 'heritage', 'label': 'Heritage', 'icon': Icons.account_balance_rounded},
   ];
 
-  final List<String> _recentSearches = ['Hundru Falls', 'Netarhat Sunset', 'Patratu Valley', 'Baidyanath Dham'];
+  final List<String> _recentSearches = ['Combo Tour', 'Hundru Falls', 'Netarhat Sunset', 'Patratu Valley', 'Baidyanath Dham'];
 
   @override
   void initState() {
@@ -125,8 +126,8 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
             ),
             const SizedBox(height: 12),
             _buildSortOption('popular', 'Most Popular / Top Rated', Icons.star_rounded),
-            _buildSortOption('nearest', 'Nearest to Me (GPS Distance)', Icons.near_me_rounded),
-            _buildSortOption('price', 'Starting Price: Low to High', Icons.currency_rupee_rounded),
+            _buildSortOption('name', 'Alphabetical (A to Z)', Icons.sort_by_alpha_rounded),
+            _buildSortOption('district', 'By District Name', Icons.location_city_rounded),
           ],
         ),
       ),
@@ -173,6 +174,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
               var filtered = allDestinations.where((d) {
                 final matchesCat = _selectedCategory == 'all' ||
                     (_selectedCategory == 'trending' && d.isTrending) ||
+                    (_selectedCategory == 'combo' && (d.isCombo || d.category == 'combo')) ||
                     d.category == _selectedCategory;
 
                 final query = _searchQuery.toLowerCase().trim();
@@ -180,6 +182,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     d.name.toLowerCase().contains(query) ||
                     d.hindiName.toLowerCase().contains(query) ||
                     d.district.toLowerCase().contains(query) ||
+                    d.packageType.toLowerCase().contains(query) ||
                     d.category.toLowerCase().contains(query);
 
                 return matchesCat && matchesQuery;
@@ -188,10 +191,10 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
               // Sort
               if (_sortBy == 'popular') {
                 filtered.sort((a, b) => b.rating.compareTo(a.rating));
-              } else if (_sortBy == 'nearest') {
-                filtered.sort((a, b) => a.approxDistanceKm.compareTo(b.approxDistanceKm));
-              } else if (_sortBy == 'price') {
-                filtered.sort((a, b) => a.startingFare.compareTo(b.startingFare));
+              } else if (_sortBy == 'name') {
+                filtered.sort((a, b) => a.name.compareTo(b.name));
+              } else if (_sortBy == 'district') {
+                filtered.sort((a, b) => a.district.compareTo(b.district));
               }
 
               final featuredList = allDestinations.where((d) => d.isTrending).take(3).toList();
@@ -238,30 +241,16 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                         ),
                       ),
                     ],
-                    flexibleSpace: FlexibleSpaceBar(
-                      titlePadding: const EdgeInsets.only(left: 56, bottom: 12),
-                      title: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Tours & Travels',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: AppTokens.ink,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          Text(
-                            'Explore Jharkhand • Day Tours & Getaways',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppTokens.primary,
-                            ),
-                          ),
-                        ],
+                    flexibleSpace: const FlexibleSpaceBar(
+                      titlePadding: EdgeInsets.only(left: 56, bottom: 14),
+                      title: Text(
+                        'Tours & Travels',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: AppTokens.ink,
+                          letterSpacing: -0.4,
+                        ),
                       ),
                     ),
                   ),
@@ -605,88 +594,74 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     ),
                   const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                  // 6. Curated Tour Packages Row (Bundles)
+                  // 6. Curated Tour Packages Row (Bundles & Combos)
                   if (_searchQuery.isEmpty) ...[
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text(
-                              'Popular Tour Packages',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: AppTokens.ink,
-                              ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Combo Tour Packages',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppTokens.ink,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    HapticService.selectionClick();
+                                    setState(() => _selectedCategory = 'combo');
+                                  },
+                                  child: const Text(
+                                    'View All Combos',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTokens.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Curated Circuits',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppTokens.primary,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 12),
+                          Builder(
+                            builder: (context) {
+                              final comboList = allDestinations.where((d) => d.isCombo || d.category == 'combo').toList();
+                              final displayList = comboList.isNotEmpty
+                                  ? comboList
+                                  : allDestinations.where((d) => d.isTrending).take(3).toList();
+
+                              return SizedBox(
+                                height: 96,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  itemCount: displayList.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                  itemBuilder: (context, cIdx) {
+                                    final item = displayList[cIdx];
+                                    return _buildPackageBundleCard(
+                                      title: item.name,
+                                      subtitle: item.packageType.isNotEmpty ? item.packageType : '${item.district} Circuit',
+                                      tag: item.isCombo ? 'Combo Package' : 'Curated Tour',
+                                      onTap: () => _openDestinationDetail(context, item),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 100,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: [
-                            _buildPackageBundleCard(
-                              title: 'Ranchi Waterfall Circuit',
-                              subtitle: 'Hundru + Dassam + Jonha · 1 Day',
-                              fare: 'From ₹1,899',
-                              tag: 'Most Popular',
-                              onTap: () {
-                                final hundru = allDestinations.firstWhere(
-                                  (d) => d.id == 'hundru_falls',
-                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'hundru_falls'),
-                                );
-                                _openDestinationDetail(context, hundru);
-                              },
-                            ),
-                            const SizedBox(width: 12),
-                            _buildPackageBundleCard(
-                              title: 'Plateau & Sunset Escape',
-                              subtitle: 'Patratu Valley + Dam Cruise · Half Day',
-                              fare: 'From ₹1,299',
-                              tag: 'Best Value',
-                              onTap: () {
-                                final patratu = allDestinations.firstWhere(
-                                  (d) => d.id == 'patratu_valley',
-                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'patratu_valley'),
-                                );
-                                _openDestinationDetail(context, patratu);
-                              },
-                            ),
-                            const SizedBox(width: 12),
-                            _buildPackageBundleCard(
-                              title: 'Spiritual Jyotirlinga Dham',
-                              subtitle: 'Baba Baidyanath Deoghar Darshan',
-                              fare: 'From ₹3,999',
-                              tag: 'Pilgrimage',
-                              onTap: () {
-                                final baidyanath = allDestinations.firstWhere(
-                                  (d) => d.id == 'baidyanath_dham',
-                                  orElse: () => DestinationsService.defaultDestinations.firstWhere((d) => d.id == 'baidyanath_dham'),
-                                );
-                                _openDestinationDetail(context, baidyanath);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
 
                   // 7. Grid Header
@@ -699,7 +674,9 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                           Text(
                             _selectedCategory == 'all'
                                 ? 'All Jharkhand Destinations (${filtered.length})'
-                                : '${filtered.length} Places Found',
+                                : _selectedCategory == 'combo'
+                                    ? 'Combo Tour Packages (${filtered.length})'
+                                    : '${filtered.length} Places Found',
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
@@ -712,7 +689,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-                  // 8. 2-Column Grid (4:5 Aspect Ratio Cards with Serif Titles & Tabular Fares)
+                  // 8. Responsive Grid (Mobile 2-col, Tablet/Desktop 3/4-col)
                   if (filtered.isEmpty)
                     const SliverToBoxAdapter(
                       child: Padding(
@@ -730,11 +707,13 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: MediaQuery.of(context).size.width > 1100
+                              ? 4
+                              : (MediaQuery.of(context).size.width > 680 ? 3 : 2),
                           crossAxisSpacing: 14,
                           mainAxisSpacing: 16,
-                          childAspectRatio: 0.72,
+                          childAspectRatio: MediaQuery.of(context).size.width > 680 ? 0.80 : 0.74,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -905,7 +884,7 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${dest.district} • ${dest.approxDistanceKm.round()} km',
+                          dest.district,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -917,35 +896,28 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                       ],
                     ),
 
-                    // Distance & Fare Row
+                    // Category Pill & View Details Action
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Round Trip from',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppTokens.hint,
-                              ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: dest.isCombo ? AppTokens.marigoldTint : AppTokens.primaryTint,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            dest.isCombo ? 'COMBO' : dest.category.toUpperCase().replaceAll('_', ' '),
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: dest.isCombo ? AppTokens.ink : AppTokens.primaryDark,
                             ),
-                            Text(
-                              '₹${dest.startingFare.round()}',
-                              style: const TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w900,
-                                color: AppTokens.primary,
-                                fontFeatures: [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(8),
@@ -1047,36 +1019,43 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
-                            '${dest.approxDistanceKm.round()} km from you',
+                            dest.packageType.isNotEmpty ? dest.packageType : dest.district,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                               color: Colors.white70,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: AppTokens.primary,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            'From ₹${dest.startingFare.round()}',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View Tour',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_rounded, size: 12, color: Colors.white),
+                            ],
                           ),
                         ),
                       ],
@@ -1096,7 +1075,6 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
   Widget _buildPackageBundleCard({
     required String title,
     required String subtitle,
-    required String fare,
     required String tag,
     required VoidCallback onTap,
   }) {
@@ -1120,47 +1098,54 @@ class _PopularDestinationsScreenState extends ConsumerState<PopularDestinationsS
             boxShadow: AppTokens.softCardShadow,
           ),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTokens.ink),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppTokens.marigoldTint,
-                    borderRadius: BorderRadius.circular(6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTokens.marigoldTint,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      tag,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                    ),
                   ),
-                  child: Text(
-                    tag,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTokens.ink),
+                ],
+              ),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTokens.secondaryText),
+              ),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Explore Package',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTokens.primary),
                   ),
-                ),
-              ],
-            ),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTokens.secondaryText),
-            ),
-            Text(
-              fare,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppTokens.primary),
-            ),
-          ],
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 12, color: AppTokens.primary),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

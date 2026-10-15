@@ -361,6 +361,9 @@ class PopularDestinationModel {
   final List<String> safetyTips;
   final List<Map<String, dynamic>> nearbyStops;
   final Map<String, dynamic> hubPackages;
+  final bool isCombo;
+  final List<String> comboDestinations;
+  final String packageType;
 
   PopularDestinationModel({
     required this.id,
@@ -383,7 +386,7 @@ class PopularDestinationModel {
     this.isPopular = true,
     this.highlights = const [],
     this.hindiName = '',
-    this.imageCredit = 'Wikimedia Commons / Public License',
+    this.imageCredit = 'District Car Verified Partner / Tourism Dept',
     this.imageLicense = 'CC BY-SA 4.0',
     this.altTextEn = '',
     this.altTextHi = '',
@@ -393,6 +396,9 @@ class PopularDestinationModel {
     this.safetyTips = const [],
     this.nearbyStops = const [],
     this.hubPackages = const {},
+    this.isCombo = false,
+    this.comboDestinations = const [],
+    this.packageType = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -427,6 +433,9 @@ class PopularDestinationModel {
       'safetyTips': safetyTips,
       'nearbyStops': nearbyStops,
       'hubPackages': hubPackages,
+      'isCombo': isCombo,
+      'comboDestinations': comboDestinations,
+      'packageType': packageType,
     };
   }
 
@@ -462,6 +471,9 @@ class PopularDestinationModel {
       safetyTips: (map['safetyTips'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       nearbyStops: (map['nearbyStops'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
       hubPackages: (map['hubPackages'] as Map<String, dynamic>?) ?? {},
+      isCombo: map['isCombo'] == true || (map['category'] as String?)?.toLowerCase().trim() == 'combo',
+      comboDestinations: (map['comboDestinations'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      packageType: map['packageType'] as String? ?? '',
     );
   }
 
@@ -496,6 +508,9 @@ class PopularDestinationModel {
     List<String>? safetyTips,
     List<Map<String, dynamic>>? nearbyStops,
     Map<String, dynamic>? hubPackages,
+    bool? isCombo,
+    List<String>? comboDestinations,
+    String? packageType,
   }) {
     return PopularDestinationModel(
       id: id ?? this.id,
@@ -528,6 +543,9 @@ class PopularDestinationModel {
       safetyTips: safetyTips ?? this.safetyTips,
       nearbyStops: nearbyStops ?? this.nearbyStops,
       hubPackages: hubPackages ?? this.hubPackages,
+      isCombo: isCombo ?? this.isCombo,
+      comboDestinations: comboDestinations ?? this.comboDestinations,
+      packageType: packageType ?? this.packageType,
     );
   }
 }

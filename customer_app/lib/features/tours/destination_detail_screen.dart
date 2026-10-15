@@ -23,10 +23,10 @@ class DestinationDetailScreen extends StatefulWidget {
     this.destinationId,
   });
 
-  /// Sanitize image URLs to prevent 404s or stale Wikimedia URLs
+  /// Sanitize image URLs to prevent 404s or stale URLs
   static String sanitizeUrl(String url) {
-    if (url.contains('Hundru_Falls_Ranchi.jpg')) {
-      return 'https://upload.wikimedia.org/wikipedia/commons/b/be/Hundru_Falls%2C_Jharkhand%2C_India_4.jpg';
+    if (url.contains('wikimedia.org') || url.contains('wikipedia.org')) {
+      return 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80';
     }
     return url;
   }
@@ -872,25 +872,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               if (_isNavigatingToBooking) return;
               _isNavigatingToBooking = true;
               HapticService.buttonPress();
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                if (!mounted) {
+              TourBookingScreen.open(context, dest).then((_) {
+                if (mounted) {
                   _isNavigatingToBooking = false;
-                  return;
                 }
-                try {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => TourBookingScreen(destination: dest),
-                    ),
-                  );
-                } catch (_) {
-                  if (mounted) {
-                    await context.push('/book-tour?id=${dest.id}', extra: dest);
-                  }
-                } finally {
-                  if (mounted) {
-                    _isNavigatingToBooking = false;
-                  }
+              }).catchError((_) {
+                if (mounted) {
+                  _isNavigatingToBooking = false;
                 }
               });
             },

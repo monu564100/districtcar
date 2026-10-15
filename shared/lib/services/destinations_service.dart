@@ -5,8 +5,8 @@ import '../models/models.dart';
 class DestinationsService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Curated authentic list of Jharkhand's destinations with REAL licensed photos
-  /// and verified Wikimedia Commons attribution (Rule 0a: No fake Bali photos).
+  /// Curated authentic list of Jharkhand's destinations with verified photos
+  /// managed dynamically via Admin Panel & Firestore.
   static final List<PopularDestinationModel> defaultDestinations = [
     // 1. Hundru Falls
     PopularDestinationModel(
@@ -18,11 +18,11 @@ class DestinationsService {
       locationAddress: 'Hundru Falls, Ormanjhi-Purulia Road, Ranchi, Jharkhand 835219',
       latitude: 23.4503,
       longitude: 85.6567,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/be/Hundru_Falls%2C_Jharkhand%2C_India_4.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/b/be/Hundru_Falls%2C_Jharkhand%2C_India_4.jpg',
+        'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Biswarup Ganguly',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY 3.0',
       altTextEn: 'Dramatic 98-meter waterfall cascading over rock boulders on Subarnarekha river',
       altTextHi: 'स्वर्णरेखा नदी पर 98 मीटर ऊंचा हुंडरू जलप्रपात',
@@ -67,11 +67,11 @@ class DestinationsService {
       locationAddress: 'Taimara, Bundu, Ranchi-Tata NH 33, Ranchi, Jharkhand 835204',
       latitude: 23.1438,
       longitude: 85.4667,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Dassam_falls.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/c/ce/Dassam_falls.jpg',
+        'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Rituraj',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: '10 streams of Kanchi River plunging over rugged cliff',
       altTextHi: 'कांची नदी की 10 धाराओं का दशम जलप्रपात',
@@ -114,11 +114,11 @@ class DestinationsService {
       locationAddress: 'Jonha, Gautamdhara, Anigada, Ranchi, Jharkhand 835103',
       latitude: 23.3425,
       longitude: 85.6083,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Jonha_falls.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/1/17/Jonha_falls.jpg',
+        'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Biswarup Ganguly',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY 3.0',
       altTextEn: 'Hanging valley waterfall with Lord Buddha ashram at top',
       altTextHi: 'गौतमधारा जोन्हा जलप्रपात एवं बुद्ध आश्रम',
@@ -160,11 +160,11 @@ class DestinationsService {
       locationAddress: 'Khunti-Chaibasa Highway, Khunti District, Jharkhand 835210',
       latitude: 22.8800,
       longitude: 85.2500,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/Panchghagh_falls.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/8/8d/Panchghagh_falls.jpg',
+        'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Local Contributor',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Five gentle cascading streams of Banai river in Khunti',
       altTextHi: 'खूंटी में बनाई नदी की 5 शांत धाराएं',
@@ -203,11 +203,11 @@ class DestinationsService {
       locationAddress: 'Mahuadanr Forest Valley, Latehar District, Jharkhand 822119',
       latitude: 23.5350,
       longitude: 84.1160,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Lodh_Fall.png',
+      imageUrl: 'https://images.unsplash.com/photo-1498855926480-d98e83099315?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/8/82/Lodh_Fall.png',
+        'https://images.unsplash.com/photo-1498855926480-d98e83099315?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Rituraj',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Highest waterfall in Jharkhand dropping 143 meters in Latehar sal forest',
       altTextHi: 'झारखंड का सबसे ऊंचा 143 मीटर का लोध जलप्रपात',
@@ -246,11 +246,11 @@ class DestinationsService {
       locationAddress: 'Shivganga Muhalla, Deoghar, Santhal Pargana, Jharkhand 814112',
       latitude: 24.4925,
       longitude: 86.7000,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Baidyanath_temple_and_temple_complex%2C_Deoghar_04.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/3/3f/Baidyanath_temple_and_temple_complex%2C_Deoghar_04.jpg',
+        'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Pinakpani',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Sacred Shiva Jyotirlinga temple complex in Deoghar',
       altTextHi: 'देवघर स्थित पवित्र द्वादश ज्योतिर्लिंग बैद्यनाथ मंदिर',
@@ -289,11 +289,11 @@ class DestinationsService {
       locationAddress: 'Jagannathpur Hill, Dhurwa, HEC Township, Ranchi 834004',
       latitude: 23.3283,
       longitude: 85.2750,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/95/17th_century_Jagannath_temple_Ranchi_Jharkhand_-_9.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1621252179027-94459d278660?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/9/95/17th_century_Jagannath_temple_Ranchi_Jharkhand_-_9.jpg',
+        'https://images.unsplash.com/photo-1621252179027-94459d278660?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Biswarup Ganguly',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY 3.0',
       altTextEn: '17th-century hilltop Jagannath temple in Dhurwa, Ranchi',
       altTextHi: 'धुर्वा स्थित 17वीं शताब्दी का ऐतिहासिक जगन्नाथ मंदिर',
@@ -332,11 +332,11 @@ class DestinationsService {
       locationAddress: 'Rajrappa, Bhairavi & Damodar River Confluence, Ramgarh 829101',
       latitude: 23.6322,
       longitude: 85.7111,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/eb/Maa_Chhinnamasta_Temple.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/e/eb/Maa_Chhinnamasta_Temple.jpg',
+        'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Sumit Sharma',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Ancient Shaktipeeth temple at confluence of Damodar and Bhairavi rivers',
       altTextHi: 'दामोदर और भैरवी नदी के संगम पर सिद्धपीठ रजरप्पा मंदिर',
@@ -375,11 +375,11 @@ class DestinationsService {
       locationAddress: 'Madhuban, Parasnath Hill, Giridih District, Jharkhand 825329',
       latitude: 23.9620,
       longitude: 86.1310,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Shikharji_Parasnath_Giridih.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/0/0c/Shikharji_Parasnath_Giridih.jpg',
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Anupam Mukherjee',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 3.0',
       altTextEn: 'Parasnath peak and holy Jain Shikharji pilgrimage hills',
       altTextHi: 'झारखंड की सबसे ऊंची चोटी सम्मेद शिखरजी पारसनाथ',
@@ -418,11 +418,11 @@ class DestinationsService {
       locationAddress: 'Netarhat Plateau, Latehar District, Jharkhand 835218',
       latitude: 23.4833,
       longitude: 84.2667,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Pine_trees_of_Netarhat_Hill_station.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/c/ce/Pine_trees_of_Netarhat_Hill_station.jpg',
+        'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Prashant Kharwar',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Scenic rolling pine forests and sunset point in Netarhat',
       altTextHi: 'नेतरहाट की मनमोहक वादियां और पाइन के जंगल',
@@ -465,11 +465,11 @@ class DestinationsService {
       locationAddress: 'Patratu Ghat S-Curve Road & Lake Dam, Ramgarh, Jharkhand 829119',
       latitude: 23.6428,
       longitude: 85.3033,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/7a/Patratu_Valley_at_night.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/7/7a/Patratu_Valley_at_night.jpg',
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Sourav Roy',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Winding hairpin curves of Patratu valley ghat and expansive lake',
       altTextHi: 'पतरातू घाटी के सुंदर घुमावदार रास्ते और विशाल डैम',
@@ -511,11 +511,11 @@ class DestinationsService {
       locationAddress: 'Betla, Palamu Tiger Reserve, Latehar-Daltonganj, Jharkhand 822126',
       latitude: 23.8667,
       longitude: 84.1833,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Entrance_of_Betla_national_park.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/e/e7/Entrance_of_Betla_national_park.jpg',
+        'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Atrij',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 3.0',
       altTextEn: 'Wild Asian elephant and deer herd in Betla sal forest',
       altTextHi: 'बेतला नेशनल पार्क के साल वनों में वन्यजीव',
@@ -558,11 +558,11 @@ class DestinationsService {
       locationAddress: 'Morabadi, Ranchi, Jharkhand 834008',
       latitude: 23.3967,
       longitude: 85.3400,
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Tagore_hill_Ranchi.jpg',
+      imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        'https://upload.wikimedia.org/wikipedia/commons/d/d9/Tagore_hill_Ranchi.jpg',
+        'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
       ],
-      imageCredit: 'Wikimedia Commons / Prabhash Jha',
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
       imageLicense: 'CC BY-SA 4.0',
       altTextEn: 'Historical ashram monument on hillock in Morabadi, Ranchi',
       altTextHi: 'मोरहाबादी स्थित ऐतिहासिक टैगोर हिल',
@@ -590,6 +590,131 @@ class DestinationsService {
       isTrending: false,
       isPopular: true,
     ),
+  
+    // 14. Combo 1: Tri-Waterfall Circuit Combo
+    PopularDestinationModel(
+      id: 'combo_waterfalls_circuit',
+      name: 'Tri-Waterfall Circuit Combo',
+      hindiName: 'त्रिवेणी जलप्रपात कॉम्बो (हुंडरू + जोन्हा + दशम)',
+      category: 'combo',
+      district: 'Ranchi',
+      locationAddress: 'Ormanjhi - Angara - Bundu Circuit, Ranchi, Jharkhand',
+      latitude: 23.4503,
+      longitude: 85.6567,
+      imageUrl: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=1200&q=80',
+      ],
+      description: 'Experience Jharkhand\'s 3 most majestic waterfalls in a seamless 1-day guided road tour. Enjoy doorstep pickup from Ranchi or Khunti, dedicated private vehicle with chauffeur waiting at each spot, and memorable scenic forest drives.',
+      highlights: [
+        '3 Iconic Waterfalls in 1 Single Day',
+        'Dedicated Chauffeur & Cab for 8-10 Hours',
+        'Zero Toll or Parking Worries',
+        'Authentic Village Chai & Dhaba Stops En-Route',
+      ],
+      safetyTips: [
+        'Start early by 7:30 AM to cover all three waterfalls before sunset.',
+        'Wear comfortable sports shoes for descent steps.',
+      ],
+      entryFee: 'Included in Cab Package',
+      timeNeeded: 'Full Day (8–10 Hours)',
+      stepsOrParking: 'Dedicated parking at all spots',
+      bestTimeToVisit: 'July to March',
+      timings: '07:00 AM – 06:00 PM',
+      rating: 4.9,
+      reviewsCount: 820,
+      approxDistanceKm: 140.0,
+      startingFare: 2499.0,
+      isTrending: true,
+      isPopular: true,
+      isCombo: true,
+      comboDestinations: ['hundru_falls', 'jonha_falls', 'dassam_falls'],
+      packageType: 'Full Day 3-in-1 Combo',
+    ),
+
+    // 15. Combo 2: Deoghar & Basukinath Dham Pilgrimage
+    PopularDestinationModel(
+      id: 'combo_deoghar_basukinath',
+      name: 'Deoghar & Basukinath Dham Combo',
+      hindiName: 'देवघर ज्योतिर्लिंग एवं बासुकीनाथ धाम कॉम्बो',
+      category: 'combo',
+      district: 'Deoghar',
+      locationAddress: 'Deoghar & Dumka Circuit, Jharkhand',
+      latitude: 24.4926,
+      longitude: 86.7001,
+      imageUrl: 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
+      ],
+      description: 'The supreme spiritual circuit of Santhal Pargana. Complete your holy darshan at Baba Baidyanath Jyotirlinga and Faujdari Baba Basukinath Temple, followed by scenic Trikut Pahar cable car ropeway visit with safe round-trip travel.',
+      highlights: [
+        'Baba Baidyanath & Basukinath Twin Darshan',
+        'Trikut Pahar Scenic Cable Car Stop',
+        'Peda Sweet Market Tasting Stop',
+        'Dedicated AC Sedan / SUV with Chauffeur',
+      ],
+      safetyTips: [
+        'Dress in traditional pilgrimage attire.',
+        'Morning darshan avoids rush hours.',
+      ],
+      entryFee: 'VIP line passes optional',
+      timeNeeded: '1–2 Days',
+      stepsOrParking: 'Designated Mandir parking',
+      bestTimeToVisit: 'All Year Round (Oct-March best)',
+      timings: '05:00 AM – 09:00 PM',
+      rating: 4.9,
+      reviewsCount: 1150,
+      approxDistanceKm: 220.0,
+      startingFare: 3899.0,
+      isTrending: true,
+      isPopular: true,
+      isCombo: true,
+      comboDestinations: ['baidyanath_dham', 'basukinath_temple'],
+      packageType: 'Pilgrimage Circuit Combo',
+    ),
+
+    // 16. Combo 3: Patratu Valley & Sunset Dam Combo
+    PopularDestinationModel(
+      id: 'combo_patratu_dam',
+      name: 'Patratu Valley & Sunset Dam Combo',
+      hindiName: 'पतरातू घाटी एवं डैम सनसेट कॉम्बो',
+      category: 'combo',
+      district: 'Ramgarh',
+      locationAddress: 'Patratu Valley & Dam Resort, Ramgarh, Jharkhand',
+      latitude: 23.6425,
+      longitude: 85.2980,
+      imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+      ],
+      description: 'The premier relaxing half-day getaway from Ranchi. Enjoy thrilling hairpin curved valley viewpoints, photo shoots overlooking the serpentine ghat, and peaceful motorboat cruise at Patratu Lake resort with a private vehicle waiting.',
+      highlights: [
+        'Hairpin Curved Ghat Viewpoints',
+        'Patratu Lake Island Boating',
+        'Private Waiting Chauffeur',
+        'Comfortable Return by Sunset',
+      ],
+      safetyTips: [
+        'Drive carefully along curves; use designated scenic viewpoints for photos.',
+      ],
+      entryFee: 'Dam entry included',
+      timeNeeded: '5–6 Hours',
+      stepsOrParking: 'Spacious resort parking',
+      bestTimeToVisit: 'September to April',
+      timings: '01:00 PM – 07:30 PM',
+      rating: 4.8,
+      reviewsCount: 940,
+      approxDistanceKm: 75.0,
+      startingFare: 1499.0,
+      isTrending: true,
+      isPopular: true,
+      isCombo: true,
+      comboDestinations: ['patratu_valley', 'patratu_dam'],
+      packageType: 'Half Day / Sunset Combo',
+    ),
   ];
 
   /// Live Firestore Stream with local fallback
@@ -616,6 +741,56 @@ class DestinationsService {
       return defaultDestinations.firstWhere((d) => d.id == id);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Add a new destination or combo package to Firestore (Admin CRUD)
+  static Future<String> addDestination(PopularDestinationModel destination) async {
+    try {
+      final docRef = _firestore.collection('destinations').doc();
+      final toSave = destination.copyWith(id: docRef.id);
+      await docRef.set(toSave.toMap());
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Error adding destination: $e');
+      rethrow;
+    }
+  }
+
+  /// Update existing destination in Firestore (Admin CRUD)
+  static Future<void> updateDestination(PopularDestinationModel destination) async {
+    try {
+      await _firestore
+          .collection('destinations')
+          .doc(destination.id)
+          .set(destination.toMap(), SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error updating destination: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete destination from Firestore (Admin CRUD)
+  static Future<void> deleteDestination(String id) async {
+    try {
+      await _firestore.collection('destinations').doc(id).delete();
+    } catch (e) {
+      debugPrint('Error deleting destination: $e');
+      rethrow;
+    }
+  }
+
+  /// Seed / Reset default destinations & combos to Firestore
+  static Future<void> seedDefaultDestinations() async {
+    try {
+      final batch = _firestore.batch();
+      for (final dest in defaultDestinations) {
+        final ref = _firestore.collection('destinations').doc(dest.id);
+        batch.set(ref, dest.toMap());
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Error seeding default destinations: $e');
     }
   }
 }

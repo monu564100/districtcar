@@ -29,7 +29,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
     super.dispose();
   }
 
-  void _showAddEditDialog({PopularDestinationModel? existing}) {
+  void _showAddEditDialog({PopularDestinationModel? existing, bool isComboPreselect = false}) {
     final isEdit = existing != null;
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final addressCtrl = TextEditingController(text: existing?.locationAddress ?? '');
@@ -46,7 +46,16 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
     final latCtrl = TextEditingController(text: existing?.latitude.toString() ?? '23.3441');
     final lngCtrl = TextEditingController(text: existing?.longitude.toString() ?? '85.3096');
 
-    String selectedCategory = existing?.category ?? 'waterfall';
+    // Combo Package & Extra Details
+    bool isCombo = existing?.isCombo ?? (existing?.category == 'combo' || isComboPreselect);
+    final packageTypeCtrl = TextEditingController(text: existing?.packageType ?? (isComboPreselect ? 'Full Day 3-in-1 Combo' : ''));
+    final comboSpotsCtrl = TextEditingController(text: existing?.comboDestinations.join(', ') ?? '');
+    final entryFeeCtrl = TextEditingController(text: existing?.entryFee ?? 'Free Entry');
+    final timeNeededCtrl = TextEditingController(text: existing?.timeNeeded ?? 'Half Day');
+    final parkingCtrl = TextEditingController(text: existing?.stepsOrParking ?? 'Parking available');
+    final safetyTipsCtrl = TextEditingController(text: existing?.safetyTips.join('; ') ?? '');
+
+    String selectedCategory = existing?.category ?? (isComboPreselect ? 'combo' : 'waterfall');
     String selectedDistrict = existing?.district ?? 'Ranchi';
     bool isTrending = existing?.isTrending ?? true;
     bool isPopular = existing?.isPopular ?? true;
@@ -94,6 +103,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           items: const [
+                            DropdownMenuItem(value: 'combo', child: Text('Combo Package (कॉम्बो टूर पैकेज)')),
                             DropdownMenuItem(value: 'waterfall', child: Text('Waterfall (जलप्रपात)')),
                             DropdownMenuItem(value: 'temple', child: Text('Temple / Religious (मंदिर)')),
                             DropdownMenuItem(value: 'hill_station', child: Text('Hill Station (पर्वत)')),
@@ -381,6 +391,18 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                     .where((s) => s.isNotEmpty)
                     .toList();
 
+                final comboSpots = comboSpotsCtrl.text
+                    .split(',')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .toList();
+
+                final safetyTips = safetyTipsCtrl.text
+                    .split(';')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .toList();
+
                 final model = PopularDestinationModel(
                   id: existing?.id ?? '',
                   name: name,
@@ -391,7 +413,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                   longitude: double.tryParse(lngCtrl.text.trim()) ?? 85.3096,
                   imageUrl: imgUrlCtrl.text.trim().isNotEmpty
                       ? imgUrlCtrl.text.trim()
-                      : 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=800&q=80',
+                      : 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80',
                   description: descCtrl.text.trim(),
                   bestTimeToVisit: bestTimeCtrl.text.trim(),
                   timings: timingsCtrl.text.trim(),
@@ -402,6 +424,14 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                   isPopular: isPopular,
                   highlights: highlights,
                   galleryImages: galleryUrls,
+                  isCombo: isCombo || selectedCategory == 'combo',
+                  comboDestinations: comboSpots,
+                  packageType: packageTypeCtrl.text.trim(),
+                  entryFee: entryFeeCtrl.text.trim(),
+                  timeNeeded: timeNeededCtrl.text.trim(),
+                  stepsOrParking: parkingCtrl.text.trim(),
+                  safetyTips: safetyTips,
+                  imageCredit: 'District Car Verified Partner / Tourism Dept',
                 );
 
                 Navigator.pop(ctx);
@@ -525,6 +555,18 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                           ),
                           const SizedBox(width: 14),
                           ElevatedButton.icon(
+                            onPressed: () => _showAddEditDialog(isComboPreselect: true),
+                            icon: const Icon(Icons.card_giftcard_rounded, size: 18),
+                            label: const Text('Launch Combo Package'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton.icon(
                             onPressed: () => _showAddEditDialog(),
                             icon: const Icon(Icons.add_rounded, size: 20),
                             label: const Text('Add Destination'),
@@ -568,10 +610,12 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                         value: _filterCategory,
                         items: const [
                           DropdownMenuItem(value: 'all', child: Text('All Categories')),
+                          DropdownMenuItem(value: 'combo', child: Text('Combo Packages (कॉम्बो पैकेज)')),
                           DropdownMenuItem(value: 'waterfall', child: Text('Waterfalls (जलप्रपात)')),
                           DropdownMenuItem(value: 'temple', child: Text('Temples (मंदिर)')),
                           DropdownMenuItem(value: 'hill_station', child: Text('Hill Stations (पर्वत)')),
                           DropdownMenuItem(value: 'nature', child: Text('Nature (प्रकृति)')),
+                          DropdownMenuItem(value: 'heritage', child: Text('Heritage (धरोहर)')),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _filterCategory = val);
@@ -590,7 +634,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                       final list = snapshot.data ?? DestinationsService.defaultDestinations;
 
                       final filtered = list.where((d) {
-                        final catMatch = _filterCategory == 'all' || d.category == _filterCategory;
+                        final catMatch = _filterCategory == 'all' || d.category == _filterCategory || (_filterCategory == 'combo' && (d.isCombo || d.category == 'combo'));
                         final q = _searchQuery.toLowerCase().trim();
                         final qMatch = q.isEmpty ||
                             d.name.toLowerCase().contains(q) ||
@@ -616,7 +660,7 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                               borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
+                                  color: Colors.black.withValues(alpha: 0.03),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
