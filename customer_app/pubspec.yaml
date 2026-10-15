@@ -1,6 +1,6 @@
 name: district_car_customer
 description: Production-grade Customer Mobile App for District Car platform.
-version: 1.0.0+14
+version: 1.0.0+15
 publish_to: 'none'
 
 environment:
