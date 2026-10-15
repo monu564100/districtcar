@@ -355,19 +355,37 @@ class DriverService {
 
   Future<bool> isDriverOnboarded(String uid) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final localOnboarded = prefs.getBool('driver_onboarded');
-      if (localOnboarded == true) return true;
-    } catch (_) {}
-
-    try {
       final doc = await _firestore.collection('drivers').doc(uid).get();
       if (!doc.exists) return false;
       final data = doc.data() as Map<String, dynamic>? ?? {};
-      return data['isProfileCompleted'] == true ||
-             (data['vehiclePlateNumber'] != null && (data['vehiclePlateNumber'] as String).isNotEmpty);
+
+      final isCompleted = data['isProfileCompleted'] == true;
+      final plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString().trim();
+      final carPhoto = (data['vehicleImage'] ?? data['carPhotoUrl'] ?? '').toString().trim();
+      final driverPhoto = (data['driverPhoto'] ?? data['profilePhotoUrl'] ?? '').toString().trim();
+      final name = (data['name'] ?? '').toString().trim();
+
+      return isCompleted &&
+          plate.isNotEmpty &&
+          carPhoto.isNotEmpty &&
+          driverPhoto.isNotEmpty &&
+          name.isNotEmpty;
     } catch (_) {
-      return false;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final storedUid = prefs.getString('driver_user_uid');
+        final localOnboarded = prefs.getBool('driver_onboarded') ?? false;
+        final plate = prefs.getString('driver_user_plate') ?? '';
+        final carPhoto = prefs.getString('driver_user_vehicle_image') ?? '';
+        final driverPhoto = prefs.getString('driver_user_photo') ?? '';
+        return storedUid == uid &&
+            localOnboarded &&
+            plate.isNotEmpty &&
+            carPhoto.isNotEmpty &&
+            driverPhoto.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
     }
   }
 

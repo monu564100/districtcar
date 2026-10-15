@@ -53,6 +53,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         return;
       }
 
+      // Check if driver profile is complete (Mandatory Registration)
+      final isOnboarded = await ref.read(driverServiceProvider).isDriverOnboarded(user.uid);
+      if (!isOnboarded && mounted) {
+        context.go('/driver-onboarding');
+        return;
+      }
+
       String driverCat = 'car';
       try {
         final prefs = await SharedPreferences.getInstance();

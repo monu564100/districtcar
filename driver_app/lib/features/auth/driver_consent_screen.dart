@@ -140,7 +140,7 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                                 ),
                                 SizedBox(height: 3),
                                 Text(
-                                  'सुरक्षित, पारदर्शी और भरोसेमंद यात्रा के लिए सहमति',
+                                  'Standards for safe, transparent, and reliable journeys',
                                   style: TextStyle(color: Colors.white70, fontSize: 12),
                                 ),
                               ],
@@ -163,7 +163,7 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Select All Agreements (सभी नियम स्वीकार करें)',
+                            'Select All Agreements',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                           ),
                           Checkbox(
@@ -181,7 +181,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                     _buildConsentCard(
                       icon: Icons.badge_outlined,
                       title: 'Valid Driving License & Vehicle RC',
-                      hindiTitle: 'वैध ड्राइविंग लाइसेंस एवं वाहन पंजीकरण',
                       description:
                           'I declare that I possess a valid driving license, valid vehicle RC, fitness, and insurance as per Indian Motor Vehicles Act.',
                       value: _consentLicense,
@@ -193,7 +192,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                     _buildConsentCard(
                       icon: Icons.currency_rupee,
                       title: 'Transparent Fixed Rural Fares',
-                      hindiTitle: 'पारदर्शी किराया — अतिरिक्त नकद नहीं मांगना',
                       description:
                           'I commit to adhering strictly to the in-app fixed fare. I will never demand surge pricing, extra offline cash, or negotiate fares with passengers.',
                       value: _consentFare,
@@ -205,7 +203,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                     _buildConsentCard(
                       icon: Icons.handshake_outlined,
                       title: 'Zero Cancellation Commitment on Accepted Rides',
-                      hindiTitle: 'स्वीकार की गई सवारी रद्द न करने का वचन',
                       description:
                           'I understand that once I tap "Accept Ride", the passenger depends on me. I will reach the pickup point punctually. Unjustified cancellation damages passenger trust and leads to suspension.',
                       value: _consentCancellation,
@@ -217,7 +214,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                     _buildConsentCard(
                       icon: Icons.my_location,
                       title: 'Live Journey GPS Tracking',
-                      hindiTitle: 'सवारी के दौरान लाइव लोकेशन शेयरिंग',
                       description:
                           'I agree to share real-time GPS location with the rider and District Car safety dispatch during active journeys for passenger safety.',
                       value: _consentLocation,
@@ -229,7 +225,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                     _buildConsentCard(
                       icon: Icons.account_balance_wallet_outlined,
                       title: '10% Platform Commission Agreement',
-                      hindiTitle: '10% प्लेटफॉर्म कमीशन सहमति',
                       description:
                           'I understand that District Car charges a nominal 10% platform fee on completed journeys, retained or settled transparently via my Partner Wallet.',
                       value: _consentCommission,
@@ -270,19 +265,20 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                           height: 22,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : Text(
-                          _allConsentsGiven ? 'I AGREE & CONTINUE (स्वीकार करें)' : 'PLEASE ACCEPT ALL CLAUSES',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: _allConsentsGiven ? Colors.white : Colors.grey.shade600,
-                            letterSpacing: 0.5,
+                        : Text(
+                            _allConsentsGiven ? 'I AGREE & CONTINUE' : 'PLEASE ACCEPT ALL CLAUSES',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: _allConsentsGiven ? Colors.white : Colors.grey.shade600,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -291,7 +287,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
   Widget _buildConsentCard({
     required IconData icon,
     required String title,
-    required String hindiTitle,
     required String description,
     required bool value,
     required ValueChanged<bool?> onChanged,
@@ -332,11 +327,6 @@ class _DriverConsentScreenState extends ConsumerState<DriverConsentScreen> {
                   Text(
                     title,
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    hindiTitle,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF059669)),
                   ),
                   const SizedBox(height: 5),
                   Text(

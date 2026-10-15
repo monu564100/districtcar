@@ -87,78 +87,6 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                       ),
                     ),
                   ),
-                  // Floating Top Brand Header
-                  Positioned(
-                    top: 48,
-                    left: 20,
-                    right: 20,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                image: const DecorationImage(
-                                  image: AssetImage('assets/images/app_logo.jpg'),
-                                  fit: BoxFit.cover,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'District Car',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                Text(
-                                  'PARTNER MOBILITY',
-                                  style: TextStyle(
-                                    color: Color(0xFF34D399),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.shield, color: Color(0xFF34D399), size: 13),
-                              SizedBox(width: 4),
-                              Text('Jharkhand #1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   // Tagline banner near bottom of image
                   Positioned(
                     bottom: 24,
@@ -168,7 +96,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'अपनी गाड़ी, अपना सम्मान\nहर सफर पर पूरी कमाई',
+                          'Drive with Freedom\nEarn on Every Journey',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -178,7 +106,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'गांव-कस्बे से जिला मुख्यालय तक बिना कमीशन कटौती सीधी बुकिंग',
+                          'Direct bookings from local stands to district headquarters',
                           style: TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 12,
@@ -216,7 +144,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Partner Sign In / लॉगिन',
+                    'Partner Sign In',
                     style: TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.w900,
@@ -292,30 +220,7 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-
-                  // New Driver Registration Link
-                  Center(
-                    child: TextButton(
-                      onPressed: () => context.push('/driver-onboarding'),
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'New Driver? ',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                          children: [
-                            TextSpan(
-                              text: 'Register Vehicle & Profile (नया पंजीकरण)',
-                              style: TextStyle(
-                                color: Color(0xFF059669),
-                                fontWeight: FontWeight.w800,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
