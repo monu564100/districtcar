@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +14,6 @@ import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
 import 'package:district_car_shared/services/fcm_notification_service.dart';
 import '../../services/driver_service.dart';
-import '../requests/incoming_request_dialog.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
@@ -89,7 +89,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         // Check if mandatory consent is completed
         final hasConsent = prefs.getBool('driver_consent_given') ?? false;
         if (!hasConsent && mounted) {
-          // If already onboarded, mark consent automatically
           await prefs.setBool('driver_consent_given', true);
         }
 
@@ -209,7 +208,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              targetOnline ? '🟢 You are now ONLINE & receiving bookings.' : '⚪ Shift OFF. You are now OFFLINE.',
+              targetOnline ? '🟢 Shift is ONLINE. Live radar active.' : '⚪ Shift is OFFLINE. Taking a break.',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             backgroundColor: targetOnline ? const Color(0xFF059669) : const Color(0xFF334155),
@@ -616,6 +615,36 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     }
   }
 
+  /// Safe Driver Photo Renderer (Supports Base64, Network URLs, Assets, and fallback icons without crashing)
+  Widget _buildSafePhoto(String? photo, double size) {
+    if (photo == null || photo.isEmpty || photo.startsWith('avatar')) {
+      return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+    }
+    if (photo.startsWith('data:image')) {
+      try {
+        final commaIdx = photo.indexOf(',');
+        final raw = commaIdx != -1 ? photo.substring(commaIdx + 1) : photo;
+        final bytes = base64Decode(raw.trim());
+        return Image.memory(bytes, fit: BoxFit.cover, width: size, height: size);
+      } catch (_) {
+        return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+      }
+    }
+    if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      return Image.network(
+        photo,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6),
+      );
+    }
+    if (photo.startsWith('assets/')) {
+      return Image.asset(photo, fit: BoxFit.cover, width: size, height: size);
+    }
+    return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(driverServiceProvider).currentUser;
@@ -736,117 +765,148 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
             return Scaffold(
               backgroundColor: const Color(0xFFF8FAFC),
-              body: Stack(
-                children: [
-                  // 1. TOP HERO VISUAL BACKDROP (Following Customer App Parallax Map / Hero Banner)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 220,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.asset(
-                          _isOnline
-                              ? 'assets/images/driver_radar_active_3d.jpg'
-                              : 'assets/images/driver_offline_cozy_3d.jpg',
+              // Executive Dark App Bar
+              appBar: AppBar(
+                elevation: 0,
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                title: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/images/app_logo.jpg'),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Image.asset(
-                            'assets/images/radar_map_backdrop_dark.jpg',
-                            fit: BoxFit.cover,
-                          ),
                         ),
-                        // Soft Dark Scrim Gradient
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.70),
-                                Colors.black.withValues(alpha: 0.35),
-                                const Color(0xFFF8FAFC),
-                              ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'District Car Partner',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isCurrentlyBusy
+                                    ? const Color(0xFFF59E0B)
+                                    : (_isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isCurrentlyBusy
+                                  ? 'BUSY (ON TRIP)'
+                                  : (_isOnline ? 'ONLINE' : 'OFFLINE'),
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: isCurrentlyBusy
+                                    ? const Color(0xFFFDE68A)
+                                    : (_isOnline ? const Color(0xFFA7F3D0) : const Color(0xFF94A3B8)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-
-                  // 2. MAIN SCROLLABLE CONTENT BODY
-                  Positioned.fill(
-                    child: SafeArea(
-                      child: Column(
+                  ],
+                ),
+                actions: [
+                  // Wallet quick badge
+                  InkWell(
+                    onTap: () => context.push('/driver-earnings'),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: Row(
                         children: [
-                          // A. Executive Header Top Bar
-                          _buildExecutiveTopBar(isCurrentlyBusy, walletBalance),
-
-                          // B. Scrollable Viewport
-                          Expanded(
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Hotspot Stand Pill
-                                  _buildHotspotSelector(isCurrentlyBusy),
-                                  const SizedBox(height: 12),
-
-                                  // Driver Identity & Duty Card (COMPLETELY FIXED: NO BIG COLUMN, 100% RESPONSIVE)
-                                  _buildResponsiveDriverCard(
-                                    name: name,
-                                    plate: plate,
-                                    vehicleModel: vehicleModel,
-                                    driverPhone: driverPhone,
-                                    rating: rating,
-                                    category: driverCategory,
-                                    driverPhoto: driverPhoto,
-                                    isCurrentlyBusy: isCurrentlyBusy,
-                                  ),
-                                  const SizedBox(height: 14),
-
-                                  // Quick Metrics Strip (Wallet, Trips, Rating)
-                                  _buildQuickMetricsStrip(walletBalance, totalEarnings, totalTrips, rating),
-                                  const SizedBox(height: 18),
-
-                                  // Category Filter Bar
-                                  _buildCategoryFilterRow(),
-                                  const SizedBox(height: 14),
-
-                                  // Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
-                                  _buildRequestsSection(driverCategory, isCurrentlyBusy),
-                                ],
-                              ),
-                            ),
+                          const Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '₹${walletBalance.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
                           ),
                         ],
                       ),
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.person, color: Colors.white, size: 20),
+                    onPressed: () => context.push('/driver-profile'),
+                  ),
+                ],
+              ),
+              body: Stack(
+                children: [
+                  // 1. Direct Scrollable Viewport (NO fragile nesting, guaranteed rendering)
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // A. Hero Visual Radar / Shift Banner
+                          _buildHeroBanner(isCurrentlyBusy),
+                          const SizedBox(height: 12),
 
-                  // 3. PERSISTENT FLOATING ACTIVE TRIP DOCK
+                          // B. Stand Hotspot Selector Chip
+                          _buildHotspotSelector(isCurrentlyBusy),
+                          const SizedBox(height: 12),
+
+                          // C. Responsive Driver Executive Card (Completely fixed: NO big column)
+                          _buildResponsiveDriverCard(
+                            name: name,
+                            plate: plate,
+                            vehicleModel: vehicleModel,
+                            driverPhone: driverPhone,
+                            rating: rating,
+                            category: driverCategory,
+                            driverPhoto: driverPhoto,
+                            isCurrentlyBusy: isCurrentlyBusy,
+                          ),
+                          const SizedBox(height: 14),
+
+                          // D. Quick Metrics Strip (Wallet, Trips, Rating)
+                          _buildQuickMetricsStrip(walletBalance, totalEarnings, totalTrips, rating),
+                          const SizedBox(height: 18),
+
+                          // E. Category Filter Chips
+                          _buildCategoryFilterRow(),
+                          const SizedBox(height: 14),
+
+                          // F. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
+                          _buildRequestsSection(driverCategory, isCurrentlyBusy),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 2. Persistent Floating Active Trip Dock (When trip is ongoing)
                   if (_activeBooking != null)
                     Positioned(
                       left: 14,
                       right: 14,
                       bottom: 14,
                       child: _buildActiveBookingCard(_activeBooking!),
-                    ),
-
-                  // 4. EMBEDDED INCOMING REQUEST AUDIO & VISUAL OVERLAY
-                  if (_isOnline && !isCurrentlyBusy)
-                    IncomingRequestOverlay(
-                      driverId: user.uid,
-                      vehicleCategory: driverCategory,
-                      driverLocation: _driverLocation,
-                      onAccepted: (booking) {
-                        setState(() {
-                          _activeBooking = booking.copyWith(status: 'driver_assigned');
-                        });
-                      },
                     ),
                 ],
               ),
@@ -857,117 +917,94 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  /// EXECUTIVE TOP BAR (Hierarchy matching Customer App)
-  Widget _buildExecutiveTopBar(bool isCurrentlyBusy, double walletBalance) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/app_logo.jpg'),
-                    fit: BoxFit.cover,
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2)),
+  /// HERO VISUAL RADAR / SHIFT BANNER
+  Widget _buildHeroBanner(bool isCurrentlyBusy) {
+    return Container(
+      width: double.infinity,
+      height: 160,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              _isOnline
+                  ? 'assets/images/driver_radar_active_3d.jpg'
+                  : 'assets/images/driver_offline_cozy_3d.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/radar_map_backdrop_dark.jpg',
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.25),
+                    Colors.black.withValues(alpha: 0.75),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
+            ),
+            // Content inside Banner
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text(
-                    'District Car',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
                   Row(
                     children: [
                       Container(
-                        width: 7,
-                        height: 7,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCurrentlyBusy
-                              ? const Color(0xFFF59E0B)
-                              : (_isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
+                          color: _isOnline ? const Color(0xFF059669) : const Color(0xFF475569),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isCurrentlyBusy
-                            ? 'ACTIVE JOURNEY'
-                            : (_isOnline ? 'ONLINE · RADAR ON' : 'OFFLINE SHIFT'),
-                        style: TextStyle(
-                          color: isCurrentlyBusy
-                              ? const Color(0xFFFDE68A)
-                              : (_isOnline ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1)),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 9.5,
-                          letterSpacing: 0.5,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isOnline ? Icons.radar : Icons.power_settings_new,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _isOnline ? 'RADAR ACTIVE · 15-35 KM' : 'SHIFT OFFLINE',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                            ),
+                          ],
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _isOnline
+                        ? 'Listening for rider bookings near your stand'
+                        : 'Go online to receive guaranteed bookings from villages to district hubs',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
-            ],
-          ),
-
-          // Actions on Right: Wallet Quick Pill & Profile
-          Row(
-            children: [
-              InkWell(
-                onTap: () => context.push('/driver-earnings'),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 15),
-                      const SizedBox(width: 5),
-                      Text(
-                        '₹${walletBalance.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.black.withValues(alpha: 0.45),
-                  padding: const EdgeInsets.all(8),
-                ),
-                icon: const Icon(Icons.person, color: Colors.white, size: 18),
-                onPressed: () => context.push('/driver-profile'),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1058,41 +1095,35 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     required bool isCurrentlyBusy,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 1. Driver Photo Avatar with Category Badge
+          // 1. Driver Photo Avatar with Safe Fallback
           Stack(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFDCFCE7),
                   border: Border.all(color: const Color(0xFF10B981), width: 2),
                 ),
                 child: ClipOval(
-                  child: (driverPhoto != null && driverPhoto.isNotEmpty && !driverPhoto.startsWith('avatar'))
-                      ? Image.network(
-                          driverPhoto,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Color(0xFF15803D), size: 32),
-                        )
-                      : const Icon(Icons.person, color: Color(0xFF15803D), size: 32),
+                  child: _buildSafePhoto(driverPhoto, 50),
                 ),
               ),
               Positioned(
@@ -1104,7 +1135,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     color: Color(0xFF059669),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 10),
+                  child: const Icon(Icons.check, color: Colors.white, size: 9),
                 ),
               ),
             ],
@@ -1124,7 +1155,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       child: Text(
                         name,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF0F172A),
                           letterSpacing: -0.2,
@@ -1143,7 +1174,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       child: const Text(
                         'VERIFIED',
                         style: TextStyle(
-                          fontSize: 8.5,
+                          fontSize: 8,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF15803D),
                         ),
@@ -1151,61 +1182,63 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
 
                 // Vehicle Model & Plate Monospace Chip
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 2,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(5),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Text(
                         plate,
                         style: const TextStyle(
                           fontFamily: 'monospace',
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1E293B),
                         ),
                       ),
                     ),
-                    Text(
-                      vehicleModel,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        vehicleModel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
 
                 // Star Rating & Phone inline row
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 15),
+                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
                     const SizedBox(width: 2),
                     Text(
                       '$rating',
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                     ),
                     if (driverPhone.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        '· $driverPhone',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '· $driverPhone',
+                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ],
@@ -1225,20 +1258,20 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               );
             },
             child: SizedBox(
-              height: 40,
+              height: 38,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isOnline ? const Color(0xFFDC2626) : const Color(0xFF059669),
                   foregroundColor: Colors.white,
-                  elevation: _isOnline ? 3 : 1,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: _isOnline ? 2 : 1,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: (_isToggling || isCurrentlyBusy) ? null : () => _toggleOnlineStatus(!_isOnline),
                 child: _isToggling
                     ? const SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : Row(
@@ -1246,13 +1279,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         children: [
                           Icon(
                             _isOnline ? Icons.power_settings_new : Icons.radar,
-                            size: 15,
+                            size: 14,
                             color: Colors.white,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 4),
                           Text(
                             _isOnline ? 'OFFLINE' : 'GO ONLINE',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900),
                           ),
                         ],
                       ),
@@ -1272,19 +1305,19 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         Expanded(
           child: InkWell(
             onTap: () => context.push('/driver-earnings'),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF065F46), Color(0xFF059669)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF059669).withValues(alpha: 0.22),
+                    color: const Color(0xFF059669).withValues(alpha: 0.20),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -1293,9 +1326,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('WALLET EARNINGS', style: TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w800)),
+                  const Text('WALLET', style: TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 3),
-                  Text('₹${walletBalance.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+                  Text('₹${walletBalance.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 2),
                   Text('Gross: ₹${totalEarnings.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFA7F3D0), fontSize: 9, fontWeight: FontWeight.bold)),
                 ],
@@ -1303,54 +1336,54 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
 
         // 2. Total Completed Trips
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('COMPLETED TRIPS', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
+                const Text('COMPLETED', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Text('$totalTrips Rides', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900)),
+                Text('$totalTrips Rides', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 2),
-                const Text('100% Guaranteed', style: TextStyle(color: Color(0xFF059669), fontSize: 9.5, fontWeight: FontWeight.bold)),
+                const Text('100% Guaranteed', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
 
         // 3. Acceptance / Rating
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('PARTNER SCORE', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
+                const Text('RATING', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    const Icon(Icons.star, color: Color(0xFFF59E0B), size: 16),
-                    const SizedBox(width: 3),
-                    Text('$rating', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900)),
+                    const Icon(Icons.star, color: Color(0xFFF59E0B), size: 15),
+                    const SizedBox(width: 2),
+                    Text('$rating', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text('Top Tier Partner', style: TextStyle(color: Color(0xFF059669), fontSize: 9.5, fontWeight: FontWeight.bold)),
+                const Text('Verified Partner', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -1438,13 +1471,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         const SizedBox(height: 12),
 
         if (!_isOnline) ...[
-          // Offline Shift Card with 3D Illustration
+          // Offline Shift Card with Safe 3D Illustration
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE2E8F0)),
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
@@ -1456,32 +1489,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   borderRadius: BorderRadius.circular(14),
                   child: Image.asset(
                     'assets/images/driver_offline_cozy_3d.jpg',
-                    height: 130,
+                    height: 110,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.nightlight_round, size: 50, color: Color(0xFF94A3B8)),
+                    errorBuilder: (_, __, ___) => const Icon(Icons.nightlight_round, size: 44, color: Color(0xFF94A3B8)),
                   ),
                 ),
-                const SizedBox(height: 14),
-                const Text('You are Currently Offline', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A))),
+                const SizedBox(height: 12),
+                const Text('You are Currently Offline', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A))),
                 const SizedBox(height: 4),
                 const Text(
                   'Go Online to start receiving instant booking requests directly from village stands to district headquarters.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.3),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
-                  height: 46,
+                  height: 44,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF059669),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => _toggleOnlineStatus(true),
-                    icon: const Icon(Icons.flash_on, size: 18),
-                    label: const Text('GO ONLINE NOW', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5)),
+                    icon: const Icon(Icons.flash_on, size: 17),
+                    label: const Text('GO ONLINE NOW', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                   ),
                 ),
               ],
@@ -1491,23 +1524,23 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           // Busy mode active
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: const Color(0xFFFDE68A)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.directions_car, color: Color(0xFFB45309), size: 28),
-                const SizedBox(width: 14),
+                const Icon(Icons.directions_car, color: Color(0xFFB45309), size: 26),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Active Trip in Progress', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF92400E))),
+                      Text('Active Trip in Progress', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Color(0xFF92400E))),
                       SizedBox(height: 2),
-                      Text('You are serving a trip. Complete the active journey below to unlock new ride requests.', style: TextStyle(fontSize: 11.5, color: Color(0xFF78350F))),
+                      Text('You are serving a trip. Complete the active journey below to unlock new ride requests.', style: TextStyle(fontSize: 11, color: Color(0xFF78350F))),
                     ],
                   ),
                 ),
@@ -1555,10 +1588,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         if (eligibleBookings.isEmpty) {
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
@@ -1567,13 +1600,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   borderRadius: BorderRadius.circular(14),
                   child: Image.asset(
                     'assets/images/driver_radar_active_3d.jpg',
-                    height: 120,
+                    height: 110,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.radar, size: 50, color: Color(0xFF059669)),
+                    errorBuilder: (_, __, ___) => const Icon(Icons.radar, size: 44, color: Color(0xFF059669)),
                   ),
                 ),
-                const SizedBox(height: 14),
-                const Text('Live Radar Active — Searching Nearby', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A))),
+                const SizedBox(height: 12),
+                const Text('Live Radar Active — Searching Nearby', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, color: Color(0xFF0F172A))),
                 const SizedBox(height: 4),
                 const Text(
                   'Bookings from riders within 15–35 km of your stand will sound an alert and appear right here.',
@@ -1591,17 +1624,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final isTour = booking.bookingType == 'tour' || (booking.tourDestinationName != null && booking.tourDestinationName!.isNotEmpty);
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(18),
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF059669).withValues(alpha: 0.08),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
@@ -1627,7 +1660,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                   ? '🌴 Tour Package'
                                   : (booking.isRoundTrip ? '🔄 Round Trip (2x Fare)' : '➡️ One-Way Trip'),
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w900,
                                 color: isTour || booking.isRoundTrip ? const Color(0xFF047857) : const Color(0xFF334155),
                               ),
@@ -1639,7 +1672,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       ),
                       Text(
                         '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
                       ),
                     ],
                   ),
@@ -1654,44 +1687,44 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     ),
                     child: Text(
                       'Pickup ~${pickupDistKm.toStringAsFixed(1)} km from your stand · Trip: ${booking.estimatedDistanceKm} km',
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF065F46), fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Route Details: Pickup & Destination
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.radio_button_checked, color: Color(0xFF059669), size: 16),
+                      const Icon(Icons.radio_button_checked, color: Color(0xFF059669), size: 15),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           booking.pickup.address,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, color: Color(0xFFDC2626), size: 16),
+                      const Icon(Icons.location_on, color: Color(0xFFDC2626), size: 15),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           booking.destination.address,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
                   // ACTION BUTTONS: BOTH DECLINE AND ACCEPT CLEARLY VISIBLE SIDE BY SIDE!
                   Row(
@@ -1700,42 +1733,42 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       Expanded(
                         flex: 1,
                         child: SizedBox(
-                          height: 46,
+                          height: 44,
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFFDC2626),
                               side: const BorderSide(color: Color(0xFFFECACA), width: 1.5),
                               backgroundColor: const Color(0xFFFEF2F2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: () => _declineBooking(booking),
-                            icon: const Icon(Icons.close_rounded, size: 18),
+                            icon: const Icon(Icons.close_rounded, size: 17),
                             label: const Text(
                               'DECLINE',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
 
                       // 2. ACCEPT RIDE BUTTON (Prominent Emerald Green Gradient)
                       Expanded(
                         flex: 2,
                         child: SizedBox(
-                          height: 46,
+                          height: 44,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF059669),
                               foregroundColor: Colors.white,
                               elevation: 2,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: () => _showAcceptConfirmationModal(booking),
-                            icon: const Icon(Icons.check_circle_rounded, size: 19),
+                            icon: const Icon(Icons.check_circle_rounded, size: 18),
                             label: const Text(
                               'ACCEPT RIDE',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, letterSpacing: 0.3),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.3),
                             ),
                           ),
                         ),
@@ -1757,15 +1790,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final customerPhone = booking.customerPhone ?? '+91 87896 01387';
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(color: const Color(0xFF10B981), width: 2),
@@ -1788,7 +1821,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   style: TextStyle(
                     color: isStarted ? const Color(0xFF15803D) : const Color(0xFFB45309),
                     fontWeight: FontWeight.w900,
-                    fontSize: 11,
+                    fontSize: 10.5,
                   ),
                 ),
               ),
@@ -1796,21 +1829,21 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 children: [
                   Text(
                     '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () => _callCustomer(customerPhone),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(7),
                         decoration: const BoxDecoration(
                           color: Color(0xFF059669),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.phone, color: Colors.white, size: 18),
+                        child: const Icon(Icons.phone, color: Colors.white, size: 16),
                       ),
                     ),
                   ),
@@ -1818,19 +1851,19 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          Text('📍 Pickup: ${booking.pickup.address}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700), maxLines: 1),
-          const SizedBox(height: 3),
-          Text('🏁 Drop: ${booking.destination.address}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)), maxLines: 1),
-          const SizedBox(height: 14),
+          Text('📍 Pickup: ${booking.pickup.address}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700), maxLines: 1),
+          const SizedBox(height: 2),
+          Text('🏁 Drop: ${booking.destination.address}', style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)), maxLines: 1),
+          const SizedBox(height: 12),
 
           if (!isStarted) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFBFDBFE)),
               ),
               child: Row(
@@ -1842,7 +1875,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       decoration: const InputDecoration(
                         isDense: true,
                         hintText: 'Enter 4-digit Ride OTP from Customer',
-                        hintStyle: TextStyle(fontSize: 12),
+                        hintStyle: TextStyle(fontSize: 11.5),
                         border: InputBorder.none,
                       ),
                     ),
@@ -1851,11 +1884,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => _verifyOtpAndStartTrip(booking),
-                    child: const Text('Start Trip', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text('Start Trip', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1863,15 +1896,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ] else ...[
             SizedBox(
               width: double.infinity,
-              height: 46,
+              height: 44,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => _completeTrip(booking),
-                child: const Text('COMPLETE THIS TRIP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5)),
+                child: const Text('COMPLETE THIS TRIP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
               ),
             ),
           ],
