@@ -724,18 +724,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final rawDoc = (snapshot.hasData && snapshot.data!.exists) ? snapshot.data!.data() : null;
             final Map<String, dynamic> data = (rawDoc is Map)
                 ? Map<String, dynamic>.from(rawDoc)
-                : {
-                    'name': user.displayName ?? 'Driver Partner',
-                    'phoneNumber': user.phoneNumber ?? '+91 94311 23456',
-                    'vehiclePlateNumber': 'JH 01 BZ 4892',
-                    'vehicleModel': 'Maruti Suzuki Dzire AC',
-                    'vehicleCategoryId': 'car',
-                    'verificationStatus': 'approved',
-                    'rating': 4.9,
-                    'totalTrips': 28,
-                    'totalEarnings': 6850.0,
-                    'walletBalance': 6165.0,
-                  };
+                : <String, dynamic>{};
 
             double asDouble(dynamic val, [double fallback = 0.0]) {
               if (val == null) return fallback;
@@ -746,14 +735,14 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final String name = (data['name'] != null && data['name'].toString().trim().isNotEmpty)
                 ? data['name'].toString().trim()
                 : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
-            final String plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'])?.toString().trim() ?? 'JH 01 BZ 4892';
-            final String vehicleModel = data['vehicleModel']?.toString().trim() ?? 'Maruti Dzire AC';
-            final String driverPhone = (data['phoneNumber'] ?? data['driverPhone'] ?? user.phoneNumber ?? '').toString().trim();
-            final double rating = asDouble(data['rating'], 4.9);
-            final double totalEarnings = asDouble(data['totalEarnings'], 6850.0);
-            final double walletBalance = asDouble(data['walletBalance'], 6165.0);
-            final int totalTrips = (data['totalTrips'] is num) ? (data['totalTrips'] as num).toInt() : 28;
+            final String plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'])?.toString().trim() ?? '';
             final String driverCategory = (data['vehicleCategoryId'] ?? data['category'] ?? 'car').toString().trim().toLowerCase();
+            final String vehicleModel = data['vehicleModel']?.toString().trim() ?? (driverCategory == 'bike' ? 'Two Wheeler' : driverCategory == 'auto' ? 'Auto Rickshaw' : 'Cab Partner');
+            final String driverPhone = (data['phoneNumber'] ?? data['driverPhone'] ?? user.phoneNumber ?? '').toString().trim();
+            final double rating = asDouble(data['rating'], 5.0);
+            final double totalEarnings = asDouble(data['totalEarnings'], 0.0);
+            final double walletBalance = asDouble(data['walletBalance'], 0.0);
+            final int totalTrips = (data['totalTrips'] is num) ? (data['totalTrips'] as num).toInt() : 0;
             final String? driverPhoto = data['driverPhoto']?.toString();
 
             if (_subscribedCategory != driverCategory) {
@@ -1187,27 +1176,29 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 // Vehicle Model & Plate Monospace Chip
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(5),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Text(
-                        plate,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1E293B),
+                    if (plate.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          plate,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E293B),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
+                      const SizedBox(width: 6),
+                    ],
                     Expanded(
                       child: Text(
-                        vehicleModel,
+                        vehicleModel.isNotEmpty ? vehicleModel : 'Registered Vehicle',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF64748B),
@@ -1307,7 +1298,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             onTap: () => context.push('/driver-earnings'),
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF065F46), Color(0xFF059669)],
@@ -1328,9 +1319,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 children: [
                   const Text('WALLET', style: TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 3),
-                  Text('₹${walletBalance.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('₹${walletBalance.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Gross: ₹${totalEarnings.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFA7F3D0), fontSize: 9, fontWeight: FontWeight.bold)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('Gross: ₹${totalEarnings.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFA7F3D0), fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             ),
@@ -1341,7 +1340,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         // 2. Total Completed Trips
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -1352,9 +1351,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               children: [
                 const Text('COMPLETED', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Text('$totalTrips Rides', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('$totalTrips Rides', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
+                ),
                 const SizedBox(height: 2),
-                const Text('100% Guaranteed', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
+                const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('100% Guaranteed', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
           ),
@@ -1364,7 +1371,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         // 3. Acceptance / Rating
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -1375,15 +1382,24 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               children: [
                 const Text('RATING', style: TextStyle(color: Color(0xFF64748B), fontSize: 9.5, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Color(0xFFF59E0B), size: 15),
-                    const SizedBox(width: 2),
-                    Text('$rating', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
-                  ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, color: Color(0xFFF59E0B), size: 15),
+                      const SizedBox(width: 2),
+                      Text('$rating', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.w900)),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 2),
-                const Text('Verified Partner', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
+                const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('Verified Partner', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
           ),

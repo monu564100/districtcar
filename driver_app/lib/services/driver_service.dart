@@ -476,8 +476,11 @@ class DriverService {
       'isActive': true,
       'isBlocked': false,
       'driverStatus': 'idle',
-      'rating': 4.9,
-      'totalTrips': 14,
+      'rating': 5.0,
+      'totalTrips': 0,
+      'totalEarnings': 0.0,
+      'walletBalance': 0.0,
+      'pendingCommission': 0.0,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -529,10 +532,10 @@ class DriverService {
     final uid = currentUser?.uid ?? 'driver_demo';
 
     // Fetch driver profile name and vehicle info
-    String driverName = 'Ramesh Mahto';
-    String driverPhone = '+91 94311 23456';
-    String vehiclePlate = 'JH 01 BZ 4892';
-    String vehicleModel = 'Maruti Suzuki Dzire AC';
+    String driverName = currentUser?.displayName ?? 'Driver Partner';
+    String driverPhone = currentUser?.phoneNumber ?? '';
+    String vehiclePlate = '';
+    String vehicleModel = '';
     String vehicleImage = 'car_blue.jpg';
     String? driverPhoto;
 

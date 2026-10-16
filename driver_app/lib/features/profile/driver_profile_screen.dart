@@ -40,7 +40,9 @@ class DriverProfileScreen extends ConsumerWidget {
           final name = (data['name'] != null && (data['name'] as String).isNotEmpty)
               ? data['name']
               : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
-          final phone = user.phoneNumber ?? data['phoneNumber'] ?? '+91 98765 43210';
+          final phone = (user.phoneNumber != null && user.phoneNumber!.isNotEmpty)
+              ? user.phoneNumber!
+              : (data['phoneNumber'] ?? data['phone'] ?? '').toString();
           final status = data['verificationStatus'] ?? 'approved';
 
           return SingleChildScrollView(
