@@ -149,7 +149,7 @@ class DriverProfileScreen extends ConsumerWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     icon: const Icon(Icons.edit_note, size: 20),
-                    label: const Text('Edit Vehicle & Profile (वाहन व प्रोफ़ाइल बदलें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text('Edit Vehicle & Profile', style: TextStyle(fontWeight: FontWeight.bold)),
                     onPressed: () => context.push('/driver-onboarding'),
                   ),
                 ),
@@ -164,13 +164,6 @@ class DriverProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/driver-legal'),
                 ),
                 _buildMenuTile(
-                  icon: Icons.headset_mic_rounded,
-                  iconColor: const Color(0xFF059669),
-                  title: 'Help & 24/7 Support Desk',
-                  subtitle: 'Call control room or chat on WhatsApp',
-                  onTap: () => context.push('/driver-support'),
-                ),
-                _buildMenuTile(
                   icon: Icons.delete_outline_rounded,
                   iconColor: AppColors.error,
                   title: 'Delete Driver Account',
@@ -183,7 +176,7 @@ class DriverProfileScreen extends ConsumerWidget {
                 // App Version info
                 const Center(
                   child: Text(
-                    'District Car Partner · Version 1.0.0 (Build 15)\nJharkhand Rural & District Mobility',
+                    'District Car Partner · Version 1.0.0 (Build 16)\nJharkhand Rural & District Mobility',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
                   ),

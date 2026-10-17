@@ -70,7 +70,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 15,
+          currentBuildNumber: 16,
         );
       }
 
@@ -514,6 +514,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
@@ -761,74 +762,115 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         ),
                         const SizedBox(height: 14),
 
-                        // CUSTOMER CARD: PHONE NUMBER ALWAYS HORIZONTAL
+                        // CUSTOMER CARD: PHONE NUMBER 100% HORIZONTAL & SPACIOUS
                         if (!isSearching) ...[
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.person, color: Color(0xFF334155), size: 22),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        custName,
-                                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                // Top row: Avatar + Name + Call button
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFE2E8F0),
+                                        shape: BoxShape.circle,
                                       ),
-                                      const SizedBox(height: 3),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                      child: const Icon(Icons.person, color: Color(0xFF0F172A), size: 20),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          const Icon(Icons.phone_android, size: 13, color: Color(0xFF059669)),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              custPhone,
-                                              style: const TextStyle(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: Color(0xFF334155),
-                                                letterSpacing: 0.5,
-                                              ),
-                                              maxLines: 1,
-                                              softWrap: false,
-                                              overflow: TextOverflow.ellipsis,
+                                          const Text(
+                                            'CUSTOMER',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF64748B),
+                                              letterSpacing: 0.5,
                                             ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            custName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF059669),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      onPressed: () => _callCustomer(custPhone),
+                                      icon: const Icon(Icons.call, size: 14),
+                                      label: const Text('CALL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF059669),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                const SizedBox(height: 10),
+                                // Bottom dedicated full-width strip: Phone Number (100% Horizontal guaranteed)
+                                InkWell(
+                                  onTap: () => _callCustomer(custPhone),
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.phone_android, size: 16, color: Color(0xFF059669)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            custPhone,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF1E293B),
+                                              letterSpacing: 0.8,
+                                            ),
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Tap to Call',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF059669),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  onPressed: () => _callCustomer(custPhone),
-                                  icon: const Icon(Icons.phone, size: 14),
-                                  label: const Text('CALL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -924,130 +966,201 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         // STAGE 2: OTP CONTAINER (Customer gives OTP to driver)
                         // ==========================================
                         else if (isAssigned) ...[
-                          GestureDetector(
-                            onTap: () => modalOtpFocus.requestFocus(),
-                            behavior: HitTestBehavior.opaque,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDF4),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: const [
-                                      Icon(Icons.pin, color: Color(0xFF059669), size: 18),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'ENTER RIDE OTP FROM CUSTOMER',
-                                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF065F46)),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFDCFCE7),
+                                        shape: BoxShape.circle,
                                       ),
-                                    ],
+                                      child: const Icon(Icons.pin, color: Color(0xFF059669), size: 18),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'ENTER 4-DIGIT RIDE OTP',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12.5,
+                                          color: Color(0xFF065F46),
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Ask the customer for the 4-digit Ride OTP to verify and start the trip.',
+                                  style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Direct Clickable & Editable OTP Text Field
+                                Container(
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF059669), width: 1.5),
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Ask the customer for the 4-digit Ride OTP to verify and start the trip.',
-                                    style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+                                  child: TextField(
+                                    controller: modalOtpCtrl,
+                                    focusNode: modalOtpFocus,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    maxLength: 4,
+                                    textAlign: TextAlign.center,
+                                    textAlignVertical: TextAlignVertical.center,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 14,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    decoration: const InputDecoration(
+                                      counterText: '',
+                                      hintText: '• • • •',
+                                      hintStyle: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 14,
+                                        color: Color(0xFFCBD5E1),
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          controller: modalOtpCtrl,
-                                          focusNode: modalOtpFocus,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                          maxLength: 4,
-                                          textAlign: TextAlign.center,
-                                          enableInteractiveSelection: true,
-                                          mouseCursor: SystemMouseCursors.text,
-                                          onTap: () => modalOtpFocus.requestFocus(),
-                                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 4),
-                                          decoration: InputDecoration(
-                                            counterText: '',
-                                            hintText: '• • • •',
-                                            hintStyle: const TextStyle(letterSpacing: 4, color: Colors.grey),
-                                            filled: true,
-                                            fillColor: Colors.white,
-                                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                            border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                              borderSide: const BorderSide(color: Color(0xFF059669), width: 2),
-                                            ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Helper / Auto-fill for customer OTP
+                                if (currentBooking.rideOtp != null && currentBooking.rideOtp!.isNotEmpty) ...[
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: InkWell(
+                                      onTap: () {
+                                        modalOtpCtrl.text = currentBooking.rideOtp!;
+                                        setModalState(() {});
+                                      },
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        child: Text(
+                                          'Customer OTP: ${currentBooking.rideOtp} (Tap to Auto-fill)',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF059669),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 10),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF059669),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      ),
-                                      onPressed: isProcessing
-                                          ? null
-                                          : () async {
-                                              final enteredOtp = modalOtpCtrl.text.trim();
-                                              if (enteredOtp.isNotEmpty && enteredOtp != currentBooking.rideOtp && enteredOtp != '1234') {
-                                                ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                  const SnackBar(content: Text('Incorrect OTP! Please check with customer.')),
-                                                );
-                                                return;
-                                              }
-                                              setModalState(() => isProcessing = true);
-                                              try {
-                                                await ref.read(driverServiceProvider).startTrip(
-                                                  currentBooking.id,
-                                                  enteredOtp.isNotEmpty ? enteredOtp : (currentBooking.rideOtp ?? '1234'),
-                                                );
-                                                final updated = currentBooking.copyWith(status: 'trip_started');
-                                                setModalState(() {
-                                                  currentBooking = updated;
-                                                  isProcessing = false;
-                                                });
-                                                if (mounted) {
-                                                  setState(() {
-                                                    _activeBooking = updated;
-                                                  });
-                                                }
-                                                HapticFeedback.mediumImpact();
-                                                if (modalCtx.mounted) {
-                                                  ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('OTP Verified Successfully! Trip Started 🚗'),
-                                                      backgroundColor: Color(0xFF059669),
-                                                    ),
-                                                  );
-                                                }
-                                              } catch (e) {
-                                                setModalState(() => isProcessing = false);
-                                                if (modalCtx.mounted) {
-                                                  ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                    SnackBar(content: Text('Error starting trip: $e')),
-                                                  );
-                                                }
-                                              }
-                                            },
-                                      child: isProcessing
-                                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                          : const Text('START RIDE 🚗', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                                     ),
-                                  ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+
+                                // Dedicated Full-Width Verify & Start Button
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF059669),
+                                      foregroundColor: Colors.white,
+                                      elevation: 1,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    onPressed: isProcessing
+                                        ? null
+                                        : () async {
+                                            final enteredOtp = modalOtpCtrl.text.trim();
+                                            if (enteredOtp.isEmpty) {
+                                              ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Please enter the 4-digit OTP from customer.'),
+                                                  backgroundColor: Color(0xFFDC2626),
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            if (enteredOtp != currentBooking.rideOtp && enteredOtp != '1234') {
+                                              ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Incorrect OTP! Please check with customer.'),
+                                                  backgroundColor: Color(0xFFDC2626),
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            setModalState(() => isProcessing = true);
+                                            try {
+                                              await ref.read(driverServiceProvider).startTrip(
+                                                currentBooking.id,
+                                                enteredOtp.isNotEmpty ? enteredOtp : (currentBooking.rideOtp ?? '1234'),
+                                              );
+                                              final updated = currentBooking.copyWith(status: 'trip_started');
+                                              setModalState(() {
+                                                currentBooking = updated;
+                                                isProcessing = false;
+                                              });
+                                              if (mounted) {
+                                                setState(() {
+                                                  _activeBooking = updated;
+                                                });
+                                              }
+                                              HapticFeedback.mediumImpact();
+                                              if (modalCtx.mounted) {
+                                                ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('OTP Verified Successfully! Trip Started 🚗'),
+                                                    backgroundColor: Color(0xFF059669),
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              setModalState(() => isProcessing = false);
+                                              if (modalCtx.mounted) {
+                                                ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                  SnackBar(content: Text('Error starting trip: $e')),
+                                                );
+                                              }
+                                            }
+                                          },
+                                    child: isProcessing
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                          )
+                                        : const Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.play_arrow_rounded, size: 22),
+                                              SizedBox(width: 6),
+                                              Text(
+                                                'VERIFY OTP & START TRIP 🚗',
+                                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
                         ]
                         // ==========================================
                         // STAGE 3: COMPLETE RIDE & ADD TO WALLET BUTTON
