@@ -619,10 +619,99 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
+  bool _isLocationServiceable(LocationModel loc) {
+    final addr = loc.address.toLowerCase();
+    const jharkhandKeywords = [
+      'jharkhand', 'ranchi', 'khunti', 'ramgarh', 'hazaribagh', 'bokaro', 'dhanbad',
+      'jamshedpur', 'singhbhum', 'saraikela', 'gumla', 'simdega', 'lohardaga', 'latehar',
+      'palamu', 'garhwa', 'chatra', 'koderma', 'giridih', 'deoghar', 'dumka', 'godda',
+      'sahibganj', 'pakur', 'jamtara', 'patratu', 'netarhat', 'betla', 'parasmath',
+      'hundru', 'dassam', 'jonha'
+    ];
+    for (final kw in jharkhandKeywords) {
+      if (addr.contains(kw)) return true;
+    }
+    if (loc.latitude >= 21.8 && loc.latitude <= 25.5 &&
+        loc.longitude >= 83.2 && loc.longitude <= 88.0) {
+      return true;
+    }
+    return false;
+  }
+
+  void _showUnserviceableDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_off_rounded, color: Color(0xFFDC2626), size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Location Not Serviceable',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your pickup location:\n"${_pickupLocation.address}"\nis currently outside District Car\'s operational area.',
+              style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Color(0xFF16A34A), size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'District Car operates across all districts of Jharkhand and nearby tourist hotspots.',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Change Location', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleBookingSearch(double estimatedFare) async {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) {
       context.push('/login');
+      return;
+    }
+
+    if (!_isLocationServiceable(_pickupLocation)) {
+      _showUnserviceableDialog();
       return;
     }
 
@@ -1770,6 +1859,24 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         final elapsedRemainingSecs = (elapsedSeconds % 60);
         final elapsedFormatted = '${elapsedMins.toString().padLeft(2, '0')}:${elapsedRemainingSecs.toString().padLeft(2, '0')}';
 
+        if (status == 'trip_started') {
+          return Positioned(
+            left: 14,
+            right: 14,
+            bottom: 12,
+            child: Material(
+              elevation: 16,
+              borderRadius: BorderRadius.circular(24),
+              shadowColor: Colors.black.withOpacity(0.35),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => context.push('/active-trip/${booking.id}'),
+                child: _buildZomatoLiveTripCard(booking),
+              ),
+            ),
+          );
+        }
+
         return Positioned(
           left: 14,
           right: 14,
@@ -1955,6 +2062,191 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// Zomato-style Live Order Tracker Card (Dark theme with moving vehicle progress)
+  Widget _buildZomatoLiveTripCard(BookingModel booking) {
+    final driverName = booking.driverName?.isNotEmpty == true ? booking.driverName! : 'District Partner';
+    final vehicleModel = booking.vehicleModel?.isNotEmpty == true ? booking.vehicleModel! : 'District Cab';
+    final vehiclePlate = booking.vehiclePlate?.isNotEmpty == true ? booking.vehiclePlate! : '';
+    final destination = booking.destination.address.split(',').first.trim();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.40),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Top Row: Partner name on left, district car logo on right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  vehiclePlate.isNotEmpty ? '$driverName · $vehicleModel ($vehiclePlate)' : '$driverName · $vehicleModel',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'district car',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // 2. Title: "Heading to destination"
+          const Text(
+            'Heading to destination',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // 3. Subtitle: "On time | Dropping off at [Destination]"
+          Text(
+            'On time | Dropping off at $destination',
+            style: const TextStyle(
+              color: Color(0xFF34D399),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 18),
+
+          // 4. Progress Track: Solid white line + Vehicle icon + Dotted remaining line + Destination icon
+          Row(
+            children: [
+              // Traveled portion
+              Expanded(
+                flex: 4,
+                child: Container(
+                  height: 3.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Moving vehicle avatar in round badge
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF27272A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    booking.vehicleCategoryId == 'bike'
+                        ? Icons.two_wheeler_rounded
+                        : (booking.vehicleCategoryId == 'auto'
+                            ? Icons.electric_rickshaw_rounded
+                            : Icons.directions_car_rounded),
+                    color: Colors.white,
+                    size: 17,
+                  ),
+                ),
+              ),
+              // Remaining portion (Dotted line)
+              Expanded(
+                flex: 6,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final boxWidth = constraints.constrainWidth();
+                    const dashWidth = 5.0;
+                    const dashSpace = 4.0;
+                    final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(dashCount.clamp(1, 40), (_) {
+                        return SizedBox(
+                          width: dashWidth,
+                          height: 3.5,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF52525B),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        );
+                      }),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Destination Home/Pin Icon
+              Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.home_rounded,
+                    color: Color(0xFF18181B),
+                    size: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

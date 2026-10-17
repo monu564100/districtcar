@@ -98,10 +98,11 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
         }
       });
     } else if (!_isScheduled && widget.booking.status == 'searching_driver') {
-      // Now mode: Searching splash with radar auto-minimizes in 5 seconds to home screen persistent popup
+      // Now mode: Searching splash with radar auto-minimizes in 30 seconds to home screen persistent popup
       final elapsed = DateTime.now().difference(widget.booking.createdAt).inSeconds;
-      if (elapsed < 5) {
-        _autoMinimizeTimer = Timer(Duration(seconds: (5 - elapsed).clamp(1, 5)), () {
+      final remaining = 30 - elapsed;
+      if (remaining > 0) {
+        _autoMinimizeTimer = Timer(Duration(seconds: remaining.clamp(1, 30)), () {
           if (mounted && !_hasAutoMinimized) {
             _hasAutoMinimized = true;
             try {
@@ -334,6 +335,93 @@ class _BookingWaitingViewState extends State<BookingWaitingView>
                       child: DriverFoundCard(
                         state: state as DriverFoundState,
                         booking: widget.booking,
+                      ),
+                    ),
+
+                  // 8. ALERTING POPUP STRIP: Alerting nearby drivers (30s)
+                  if (!isNoDriver && !isDriverFound && !_isScheduled)
+                    Positioned(
+                      top: 12,
+                      left: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A).withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFD97706),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 16),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'ALERTING NEARBY DRIVERS...',
+                                    style: TextStyle(
+                                      color: Color(0xFFFDE68A),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Sending live calling request to stand drivers (30s radar)',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                try {
+                                  context.go('/');
+                                } catch (_) {}
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'MINIMIZE',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],

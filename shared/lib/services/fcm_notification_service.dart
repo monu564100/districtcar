@@ -403,7 +403,7 @@ class FCMNotificationService {
       } catch (_) {}
     }
 
-    // 4. Dispatch Background Push to Customer Token
+    // 4. Dispatch Background Push: Token first, fallback to topic ONLY if no token
     if (targetToken != null && targetToken.isNotEmpty) {
       await _sendFCMHttp(
         target: targetToken,
@@ -411,15 +411,104 @@ class FCMNotificationService {
         body: body,
         data: dataPayload,
       );
+    } else {
+      await _sendFCMHttp(
+        target: '/topics/customer_$customerId',
+        title: title,
+        body: body,
+        data: dataPayload,
+      );
+    }
+  }
+
+  /// DISPATCH 2b: When Driver Starts Trip -> Zomato Style Live Progress Notification to Customer
+  static Future<void> sendTripStartedNotificationToCustomer({
+    required String bookingId,
+    required String customerId,
+    String? customerToken,
+    required String driverName,
+    required String destinationAddress,
+    required String vehiclePlate,
+    required String vehicleModel,
+  }) async {
+    final title = 'Ride in progress · District Car';
+    final body = 'On time | Heading to $destinationAddress. Driven by $driverName ($vehicleModel · $vehiclePlate)';
+
+    final dataPayload = {
+      'type': 'trip_started',
+      'status': 'in_progress',
+      'bookingId': bookingId,
+      'driverName': driverName,
+      'destination': destinationAddress,
+      'vehiclePlate': vehiclePlate,
+      'vehicleModel': vehicleModel,
+    };
+
+    // 1. Relay to background notification server
+    try {
+      final payload = jsonEncode({
+        'bookingId': bookingId,
+        'customerId': customerId,
+        'driverName': driverName,
+        'destinationAddress': destinationAddress,
+        'vehiclePlate': vehiclePlate,
+        'vehicleModel': vehicleModel,
+      });
+
+      await http.post(
+        Uri.parse('$notificationServerBaseUrl/api/notifications/trip-started'),
+        headers: {'Content-Type': 'application/json'},
+        body: payload,
+      ).timeout(const Duration(seconds: 4)).catchError((_) async {
+        return await http.post(
+          Uri.parse('http://localhost:4000/api/notifications/trip-started'),
+          headers: {'Content-Type': 'application/json'},
+          body: payload,
+        ).timeout(const Duration(seconds: 2));
+      });
+    } catch (_) {}
+
+    // 2. Write to Customer inbox
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(customerId)
+          .collection('inbox_notifications')
+          .add({
+        'title': title,
+        'body': body,
+        'bookingId': bookingId,
+        'driverName': driverName,
+        'destination': destinationAddress,
+        'sentAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (_) {}
+
+    // 3. Fallback direct FCM push (Token first, fallback to topic only if no token)
+    String? targetToken = customerToken;
+    if (targetToken == null || targetToken.isEmpty) {
+      try {
+        final custDoc = await FirebaseFirestore.instance.collection('users').doc(customerId).get();
+        targetToken = custDoc.data()?['fcmToken'] as String?;
+      } catch (_) {}
     }
 
-    // 5. Also dispatch to Customer personal topic
-    await _sendFCMHttp(
-      target: '/topics/customer_$customerId',
-      title: title,
-      body: body,
-      data: dataPayload,
-    );
+    if (targetToken != null && targetToken.isNotEmpty) {
+      await _sendFCMHttp(
+        target: targetToken,
+        title: title,
+        body: body,
+        data: dataPayload,
+      );
+    } else {
+      await _sendFCMHttp(
+        target: '/topics/customer_$customerId',
+        title: title,
+        body: body,
+        data: dataPayload,
+      );
+    }
   }
 
   /// DISPATCH 3: When Customer creates a ride -> Push Notification to Customer (Searching or Scheduled)

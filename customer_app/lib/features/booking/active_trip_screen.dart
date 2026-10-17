@@ -1060,8 +1060,11 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner: Booking Accepted & Success
-          Container(
+          if (booking.status == 'trip_started') ...[
+            _buildZomatoLiveTripCard(booking),
+          ] else ...[
+            // Banner: Booking Accepted & Success
+            Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -1117,6 +1120,7 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
               ],
             ),
           ),
+        ],
           const SizedBox(height: 18),
 
           // Vehicle Card (Car image & Registration Number Plate)
@@ -1474,6 +1478,191 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Zomato-style Live Order Tracker Card (Dark theme with moving vehicle progress)
+  Widget _buildZomatoLiveTripCard(BookingModel booking) {
+    final driverName = booking.driverName?.isNotEmpty == true ? booking.driverName! : 'District Partner';
+    final vehicleModel = booking.vehicleModel?.isNotEmpty == true ? booking.vehicleModel! : 'District Cab';
+    final vehiclePlate = booking.vehiclePlate?.isNotEmpty == true ? booking.vehiclePlate! : '';
+    final destination = booking.destination.address.split(',').first.trim();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Top Row: Partner name on left, district car logo on right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  vehiclePlate.isNotEmpty ? '$driverName · $vehicleModel ($vehiclePlate)' : '$driverName · $vehicleModel',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'district car',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // 2. Title: "Heading to destination"
+          const Text(
+            'Heading to destination',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // 3. Subtitle: "On time | Dropping off at [Destination]"
+          Text(
+            'On time | Dropping off at $destination',
+            style: const TextStyle(
+              color: Color(0xFF34D399),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 18),
+
+          // 4. Progress Track: Solid white line + Vehicle icon + Dotted remaining line + Destination icon
+          Row(
+            children: [
+              // Traveled portion
+              Expanded(
+                flex: 4,
+                child: Container(
+                  height: 3.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Moving vehicle avatar in round badge
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF27272A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    booking.vehicleCategoryId == 'bike'
+                        ? Icons.two_wheeler_rounded
+                        : (booking.vehicleCategoryId == 'auto'
+                            ? Icons.electric_rickshaw_rounded
+                            : Icons.directions_car_rounded),
+                    color: Colors.white,
+                    size: 17,
+                  ),
+                ),
+              ),
+              // Remaining portion (Dotted line)
+              Expanded(
+                flex: 6,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final boxWidth = constraints.constrainWidth();
+                    const dashWidth = 5.0;
+                    const dashSpace = 4.0;
+                    final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(dashCount.clamp(1, 40), (_) {
+                        return SizedBox(
+                          width: dashWidth,
+                          height: 3.5,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF52525B),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        );
+                      }),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Destination Home/Pin Icon
+              Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.home_rounded,
+                    color: Color(0xFF18181B),
+                    size: 15,
+                  ),
                 ),
               ),
             ],

@@ -68,25 +68,20 @@ class NotificationService {
       }
     }
 
-    // 2. Dispatch Push to category topic and drivers topic
-    const categoryTopic = `/topics/driver_${(categoryId || 'all').toLowerCase().trim()}`;
-    const driversTopic = '/topics/drivers';
+    // 2. Dispatch SINGLE Push to category topic (or drivers general topic if no category)
+    const cleanCat = (categoryId || '').toLowerCase().trim();
+    const targetTopic = (cleanCat && cleanCat !== 'all')
+      ? `/topics/driver_${cleanCat}`
+      : '/topics/drivers';
 
     await this.firebase.sendPushNotification({
-      target: categoryTopic,
+      target: targetTopic,
       title,
       body,
       data: dataPayload,
     });
 
-    await this.firebase.sendPushNotification({
-      target: driversTopic,
-      title,
-      body,
-      data: dataPayload,
-    });
-
-    // 3. Query online drivers to dispatch directly to token & personal inboxes
+    // 3. Write to online drivers' inboxes for audit & in-app badge without sending duplicate push
     if (db) {
       try {
         const q = clientQuery(
@@ -96,14 +91,8 @@ class NotificationService {
         );
         const driversSnapshot = await clientGetDocs(q);
 
-        console.log(`[NotificationService] Found ${driversSnapshot.size} online drivers to notify.`);
-
         for (const dDoc of driversSnapshot.docs) {
-          const driver = dDoc.data();
-          const token = driver.fcmToken;
           const driverId = dDoc.id;
-
-          // Personal inbox write
           try {
             await clientAddDoc(
               clientCollection(db, 'drivers', driverId, 'inbox_notifications'),
@@ -116,19 +105,9 @@ class NotificationService {
               }
             );
           } catch (_) {}
-
-          // Individual token push
-          if (token) {
-            await this.firebase.sendPushNotification({
-              target: token,
-              title,
-              body,
-              data: dataPayload,
-            });
-          }
         }
       } catch (err) {
-        console.error('[NotificationService] Error querying online drivers:', err.message);
+        console.error('[NotificationService] Error updating online driver inboxes:', err.message);
       }
     }
 
@@ -198,35 +177,122 @@ class NotificationService {
       } catch (_) {}
     }
 
-    // Send to Customer private topic
-    const customerTopic = `/topics/customer_${customerId}`;
-    await this.firebase.sendPushNotification({
-      target: customerTopic,
-      title,
-      body,
-      data: dataPayload,
-    });
-
-    // Check customer token
+    // 3. Single delivery to customer (Token first, fallback to topic only if no token)
+    let token = null;
     if (db) {
       try {
         const userDocRef = clientDoc(db, 'users', customerId);
         const userSnap = await clientGetDoc(userDocRef);
-        const token = userSnap.data()?.fcmToken;
-        if (token) {
-          await this.firebase.sendPushNotification({
-            target: token,
-            title,
-            body,
-            data: dataPayload,
-          });
-        }
+        token = userSnap.data()?.fcmToken;
       } catch (e) {
         console.warn('Error fetching customer token:', e.message);
       }
     }
 
+    if (token) {
+      await this.firebase.sendPushNotification({
+        target: token,
+        title,
+        body,
+        data: dataPayload,
+      });
+    } else {
+      const customerTopic = `/topics/customer_${customerId}`;
+      await this.firebase.sendPushNotification({
+        target: customerTopic,
+        title,
+        body,
+        data: dataPayload,
+      });
+    }
+
     return { success: true, message: 'Customer notified of accepted booking' };
+  }
+
+  /**
+   * 2b. Zomato Style Live Progress Notification: Driver Initiated / Started Riding
+   */
+  async notifyCustomerTripStarted({
+    bookingId,
+    customerId,
+    driverName,
+    destinationAddress,
+    vehiclePlate,
+    vehicleModel,
+  }) {
+    const db = this.getDb();
+    console.log(`[NotificationService] Trip started for booking ${bookingId}. Dispatching live tracker notification...`);
+
+    const title = 'Ride in progress · District Car';
+    const body = `On time | Heading to ${destinationAddress || 'Destination'}. Driven by ${driverName || 'Partner Driver'} (${vehicleModel || 'Cab'} · ${vehiclePlate || ''})`;
+
+    const dataPayload = {
+      type: 'trip_started',
+      status: 'in_progress',
+      bookingId,
+      driverName: driverName || '',
+      destinationAddress: destinationAddress || '',
+      vehiclePlate: vehiclePlate || '',
+      vehicleModel: vehicleModel || '',
+      channelId: 'district_car_rides',
+    };
+
+    if (db) {
+      try {
+        await clientAddDoc(clientCollection(db, 'notifications'), {
+          title,
+          body,
+          targetAudience: 'customers',
+          targetUserId: customerId,
+          type: 'trip_started',
+          bookingId,
+          status: 'delivered',
+          sentAt: clientServerTimestamp(),
+        });
+      } catch (_) {}
+
+      try {
+        await clientAddDoc(
+          clientCollection(db, 'users', customerId, 'inbox_notifications'),
+          {
+            title,
+            body,
+            bookingId,
+            driverName,
+            destinationAddress,
+            sentAt: clientServerTimestamp(),
+            isRead: false,
+          }
+        );
+      } catch (_) {}
+    }
+
+    let token = null;
+    if (db) {
+      try {
+        const userDocRef = clientDoc(db, 'users', customerId);
+        const userSnap = await clientGetDoc(userDocRef);
+        token = userSnap.data()?.fcmToken;
+      } catch (_) {}
+    }
+
+    if (token) {
+      await this.firebase.sendPushNotification({
+        target: token,
+        title,
+        body,
+        data: dataPayload,
+      });
+    } else {
+      await this.firebase.sendPushNotification({
+        target: `/topics/customer_${customerId}`,
+        title,
+        body,
+        data: dataPayload,
+      });
+    }
+
+    return { success: true, message: 'Customer notified of trip in progress' };
   }
 
   /**

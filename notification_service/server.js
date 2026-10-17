@@ -98,6 +98,40 @@ app.post('/api/notifications/booking-accepted', async (req, res) => {
 });
 
 /**
+ * 2b. Endpoint: Driver Started Trip -> Notify Customer with Zomato Live Tracker
+ */
+app.post('/api/notifications/trip-started', async (req, res) => {
+  try {
+    const {
+      bookingId,
+      customerId,
+      driverName,
+      destinationAddress,
+      vehiclePlate,
+      vehicleModel,
+    } = req.body;
+
+    if (!bookingId || !customerId) {
+      return res.status(400).json({ success: false, error: 'bookingId and customerId are required' });
+    }
+
+    const result = await notificationService.notifyCustomerTripStarted({
+      bookingId,
+      customerId,
+      driverName,
+      destinationAddress,
+      vehiclePlate,
+      vehicleModel,
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error in /api/notifications/trip-started:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * 3. Endpoint: Send Upcoming Booking Reminder to Customer & Driver
  */
 app.post('/api/notifications/booking-reminder', async (req, res) => {

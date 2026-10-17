@@ -13,6 +13,7 @@ import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/widgets/location_picker_sheet.dart';
 import 'package:district_car_shared/services/remote_update_checker.dart';
 import 'package:district_car_shared/services/fcm_notification_service.dart';
+import '../requests/incoming_request_dialog.dart';
 import '../../services/driver_service.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
@@ -771,12 +772,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                                    onPressed: () => Navigator.pop(modalCtx),
-                                  ),
+                                  if (!isStarted)
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                                      onPressed: () => Navigator.pop(modalCtx),
+                                    ),
                                 ],
                               ),
                               const SizedBox(height: 12),
@@ -890,9 +892,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                           const Text(
                                             'Customer: ',
                                             style: TextStyle(
-                                              fontSize: 12.5,
+                                              fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF64748B),
+                                              color: Colors.black87,
                                             ),
                                           ),
                                           Expanded(
@@ -900,8 +902,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                               custName,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w900,
-                                                fontSize: 14,
-                                                color: Color(0xFF0F172A),
+                                                fontSize: 14.5,
+                                                color: Colors.black,
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -1860,6 +1862,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       ),
                     ),
                   ),
+
+                  // 2. Full-Screen Incoming Ride Calling Notification Overlay
+                  if (_isOnline && !isCurrentlyBusy && !isBlockedDueToCommission)
+                    IncomingRequestOverlay(
+                      driverId: user.uid,
+                      vehicleCategory: driverCategory,
+                      driverLocation: _driverLocation,
+                      onAccepted: (booking) => _showRideFlowModal(booking),
+                    ),
                 ],
               ),
             );
@@ -3052,12 +3063,14 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         color: Color(0xFF059669),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      icon: const Icon(Icons.cancel_outlined, size: 20, color: Color(0xFFDC2626)),
-                      tooltip: 'Cancel or Release Ride',
-                      onPressed: () => _cancelOrReleaseActiveRide(booking),
-                    ),
+                    if (!isStarted) ...[
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.cancel_outlined, size: 20, color: Color(0xFFDC2626)),
+                        tooltip: 'Cancel or Release Ride',
+                        onPressed: () => _cancelOrReleaseActiveRide(booking),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -3110,7 +3123,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 Expanded(
                                   child: Text(
                                     customerName,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -3338,17 +3351,18 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
-
-                // 7. Cancel / Release ride link
-                Center(
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
-                    onPressed: () => _cancelOrReleaseActiveRide(booking),
-                    icon: const Icon(Icons.refresh, size: 14),
-                    label: const Text('Need to cancel or release this ride?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                // 7. Cancel / Release ride link (hidden when trip in progress)
+                if (!isStarted) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
+                      onPressed: () => _cancelOrReleaseActiveRide(booking),
+                      icon: const Icon(Icons.refresh, size: 14),
+                      label: const Text('Need to cancel or release this ride?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

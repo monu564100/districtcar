@@ -728,6 +728,24 @@ class DriverService {
         'status': 'trip_started',
         'tripStartedAt': FieldValue.serverTimestamp(),
       });
+
+      // Trigger Zomato-style Live Progress Notification to Customer
+      try {
+        final bData = bookingDoc.data() ?? {};
+        final customerId = bData['customerId']?.toString();
+        if (customerId != null && customerId.isNotEmpty) {
+          final driverDoc = await _firestore.collection('drivers').doc(currentUser?.uid).get();
+          final dData = driverDoc.data() ?? {};
+          await FCMNotificationService.sendTripStartedNotificationToCustomer(
+            bookingId: bookingId,
+            customerId: customerId,
+            driverName: dData['name']?.toString() ?? 'Driver Partner',
+            destinationAddress: bData['destination'] is Map ? (bData['destination']['address']?.toString() ?? 'Destination') : 'Destination',
+            vehiclePlate: (dData['vehiclePlateNumber'] ?? dData['vehiclePlate'] ?? 'Verified Cab').toString(),
+            vehicleModel: (dData['vehicleModel'] ?? 'District Car').toString(),
+          );
+        }
+      } catch (_) {}
     }
   }
 

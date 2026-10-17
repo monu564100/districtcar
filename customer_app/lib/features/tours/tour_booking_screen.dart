@@ -366,10 +366,101 @@ class _TourBookingScreenState extends ConsumerState<TourBookingScreen> {
     }
   }
 
+  bool _isLocationServiceable(LocationModel loc) {
+    final addr = loc.address.toLowerCase();
+    const jharkhandKeywords = [
+      'jharkhand', 'ranchi', 'khunti', 'ramgarh', 'hazaribagh', 'bokaro', 'dhanbad',
+      'jamshedpur', 'singhbhum', 'saraikela', 'gumla', 'simdega', 'lohardaga', 'latehar',
+      'palamu', 'garhwa', 'chatra', 'koderma', 'giridih', 'deoghar', 'dumka', 'godda',
+      'sahibganj', 'pakur', 'jamtara', 'patratu', 'netarhat', 'betla', 'parasmath',
+      'hundru', 'dassam', 'jonha'
+    ];
+    for (final kw in jharkhandKeywords) {
+      if (addr.contains(kw)) return true;
+    }
+    // Check Jharkhand Geo Bounding Box (Lat: 21.8 - 25.5, Lng: 83.2 - 88.0)
+    if (loc.latitude >= 21.8 && loc.latitude <= 25.5 &&
+        loc.longitude >= 83.2 && loc.longitude <= 88.0) {
+      return true;
+    }
+    return false;
+  }
+
+  void _showUnserviceableDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_off_rounded, color: Color(0xFFDC2626), size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Location Not Serviceable',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your pickup location:\n"${_pickupLocation.address}"\nis currently outside District Car\'s operational area.',
+              style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Color(0xFF16A34A), size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'District Car operates across all districts of Jharkhand and nearby tourist hotspots.',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Change Location', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleBookingSubmit(double totalFare) async {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) {
       context.push('/login');
+      return;
+    }
+
+    // Check if pickup location is in operational service area
+    if (!_isLocationServiceable(_pickupLocation)) {
+      _showUnserviceableDialog();
       return;
     }
 
