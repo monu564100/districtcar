@@ -45,20 +45,41 @@ class DriverProfileScreen extends ConsumerWidget {
               ? user.phoneNumber!
               : (data['phoneNumber'] ?? data['phone'] ?? '').toString();
           final status = data['verificationStatus'] ?? 'approved';
-          final driverPhoto = data['driverPhoto']?.toString();
+          final driverPhoto = (
+              data['driverPhoto'] ??
+              data['profilePhoto'] ??
+              data['photoUrl'] ??
+              data['photoURL'] ??
+              data['driverImage'] ??
+              data['avatarUrl'] ??
+              user.profilePhotoUrl
+          )?.toString();
+          final vehiclePhoto = (
+              data['vehicleImage'] ??
+              data['vehiclePhoto'] ??
+              data['vehiclePhotoUrl'] ??
+              data['carPhoto'] ??
+              data['carImage']
+          )?.toString();
           final vehiclePlate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString();
           final vehicleModel = (data['vehicleModel'] ?? '').toString();
           final standAddress = (data['currentAddress'] ?? data['address'] ?? '').toString();
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: SizedBox(
-                width: double.infinity,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final double maxW = constraints.maxWidth > 600 ? 600 : constraints.maxWidth;
+              final double contentW = (maxW - 48).clamp(280.0, 600.0);
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: maxW,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: SizedBox(
+                      width: contentW,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                 Center(
                   child: Container(
                     width: 96,
@@ -90,6 +111,27 @@ class DriverProfileScreen extends ConsumerWidget {
                   _buildInfoTile('Vehicle Plate No.', vehiclePlate),
                 if (vehicleModel.isNotEmpty)
                   _buildInfoTile('Vehicle Model', vehicleModel),
+                if (vehiclePhoto != null && vehiclePhoto.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Vehicle Photo', style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: _buildSafePhoto(vehiclePhoto, 48, isVehicle: true),
+                        ),
+                      ],
+                    ),
+                  ),
                 _buildInfoTile('Vehicle Category', (data['vehicleCategoryId'] ?? data['category'] ?? 'Car').toString().toUpperCase()),
                 if (standAddress.isNotEmpty)
                   _buildInfoTile('Active Stand / Hotspot', standAddress),
@@ -141,7 +183,7 @@ class DriverProfileScreen extends ConsumerWidget {
                 // App Version info
                 const Center(
                   child: Text(
-                    'District Car Partner · Version 1.0.0 (Build 13)\nJharkhand Rural & District Mobility',
+                    'District Car Partner · Version 1.0.0 (Build 14)\nJharkhand Rural & District Mobility',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
                   ),
@@ -163,20 +205,27 @@ class DriverProfileScreen extends ConsumerWidget {
                     child: const Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  },
-),
-);
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ),
+  );
 }
 
-  Widget _buildSafePhoto(String? photo, double size) {
+
+  Widget _buildSafePhoto(String? photo, double size, {bool isVehicle = false}) {
     if (photo == null || photo.isEmpty || photo.startsWith('avatar')) {
-      return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+      return Icon(
+        isVehicle ? Icons.directions_car_rounded : Icons.person_rounded,
+        color: const Color(0xFF15803D),
+        size: size * 0.6,
+      );
     }
     if (photo.startsWith('data:image')) {
       try {
@@ -185,7 +234,11 @@ class DriverProfileScreen extends ConsumerWidget {
         final bytes = base64Decode(raw.trim());
         return Image.memory(bytes, fit: BoxFit.cover, width: size, height: size);
       } catch (_) {
-        return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+        return Icon(
+          isVehicle ? Icons.directions_car_rounded : Icons.person_rounded,
+          color: const Color(0xFF15803D),
+          size: size * 0.6,
+        );
       }
     }
     if (photo.startsWith('http://') || photo.startsWith('https://')) {
@@ -194,13 +247,37 @@ class DriverProfileScreen extends ConsumerWidget {
         fit: BoxFit.cover,
         width: size,
         height: size,
-        errorBuilder: (_, __, ___) => Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6),
+        errorBuilder: (_, __, ___) => Icon(
+          isVehicle ? Icons.directions_car_rounded : Icons.person_rounded,
+          color: const Color(0xFF15803D),
+          size: size * 0.6,
+        ),
       );
     }
     if (photo.startsWith('assets/')) {
-      return Image.asset(photo, fit: BoxFit.cover, width: size, height: size);
+      return Image.asset(
+        photo,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => Icon(
+          isVehicle ? Icons.directions_car_rounded : Icons.person_rounded,
+          color: const Color(0xFF15803D),
+          size: size * 0.6,
+        ),
+      );
     }
-    return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+    if (photo.length > 80 && !photo.contains('/') && !photo.contains('\\')) {
+      try {
+        final bytes = base64Decode(photo.trim());
+        return Image.memory(bytes, fit: BoxFit.cover, width: size, height: size);
+      } catch (_) {}
+    }
+    return Icon(
+      isVehicle ? Icons.directions_car_rounded : Icons.person_rounded,
+      color: const Color(0xFF15803D),
+      size: size * 0.6,
+    );
   }
 
   Widget _buildMenuTile({

@@ -48,16 +48,21 @@ class DriverSupportScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF0F172A),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SizedBox(
-            width: double.infinity,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final double maxW = constraints.maxWidth > 600 ? 600 : constraints.maxWidth;
+          final double contentW = (maxW - 40).clamp(280.0, 600.0);
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: maxW,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: SizedBox(
+                  width: contentW,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                   // Banner Card with Support Agent visual
                   Container(
                     width: double.infinity,
@@ -95,10 +100,12 @@ class DriverSupportScreen extends StatelessWidget {
                                     child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 22),
                                   ),
                                   const SizedBox(width: 10),
-                                  const Expanded(
+                                  const Flexible(
                                     child: Text(
                                       '24/7 Driver Support Desk',
                                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -184,11 +191,13 @@ class DriverSupportScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
