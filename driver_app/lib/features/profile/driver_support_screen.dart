@@ -27,7 +27,8 @@ class DriverSupportScreen extends StatelessWidget {
     final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
     final uri = Uri.parse('https://wa.me/$cleanPhone?text=Hello%20District%20Car%20Support%2C%20I%20am%20a%20Driver%20Partner%20needing%20help.');
     try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) await launchUrl(uri);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -50,127 +51,135 @@ class DriverSupportScreen extends StatelessWidget {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Banner Card with Support Agent visual
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF065F46), Color(0xFF047857)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF059669).withValues(alpha: 0.25),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 22),
-                                ),
-                                const SizedBox(width: 10),
-                                const Expanded(
-                                  child: Text(
-                                    '24/7 Driver Support Desk',
-                                    style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'Our Jharkhand central control team is available 24/7 to resolve on-duty ride queries, navigation support, and payment assistance.',
-                              style: TextStyle(fontSize: 12.5, color: Color(0xFFD1FAE5), height: 1.4),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          'assets/images/support_help_agent.jpg',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.support_agent, size: 50, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-            const Text(
-              'Direct Help Channels',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 14),
-
-            // Call Helpline Card
-            _buildChannelCard(
-              icon: Icons.phone_in_talk_rounded,
-              iconColor: const Color(0xFF059669),
-              title: 'Central Control Room',
-              subtitle: '+91 87896 01387 (24/7 Hotline)',
-              actionText: 'Call Now',
-              onTap: () => _callHelpline(context, '+91 87896 01387'),
-            ),
-
-            // WhatsApp Support Card
-            _buildChannelCard(
-              icon: Icons.chat_rounded,
-              iconColor: const Color(0xFF16A34A),
-              title: 'WhatsApp Partner Desk',
-              subtitle: 'Instant messaging & document support',
-              actionText: 'Open Chat',
-              onTap: () => _openWhatsApp(context, '+918789601387'),
-            ),
-
-            // Office Address Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: SizedBox(
+            width: double.infinity,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.business_rounded, color: Color(0xFF475569), size: 24),
-                  SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
+                  // Banner Card with Support Agent visual
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF065F46), Color(0xFF047857)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF059669).withValues(alpha: 0.25),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 22),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      '24/7 Driver Support Desk',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Our Jharkhand central control team is available 24/7 to resolve on-duty ride queries, navigation support, and payment assistance.',
+                                style: TextStyle(fontSize: 12.5, color: Color(0xFFD1FAE5), height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'assets/images/support_help_agent.jpg',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.support_agent, size: 50, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'Direct Help Channels',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Call Helpline Card
+                  _buildChannelCard(
+                    icon: Icons.phone_in_talk_rounded,
+                    iconColor: const Color(0xFF059669),
+                    title: 'Central Control Room',
+                    subtitle: '+91 87896 01387 (24/7 Helpline)',
+                    actionText: 'Call Now',
+                    onTap: () => _callHelpline(context, '+91 87896 01387'),
+                  ),
+
+                  // WhatsApp Support Card
+                  _buildChannelCard(
+                    icon: Icons.chat_rounded,
+                    iconColor: const Color(0xFF16A34A),
+                    title: 'WhatsApp Partner Desk',
+                    subtitle: 'Instant messaging & verification desk',
+                    actionText: 'Open Chat',
+                    onTap: () => _openWhatsApp(context, '+918789601387'),
+                  ),
+
+                  // Office Address Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Regional Operations Office', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                        SizedBox(height: 4),
-                        Text(
-                          'District Car Jharkhand\nAlbert Ekka Chowk, Main Road, Ranchi, Jharkhand - 834001',
-                          style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), height: 1.4),
+                        Icon(Icons.business_rounded, color: Color(0xFF475569), size: 24),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Regional Operations Office', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                              SizedBox(height: 4),
+                              Text(
+                                'District Car Jharkhand\nAlbert Ekka Chowk, Main Road, Ranchi, Jharkhand - 834001',
+                                style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), height: 1.4),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -178,13 +187,11 @@ class DriverSupportScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   Widget _buildChannelCard({
     required IconData icon,
@@ -195,6 +202,7 @@ class DriverSupportScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -210,6 +218,7 @@ class DriverSupportScreen extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -223,19 +232,27 @@ class DriverSupportScreen extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),
+          const SizedBox(width: 10),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: iconColor,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: onTap,

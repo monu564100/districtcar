@@ -53,10 +53,12 @@ class DriverProfileScreen extends ConsumerWidget {
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
+              child: SizedBox(
+                width: double.infinity,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
                 Center(
                   child: Container(
                     width: 96,
@@ -165,9 +167,10 @@ class DriverProfileScreen extends ConsumerWidget {
             ),
           ),
         ),
-      );
-    },
-  ),
+      ),
+    );
+  },
+),
 );
 }
 
@@ -233,17 +236,26 @@ class DriverProfileScreen extends ConsumerWidget {
 
   Widget _buildInfoTile(String title, String value) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13.5)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, color: Color(0xFF0F172A)),
+            ),
+          ),
         ],
       ),
     );
