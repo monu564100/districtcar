@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -29,13 +30,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   final TextEditingController _otpVerifyCtrl = TextEditingController();
 
   String? _subscribedCategory;
-  String _selectedCategoryFilter = 'all';
 
-  // Local cache of dismissed booking IDs in current session
+  // Local cache of dismissed booking IDs - persisted across restarts
   final Set<String> _dismissedBookingIds = {};
   final Set<String> _knownBookingIds = {};
   bool _hasLoadedInitialBookings = false;
   bool _isStandInitialized = false;
+
+  // Driver Location: Permanent Registered Stand unless driver manually clicks "Change Active Location"
+  bool _hasManuallyChangedLocation = false;
+  LocationModel? _registeredPermanentLocation;
 
   LocationModel _driverLocation = LocationModel(
     latitude: 23.3441,
@@ -59,14 +63,14 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
 
     _loadOnlineStatus();
-    _checkLocationPermissionAndFetch();
+    _loadLocationAndDismissedBookings();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!kIsWeb) {
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 13,
+          currentBuildNumber: 15,
         );
       }
 
@@ -136,22 +140,28 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     } catch (_) {}
   }
 
-  Future<void> _checkLocationPermissionAndFetch() async {
+  Future<void> _loadLocationAndDismissedBookings() async {
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+      final prefs = await SharedPreferences.getInstance();
+      final dismissedList = prefs.getStringList('driver_dismissed_bookings') ?? [];
+      if (dismissedList.isNotEmpty && mounted) {
+        setState(() {
+          _dismissedBookingIds.addAll(dismissedList);
+        });
       }
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
-        if (mounted) {
+
+      final hasManual = prefs.getBool('driver_has_manually_changed_location') ?? false;
+      if (hasManual) {
+        final customAddr = prefs.getString('driver_custom_address');
+        final customLat = prefs.getDouble('driver_custom_lat');
+        final customLng = prefs.getDouble('driver_custom_lng');
+        if (customAddr != null && customAddr.isNotEmpty && customLat != null && customLng != null && mounted) {
           setState(() {
+            _hasManuallyChangedLocation = true;
             _driverLocation = LocationModel(
-              latitude: pos.latitude,
-              longitude: pos.longitude,
-              address: _driverLocation.address.isNotEmpty
-                  ? _driverLocation.address
-                  : 'Current Location (${pos.latitude.toStringAsFixed(3)}, ${pos.longitude.toStringAsFixed(3)})',
+              latitude: customLat,
+              longitude: customLng,
+              address: customAddr,
             );
           });
         }
@@ -163,11 +173,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     HapticFeedback.selectionClick();
     final picked = await LocationPickerSheet.show(
       context,
-      title: 'Set Driver Hotspot / Village Stand',
+      title: 'Set Active Stand / Location',
       initialValue: _driverLocation.address,
     );
     if (picked != null) {
       setState(() {
+        _hasManuallyChangedLocation = true;
         _driverLocation = picked;
       });
       final user = ref.read(driverServiceProvider).currentUser;
@@ -176,8 +187,56 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       }
       try {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('driver_address', picked.address);
+        await prefs.setBool('driver_has_manually_changed_location', true);
+        await prefs.setString('driver_custom_address', picked.address);
+        await prefs.setDouble('driver_custom_lat', picked.latitude);
+        await prefs.setDouble('driver_custom_lng', picked.longitude);
       } catch (_) {}
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Active location updated to: ${picked.address.split(',').first}'),
+            backgroundColor: const Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _resetToPermanentRegisteredStand() async {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _hasManuallyChangedLocation = false;
+      if (_registeredPermanentLocation != null) {
+        _driverLocation = _registeredPermanentLocation!;
+      }
+    });
+    final user = ref.read(driverServiceProvider).currentUser;
+    if (user != null && _registeredPermanentLocation != null) {
+      ref.read(driverServiceProvider).updateOnlineStatus(
+        _isOnline,
+        _registeredPermanentLocation!.latitude,
+        _registeredPermanentLocation!.longitude,
+      );
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('driver_has_manually_changed_location', false);
+      await prefs.remove('driver_custom_address');
+      await prefs.remove('driver_custom_lat');
+      await prefs.remove('driver_custom_lng');
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reset to Permanent Registered Stand.'),
+          backgroundColor: Color(0xFF059669),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -347,13 +406,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   bool _isCategoryEligible(String bookingCat, String driverCat) {
     final b = bookingCat.trim().toLowerCase();
     final d = driverCat.trim().toLowerCase();
-    if (_selectedCategoryFilter != 'all') {
-      if (_selectedCategoryFilter == 'tours' && !b.contains('tour')) return false;
-      if (_selectedCategoryFilter != 'tours' && b != _selectedCategoryFilter && !b.contains(_selectedCategoryFilter)) return false;
-    }
     if (b == d) return true;
     if ((d == 'car' || d == 'sedan' || d == 'mini' || d == 'suv') &&
-        (b == 'car' || b == 'sedan' || b == 'mini' || b == 'suv')) {
+        (b == 'car' || b == 'sedan' || b == 'mini' || b == 'suv' || b.contains('tour'))) {
       return true;
     }
     return false;
@@ -389,22 +444,28 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return meters / 1000.0;
   }
 
-  void _declineBooking(BookingModel booking) {
+  void _declineBooking(BookingModel booking) async {
     HapticFeedback.lightImpact();
     setState(() {
       _dismissedBookingIds.add(booking.id);
     });
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('driver_dismissed_bookings', _dismissedBookingIds.toList());
+    } catch (_) {}
+    try {
       ref.read(driverServiceProvider).rejectRide(booking.id, null);
     } catch (_) {}
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Request declined for #${booking.readableId}.'),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Request declined for #${booking.readableId}.'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showRideFlowModal(BookingModel initialBooking) {
@@ -413,6 +474,42 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     bool pledgeAgreed = true;
     final TextEditingController modalOtpCtrl = TextEditingController();
     final FocusNode modalOtpFocus = FocusNode();
+
+    int remainingSeconds = 35;
+    Timer? autoCancelTimer;
+    StreamSubscription<DocumentSnapshot>? bookingSub;
+
+    final user = ref.read(driverServiceProvider).currentUser;
+
+    if (initialBooking.status == 'searching_driver') {
+      bookingSub = FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(initialBooking.id)
+          .snapshots()
+          .listen((snap) {
+        if (!snap.exists) return;
+        final raw = snap.data();
+        if (raw is Map<String, dynamic>) {
+          final bStatus = raw['status']?.toString();
+          if (bStatus != null && bStatus != 'searching_driver' && raw['driverId'] != user?.uid) {
+            bookingSub?.cancel();
+            autoCancelTimer?.cancel();
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This ride was accepted by another driver or cancelled.'),
+                  backgroundColor: Color(0xFFDC2626),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        }
+      });
+    }
 
     showModalBottomSheet(
       context: context,
@@ -432,6 +529,39 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 : 'District Rider';
             final custPhone = currentBooking.customerPhone ?? '+91 87896 01387';
             final pickupDistanceKm = _calculatePickupDistanceKm(currentBooking);
+
+            if (isSearching && autoCancelTimer == null) {
+              autoCancelTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+                if (!modalCtx.mounted) {
+                  t.cancel();
+                  return;
+                }
+                if (remainingSeconds <= 1) {
+                  t.cancel();
+                  bookingSub?.cancel();
+                  _dismissedBookingIds.add(currentBooking.id);
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setStringList('driver_dismissed_bookings', _dismissedBookingIds.toList());
+                  });
+                  if (Navigator.canPop(modalCtx)) {
+                    Navigator.pop(modalCtx);
+                  }
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Request #${currentBooking.readableId} auto-cancelled (timeout).'),
+                        backgroundColor: const Color(0xFF64748B),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } else {
+                  setModalState(() {
+                    remainingSeconds--;
+                  });
+                }
+              });
+            }
 
             return LayoutBuilder(
               builder: (modalCtxInner, constraints) {
@@ -484,19 +614,44 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                             : (isAssigned ? const Color(0xFFEFF6FF) : const Color(0xFFFEF3C7)),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Text(
-                                        isStarted
-                                            ? '🚗 IN TRANSIT'
-                                            : (isAssigned ? '📍 HEAD TO PICKUP' : '🔔 INCOMING RIDE'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 11,
-                                          color: isStarted
-                                              ? const Color(0xFF047857)
-                                              : (isAssigned ? const Color(0xFF1D4ED8) : const Color(0xFFB45309)),
-                                        ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              isStarted
+                                                  ? '🚗 IN TRANSIT'
+                                                  : (isAssigned ? '📍 HEAD TO PICKUP' : '🔔 INCOMING RIDE'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 11,
+                                                color: isStarted
+                                                    ? const Color(0xFF047857)
+                                                    : (isAssigned ? const Color(0xFF1D4ED8) : const Color(0xFFB45309)),
+                                              ),
+                                            ),
+                                          ),
+                                          if (isSearching) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFDC2626),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                '${remainingSeconds}s',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -711,7 +866,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   ),
-                                  onPressed: () => Navigator.pop(modalCtx),
+                                  onPressed: () {
+                                    autoCancelTimer?.cancel();
+                                    bookingSub?.cancel();
+                                    Navigator.pop(modalCtx);
+                                    _declineBooking(currentBooking);
+                                  },
                                   child: const Text('DECLINE', style: TextStyle(fontWeight: FontWeight.bold)),
                                 ),
                               ),
@@ -730,6 +890,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                       : () async {
                                           setModalState(() => isProcessing = true);
                                           try {
+                                            autoCancelTimer?.cancel();
+                                            bookingSub?.cancel();
                                             await ref.read(driverServiceProvider).acceptRide(currentBooking.id, null);
                                             final updated = currentBooking.copyWith(status: 'driver_assigned');
                                             setModalState(() {
@@ -989,6 +1151,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         );
       },
     ).then((_) {
+      autoCancelTimer?.cancel();
+      bookingSub?.cancel();
       modalOtpCtrl.dispose();
       modalOtpFocus.dispose();
     });
@@ -1265,39 +1429,47 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 data['carImage']
             )?.toString();
 
-            // Resolve driver's registered stand location from Firestore
+            // Resolve driver's permanent registered stand location from Firestore
             final String registeredStand = (
                 data['currentAddress'] ??
                 data['locationAddress'] ??
                 (data['location'] is Map ? data['location']['address'] : null) ??
                 (data['currentLocation'] is Map ? data['currentLocation']['address'] : null) ??
                 data['address'] ??
-                (data['block'] != null ? '${data['block']} Stand / Chowk, ${data['district'] ?? 'Jharkhand'}' : null) ??
-                ''
+                data['stand'] ??
+                (data['block'] != null ? '${data['block']} Stand, ${data['district'] ?? 'Jharkhand'}' : null) ??
+                'Albert Ekka Chowk Stand, Ranchi, Jharkhand'
             ).toString().trim();
 
-            if (!_isStandInitialized && registeredStand.isNotEmpty) {
+            final double regLat = (data['location'] is Map && data['location']['latitude'] != null)
+                ? (data['location']['latitude'] as num).toDouble()
+                : asDouble(data['currentLatitude'] ?? data['latitude'], 23.3441);
+            final double regLng = (data['location'] is Map && data['location']['longitude'] != null)
+                ? (data['location']['longitude'] as num).toDouble()
+                : asDouble(data['currentLongitude'] ?? data['longitude'], 85.3096);
+
+            _registeredPermanentLocation = LocationModel(
+              latitude: regLat,
+              longitude: regLng,
+              address: registeredStand,
+            );
+
+            if (!_isStandInitialized) {
               _isStandInitialized = true;
-              final double regLat = (data['location'] is Map && data['location']['latitude'] != null)
-                  ? (data['location']['latitude'] as num).toDouble()
-                  : asDouble(data['currentLatitude'], _driverLocation.latitude);
-              final double regLng = (data['location'] is Map && data['location']['longitude'] != null)
-                  ? (data['location']['longitude'] as num).toDouble()
-                  : asDouble(data['currentLongitude'], _driverLocation.longitude);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _driverLocation = LocationModel(
-                      latitude: regLat,
-                      longitude: regLng,
-                      address: registeredStand,
-                    );
-                  });
-                }
-              });
+              if (!_hasManuallyChangedLocation) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _driverLocation = _registeredPermanentLocation!;
+                    });
+                  }
+                });
+              }
             }
 
-            final String activeStandAddress = registeredStand.isNotEmpty ? registeredStand : _driverLocation.address;
+            final String activeStandAddress = _hasManuallyChangedLocation
+                ? _driverLocation.address
+                : (registeredStand.isNotEmpty ? registeredStand : _driverLocation.address);
 
             if (_subscribedCategory != driverCategory) {
               _subscribedCategory = driverCategory;
@@ -1439,13 +1611,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                             const SizedBox(height: 16),
                           ],
 
-                          // F. Category Filter Chips (When not serving an active trip)
-                          if (_activeBooking == null) ...[
-                            _buildCategoryFilterRow(),
-                            const SizedBox(height: 14),
-                          ],
-
-                          // G. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
+                          // F. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
                           _buildRequestsSection(driverCategory, isCurrentlyBusy),
                         ],
                       ),
@@ -1613,7 +1779,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'CURRENT STAND / HOTSPOT (स्थायी स्टैंड)',
+                  'CURRENT STAND / HOTSPOT',
                   style: TextStyle(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w900,
@@ -1633,9 +1799,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'Registered stand location · Booking radius ~25 km',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF059669), fontWeight: FontWeight.w600),
+                Text(
+                  _hasManuallyChangedLocation
+                      ? 'Custom active stand · Booking radius ~25 km'
+                      : 'Permanent registered stand · Booking radius ~25 km',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: _hasManuallyChangedLocation ? const Color(0xFF2563EB) : const Color(0xFF059669),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -1851,25 +2023,69 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ),
           const SizedBox(height: 12),
 
-          // 2. BELOW: CHANGE ACTIVE LOCATION BUTTON
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF047857),
-                side: const BorderSide(color: Color(0xFFA7F3D0)),
-                backgroundColor: const Color(0xFFF0FDF4),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: isCurrentlyBusy ? null : _openLocationPicker,
-              icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
-              label: const Text(
-                'CHANGE ACTIVE LOCATION / STAND (स्थान बदलें)',
-                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+          // 2. BELOW: CHANGE ACTIVE LOCATION BUTTON (No Hindi words)
+          if (_hasManuallyChangedLocation) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF047857),
+                        side: const BorderSide(color: Color(0xFFA7F3D0)),
+                        backgroundColor: const Color(0xFFF0FDF4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: isCurrentlyBusy ? null : _openLocationPicker,
+                      icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
+                      label: const Text(
+                        'CHANGE LOCATION',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 40,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      backgroundColor: const Color(0xFFF8FAFC),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isCurrentlyBusy ? null : _resetToPermanentRegisteredStand,
+                    icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                    label: const Text(
+                      'RESET TO STAND',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF047857),
+                  side: const BorderSide(color: Color(0xFFA7F3D0)),
+                  backgroundColor: const Color(0xFFF0FDF4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: isCurrentlyBusy ? null : _openLocationPicker,
+                icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
+                label: const Text(
+                  'CHANGE ACTIVE LOCATION',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1992,45 +2208,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ),
         ),
       ],
-    );
-  }
-
-  /// CATEGORY FILTER ROW (Horizontal Pills)
-  Widget _buildCategoryFilterRow() {
-    final filters = [
-      {'id': 'all', 'label': 'All Requests'},
-      {'id': 'car', 'label': 'Cabs & Cars'},
-      {'id': 'auto', 'label': 'Auto Rickshaw'},
-      {'id': 'tours', 'label': '🌴 Tours & Travels'},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: filters.map((f) {
-          final isSelected = _selectedCategoryFilter == f['id'];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(f['label']!),
-              selected: isSelected,
-              onSelected: (_) => setState(() => _selectedCategoryFilter = f['id']!),
-              selectedColor: const Color(0xFF059669),
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF475569),
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 11.5,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: isSelected ? const Color(0xFF059669) : const Color(0xFFE2E8F0)),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
     );
   }
 
@@ -2730,7 +2907,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                             Icon(Icons.pin, color: Color(0xFF059669), size: 18),
                             SizedBox(width: 6),
                             Text(
-                              'CUSTOMER RIDE OTP (ग्राहक से 4-अंकीय OTP लें)',
+                              'CUSTOMER RIDE OTP',
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5, color: Color(0xFF065F46)),
                             ),
                           ],
