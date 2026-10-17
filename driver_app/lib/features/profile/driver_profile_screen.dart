@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -44,29 +45,53 @@ class DriverProfileScreen extends ConsumerWidget {
               ? user.phoneNumber!
               : (data['phoneNumber'] ?? data['phone'] ?? '').toString();
           final status = data['verificationStatus'] ?? 'approved';
+          final driverPhoto = data['driverPhoto']?.toString();
+          final vehiclePlate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString();
+          final vehicleModel = (data['vehicleModel'] ?? '').toString();
+          final standAddress = (data['currentAddress'] ?? data['address'] ?? '').toString();
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
                 Center(
                   child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: const BoxDecoration(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.primaryLight,
+                      color: const Color(0xFFDCFCE7),
+                      border: Border.all(color: const Color(0xFF10B981), width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.person, size: 50, color: AppColors.primary),
+                    child: ClipOval(
+                      child: _buildSafePhoto(driverPhoto, 96),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                 Text(phone, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
                 _buildInfoTile('Status', status.toString().toUpperCase()),
-                _buildInfoTile('Vehicle Category', data['vehicleCategoryId'] ?? 'Car'),
-                _buildInfoTile('Total Trips', '${data['totalTrips'] ?? 0}'),
+                if (vehiclePlate.isNotEmpty)
+                  _buildInfoTile('Vehicle Plate No.', vehiclePlate),
+                if (vehicleModel.isNotEmpty)
+                  _buildInfoTile('Vehicle Model', vehicleModel),
+                _buildInfoTile('Vehicle Category', (data['vehicleCategoryId'] ?? data['category'] ?? 'Car').toString().toUpperCase()),
+                if (standAddress.isNotEmpty)
+                  _buildInfoTile('Active Stand / Hotspot', standAddress),
+                _buildInfoTile('Total Trips', '${data['totalTrips'] ?? 0} Rides'),
                 _buildInfoTile('Average Rating', '${data['rating'] ?? 5.0} ★'),
                 const SizedBox(height: 20),
 
@@ -114,7 +139,7 @@ class DriverProfileScreen extends ConsumerWidget {
                 // App Version info
                 const Center(
                   child: Text(
-                    'District Car Partner · Version 1.0.0 (Build 8)\nJharkhand Rural & District Mobility',
+                    'District Car Partner · Version 1.0.0 (Build 11)\nJharkhand Rural & District Mobility',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
                   ),
@@ -138,10 +163,41 @@ class DriverProfileScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
+          ),
+        ),
+      );
+    },
+  ),
+);
+}
+
+  Widget _buildSafePhoto(String? photo, double size) {
+    if (photo == null || photo.isEmpty || photo.startsWith('avatar')) {
+      return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+    }
+    if (photo.startsWith('data:image')) {
+      try {
+        final commaIdx = photo.indexOf(',');
+        final raw = commaIdx != -1 ? photo.substring(commaIdx + 1) : photo;
+        final bytes = base64Decode(raw.trim());
+        return Image.memory(bytes, fit: BoxFit.cover, width: size, height: size);
+      } catch (_) {
+        return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
+      }
+    }
+    if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      return Image.network(
+        photo,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6),
+      );
+    }
+    if (photo.startsWith('assets/')) {
+      return Image.asset(photo, fit: BoxFit.cover, width: size, height: size);
+    }
+    return Icon(Icons.person, color: const Color(0xFF15803D), size: size * 0.6);
   }
 
   Widget _buildMenuTile({

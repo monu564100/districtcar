@@ -34,6 +34,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   // Local cache of dismissed booking IDs in current session
   final Set<String> _dismissedBookingIds = {};
+  final Set<String> _knownBookingIds = {};
+  bool _hasLoadedInitialBookings = false;
+  bool _isStandInitialized = false;
 
   LocationModel _driverLocation = LocationModel(
     latitude: 23.3441,
@@ -237,7 +240,134 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     } catch (_) {
       try {
         await launchUrl(uri);
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Customer Phone: $targetPhone')),
+          );
+        }
+      }
+    }
+  }
+
+  void _openGoogleMaps({required double lat, required double lng, String? label}) async {
+    final destination = (lat != 0.0 && lng != 0.0) ? '$lat,$lng' : (label ?? 'Destination');
+    final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$destination');
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) await launchUrl(uri);
+    } catch (_) {
+      try {
+        await launchUrl(uri);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open map: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  void _markDriverArrived(BookingModel booking) async {
+    HapticFeedback.mediumImpact();
+    try {
+      await FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
+        'status': 'driver_arrived',
+        'driverArrivedAt': FieldValue.serverTimestamp(),
+      });
+      setState(() {
+        _activeBooking = booking.copyWith(status: 'driver_arrived');
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Arrived at Pickup! Waiting for Rider. 📍'),
+            backgroundColor: Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  void _cancelOrReleaseActiveRide(BookingModel booking) async {
+    final shouldRelease = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Release Active Ride?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text(
+          'Do you want to release this ride so other nearby drivers can pick it up, or cancel it completely?',
+          style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Ride', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Release Ride', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldRelease == true) {
+      try {
+        final user = ref.read(driverServiceProvider).currentUser;
+        // 1. Release booking back to searching_driver
+        await FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
+          'status': 'searching_driver',
+          'driverId': null,
+          'driverName': null,
+          'driverPhone': null,
+          'vehiclePlate': null,
+          'vehicleModel': null,
+          'cancelledByDriverAt': FieldValue.serverTimestamp(),
+        });
+
+        // 2. Mark driver as no longer busy
+        if (user != null) {
+          await FirebaseFirestore.instance.collection('drivers').doc(user.uid).set({
+            'isBusy': false,
+            'activeBookingId': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+
+        setState(() {
+          _activeBooking = null;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ride released successfully. Available for other drivers.'),
+              backgroundColor: Color(0xFF059669),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error releasing ride: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -579,8 +709,26 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         _otpVerifyCtrl.clear();
       });
       if (mounted) {
+        HapticFeedback.mediumImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trip Started! Have a safe journey. 🚗'), backgroundColor: Color(0xFF059669)),
+          SnackBar(
+            backgroundColor: const Color(0xFF065F46),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: const Row(
+              children: [
+                Icon(Icons.verified_rounded, color: Color(0xFF34D399), size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'OTP Verified Successfully! Trip Started — Drive Safely 🚗',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } catch (e) {
@@ -745,6 +893,31 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final int totalTrips = (data['totalTrips'] is num) ? (data['totalTrips'] as num).toInt() : 0;
             final String? driverPhoto = data['driverPhoto']?.toString();
 
+            // Initialize driver stand from registered location if not yet initialized
+            if (!_isStandInitialized && data.isNotEmpty) {
+              final regAddr = (data['currentAddress'] ?? data['address'] ?? '').toString().trim();
+              final double regLat = (data['location'] is Map && data['location']['latitude'] != null)
+                  ? (data['location']['latitude'] as num).toDouble()
+                  : asDouble(data['currentLatitude'], _driverLocation.latitude);
+              final double regLng = (data['location'] is Map && data['location']['longitude'] != null)
+                  ? (data['location']['longitude'] as num).toDouble()
+                  : asDouble(data['currentLongitude'], _driverLocation.longitude);
+              if (regAddr.isNotEmpty) {
+                _isStandInitialized = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _driverLocation = LocationModel(
+                        latitude: regLat,
+                        longitude: regLng,
+                        address: regAddr,
+                      );
+                    });
+                  }
+                });
+              }
+            }
+
             if (_subscribedCategory != driverCategory) {
               _subscribedCategory = driverCategory;
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -849,20 +1022,20 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   Positioned.fill(
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // A. Hero Visual Radar / Shift Banner
+                          // A. Hero Visual Radar / Shift Banner (with direct Online / Offline action)
                           _buildHeroBanner(isCurrentlyBusy),
                           const SizedBox(height: 12),
 
-                          // B. Stand Hotspot Selector Chip
-                          _buildHotspotSelector(isCurrentlyBusy),
+                          // B. Current Stand / Hotspot Card (Shows user entered location while registration)
+                          _buildCurrentStandCard(isCurrentlyBusy),
                           const SizedBox(height: 12),
 
-                          // C. Responsive Driver Executive Card (Completely fixed: NO big column)
-                          _buildResponsiveDriverCard(
+                          // C. Container below Current Stand: User profile photo on left, vehicle number in right, and below Change Active Location button!
+                          _buildDriverIdentityAndStandContainer(
                             name: name,
                             plate: plate,
                             vehicleModel: vehicleModel,
@@ -876,27 +1049,26 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
                           // D. Quick Metrics Strip (Wallet, Trips, Rating)
                           _buildQuickMetricsStrip(walletBalance, totalEarnings, totalTrips, rating),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 16),
 
-                          // E. Category Filter Chips
-                          _buildCategoryFilterRow(),
-                          const SizedBox(height: 14),
+                          // E. Zomato-Style Active Trip Card (When booking is active)
+                          if (_activeBooking != null) ...[
+                            _buildZomatoActiveTripCard(_activeBooking!),
+                            const SizedBox(height: 16),
+                          ],
 
-                          // F. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
+                          // F. Category Filter Chips (When not serving an active trip)
+                          if (_activeBooking == null) ...[
+                            _buildCategoryFilterRow(),
+                            const SizedBox(height: 14),
+                          ],
+
+                          // G. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
                           _buildRequestsSection(driverCategory, isCurrentlyBusy),
                         ],
                       ),
                     ),
                   ),
-
-                  // 2. Persistent Floating Active Trip Dock (When trip is ongoing)
-                  if (_activeBooking != null)
-                    Positioned(
-                      left: 14,
-                      right: 14,
-                      bottom: 14,
-                      child: _buildActiveBookingCard(_activeBooking!),
-                    ),
                 ],
               ),
             );
@@ -906,11 +1078,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  /// HERO VISUAL RADAR / SHIFT BANNER
+  /// HERO VISUAL RADAR / SHIFT BANNER WITH DIRECT ACTION BUTTONS
   Widget _buildHeroBanner(bool isCurrentlyBusy) {
     return Container(
       width: double.infinity,
-      height: 160,
+      height: 165,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -943,8 +1115,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.25),
-                    Colors.black.withValues(alpha: 0.75),
+                    Colors.black.withValues(alpha: 0.20),
+                    Colors.black.withValues(alpha: 0.80),
                   ],
                 ),
               ),
@@ -957,9 +1129,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: _isOnline ? const Color(0xFF059669) : const Color(0xFF475569),
                           borderRadius: BorderRadius.circular(8),
@@ -967,27 +1140,52 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _isOnline ? Icons.radar : Icons.power_settings_new,
-                              size: 13,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
+                            _isOnline
+                                ? ScaleTransition(
+                                    scale: _radarPulseAnimation,
+                                    child: const Icon(
+                                      Icons.radar,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.power_settings_new,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                            const SizedBox(width: 5),
                             Text(
-                              _isOnline ? 'RADAR ACTIVE · 15-35 KM' : 'SHIFT OFFLINE',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                              _isOnline ? 'RADAR ACTIVE · 25 KM' : 'SHIFT OFFLINE',
+                              style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w900),
                             ),
                           ],
                         ),
                       ),
+                      // PROMINENT DIRECT SHIFT BUTTON
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isOnline ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: (_isToggling || isCurrentlyBusy) ? null : () => _toggleOnlineStatus(!_isOnline),
+                        icon: Icon(_isOnline ? Icons.power_settings_new : Icons.play_arrow_rounded, size: 16),
+                        label: Text(
+                          _isOnline ? 'GO OFFLINE' : 'GO ONLINE NOW',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     _isOnline
-                        ? 'Listening for rider bookings near your stand'
-                        : 'Go online to receive guaranteed bookings from villages to district hubs',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                        ? '🟢 Listening for rider bookings near your registered stand'
+                        : '⚪ Go online to receive bookings and alerts from riders near your stand',
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -998,82 +1196,75 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  /// HOTSPOT STAND SELECTOR (Location chip matching customer app)
-  Widget _buildHotspotSelector(bool isCurrentlyBusy) {
-    return InkWell(
-      onTap: isCurrentlyBusy ? null : _openLocationPicker,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  /// CURRENT STAND / HOTSPOT CARD (SHOWS USER ENTERED LOCATION WHILE REGISTRATION)
+  Widget _buildCurrentStandCard(bool isCurrentlyBusy) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFFECFDF5),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.my_location, color: Color(0xFF059669), size: 16),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'CURRENT STAND / HOTSPOT',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
-                      letterSpacing: 0.5,
-                    ),
+            child: const Icon(Icons.location_on, color: Color(0xFF15803D), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'CURRENT STAND / HOTSPOT (स्थायी स्टैंड)',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.5,
                   ),
-                  Text(
-                    _driverLocation.address,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _driverLocation.address,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
                   ),
-                ],
-              ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Registered stand location · Booking radius ~25 km',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF059669), fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-            if (!isCurrentlyBusy)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'CHANGE',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  /// RESPONSIVE DRIVER CARD (FIXES "NAME AND NUMBER SHOWING IN ONE BIG COLUMN")
-  Widget _buildResponsiveDriverCard({
+  /// BELOW CURRENT STAND: CONTAINER SHOWING USER PROFILE PHOTO ON LEFT,
+  /// IN RIGHT VEHICLE NUMBER, AND BELOW CHANGE ACTIVE LOCATION BUTTON!
+  Widget _buildDriverIdentityAndStandContainer({
     required String name,
     required String plate,
     required String vehicleModel,
@@ -1084,7 +1275,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     required bool isCurrentlyBusy,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1097,165 +1288,140 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Driver Photo Avatar with Safe Fallback
-          Stack(
+          // 1. Profile photo on left, vehicle number in right, duty switch
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFDCFCE7),
-                  border: Border.all(color: const Color(0xFF10B981), width: 2),
-                ),
-                child: ClipOval(
-                  child: _buildSafePhoto(driverPhoto, 50),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF059669),
-                    shape: BoxShape.circle,
+              // User Profile Photo
+              Stack(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFDCFCE7),
+                      border: Border.all(color: const Color(0xFF10B981), width: 2.5),
+                    ),
+                    child: ClipOval(
+                      child: _buildSafePhoto(driverPhoto, 58),
+                    ),
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 9),
-                ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF059669),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 10),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(width: 12),
+              const SizedBox(width: 14),
 
-          // 2. Compact Driver Info Column (Never stretches into big vertical columns)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Name & Verified Badge
-                Row(
+              // Center Column: Driver Name, in Right vehicle plate number!
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.2,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'VERIFIED',
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF15803D),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'VERIFIED',
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 2),
+                    const SizedBox(height: 3),
 
-                // Vehicle Model & Plate Monospace Chip
-                Row(
-                  children: [
-                    if (plate.isNotEmpty) ...[
+                    // IN RIGHT: PROMINENT VEHICLE NUMBER (Registration Plate)
+                    if (plate.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
                         ),
                         child: Text(
                           plate,
                           style: const TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1E293B),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: Text(
-                        vehicleModel.isNotEmpty ? vehicleModel : 'Registered Vehicle',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
+                    const SizedBox(height: 3),
+
+                    // Vehicle Model & Category + Rating
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            vehicleModel.isNotEmpty ? vehicleModel : 'Registered Vehicle',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const Icon(Icons.star, color: Color(0xFFF59E0B), size: 13),
+                        const SizedBox(width: 2),
+                        Text(
+                          '$rating',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
+              ),
+              const SizedBox(width: 8),
 
-                // Star Rating & Phone inline row
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
-                    const SizedBox(width: 2),
-                    Text(
-                      '$rating',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                    ),
-                    if (driverPhone.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '· $driverPhone',
-                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // 3. Compact Duty Toggle Button (Online/Offline Switch)
-          AnimatedBuilder(
-            animation: _radarPulseAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _isOnline ? _radarPulseAnimation.value : 1.0,
-                child: child,
-              );
-            },
-            child: SizedBox(
-              height: 38,
-              child: ElevatedButton(
+              // Duty Switch Button
+              ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isOnline ? const Color(0xFFDC2626) : const Color(0xFF059669),
                   foregroundColor: Colors.white,
-                  elevation: _isOnline ? 2 : 1,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  elevation: 1,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: (_isToggling || isCurrentlyBusy) ? null : () => _toggleOnlineStatus(!_isOnline),
@@ -1275,11 +1441,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _isOnline ? 'OFFLINE' : 'GO ONLINE',
-                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900),
+                            _isOnline ? 'OFFLINE' : 'ONLINE',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
                           ),
                         ],
                       ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 2. BELOW: CHANGE ACTIVE LOCATION BUTTON
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF047857),
+                side: const BorderSide(color: Color(0xFFA7F3D0)),
+                backgroundColor: const Color(0xFFF0FDF4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isCurrentlyBusy ? null : _openLocationPicker,
+              icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
+              label: const Text(
+                'CHANGE ACTIVE LOCATION / STAND (स्थान बदलें)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -1601,6 +1788,47 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           }
         }
 
+        // Live alert notification when new bookings arrive within stand radius
+        final currentBookingIds = eligibleBookings.map((b) => b.id).toSet();
+        if (!_hasLoadedInitialBookings) {
+          _hasLoadedInitialBookings = true;
+          _knownBookingIds.addAll(currentBookingIds);
+        } else {
+          final newBookings = eligibleBookings.where((b) => !_knownBookingIds.contains(b.id)).toList();
+          if (newBookings.isNotEmpty) {
+            _knownBookingIds.addAll(currentBookingIds);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                HapticFeedback.heavyImpact();
+                final firstNew = newBookings.first;
+                final isSched = firstNew.scheduledDate != null && firstNew.scheduledDate!.isNotEmpty;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: const Color(0xFF0F172A),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    content: Row(
+                      children: [
+                        const Icon(Icons.notifications_active, color: Color(0xFF10B981), size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isSched
+                                ? '⏰ Scheduled Ride Alert: ${firstNew.pickup.address.split(',').first} (${firstNew.scheduledDate} ${firstNew.scheduledTimeSlot ?? ''})'
+                                : '🔔 New Booking Alert: Pickup at ${firstNew.pickup.address.split(',').first} • ₹${(firstNew.finalFare ?? firstNew.estimatedFare).toStringAsFixed(0)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+            });
+          }
+        }
+
         if (eligibleBookings.isEmpty) {
           return Container(
             width: double.infinity,
@@ -1682,6 +1910,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               ),
                             ),
                           ),
+                          if (booking.scheduledDate != null && booking.scheduledDate!.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFBEB),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.schedule_rounded, size: 12, color: Color(0xFFB45309)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${booking.scheduledDate} ${booking.scheduledTimeSlot ?? ''}'.trim(),
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Text('#${booking.readableId}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF64748B))),
                         ],
@@ -1800,132 +2054,378 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  /// ACTIVE BOOKING DETAILS CARD FLOATING ABOVE DOCK
-  Widget _buildActiveBookingCard(BookingModel booking) {
-    final isStarted = booking.status == 'trip_started';
+  /// ZOMATO-STYLE LIVE TRIP PROGRESS TRACKER CARD
+  Widget _buildZomatoActiveTripCard(BookingModel booking) {
+    final status = booking.status;
+    final isAssigned = status == 'driver_assigned';
+    final isArrived = status == 'driver_arrived';
+    final isStarted = status == 'trip_started';
+    final customerName = (booking.customerName != null && booking.customerName!.trim().isNotEmpty)
+        ? booking.customerName!.trim()
+        : 'District Rider';
     final customerPhone = booking.customerPhone ?? '+91 87896 01387';
+    final fare = (booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF10B981), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF059669).withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: const Color(0xFF10B981), width: 2),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isStarted ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(10),
+          // 1. Zomato / Swiggy Header: Status Badge + Live Fare + Release Button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isStarted
+                  ? const Color(0xFFECFDF5)
+                  : (isArrived ? const Color(0xFFEFF6FF) : const Color(0xFFFEF3C7)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isStarted ? const Color(0xFF059669) : const Color(0xFFD97706),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isStarted
+                          ? 'STAGE 3/3 · IN TRANSIT TO DROP'
+                          : (isArrived ? 'STAGE 2/3 · ARRIVED AT PICKUP' : 'STAGE 1/3 · HEADING TO PICKUP'),
+                      style: TextStyle(
+                        color: isStarted
+                            ? const Color(0xFF047857)
+                            : (isArrived ? const Color(0xFF1D4ED8) : const Color(0xFFB45309)),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10.5,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  isStarted ? 'TRIP IN PROGRESS' : 'DRIVER ASSIGNED · HEAD TO PICKUP',
-                  style: TextStyle(
-                    color: isStarted ? const Color(0xFF15803D) : const Color(0xFFB45309),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10.5,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '₹$fare',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const Icon(Icons.cancel_outlined, size: 20, color: Color(0xFFDC2626)),
+                      tooltip: 'Cancel or Release Ride',
+                      onPressed: () => _cancelOrReleaseActiveRide(booking),
+                    ),
+                  ],
                 ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    '₹${(booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 2. Zomato Progress Stepper Dots
+                Row(
+                  children: [
+                    _buildStepDot(label: 'Assigned', isDone: true, isActive: isAssigned),
+                    Expanded(child: Container(height: 2, color: isArrived || isStarted ? const Color(0xFF059669) : const Color(0xFFE2E8F0))),
+                    _buildStepDot(label: 'Arrived', isDone: isArrived || isStarted, isActive: isArrived),
+                    Expanded(child: Container(height: 2, color: isStarted ? const Color(0xFF059669) : const Color(0xFFE2E8F0))),
+                    _buildStepDot(label: 'In Transit', isDone: isStarted, isActive: isStarted),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Customer Info & One-Tap Call Button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _callCustomer(customerPhone),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(7),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF059669),
+                          color: Color(0xFFE2E8F0),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.phone, color: Colors.white, size: 16),
+                        child: const Icon(Icons.person, color: Color(0xFF475569), size: 18),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          Text('📍 Pickup: ${booking.pickup.address}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700), maxLines: 1),
-          const SizedBox(height: 2),
-          Text('🏁 Drop: ${booking.destination.address}', style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)), maxLines: 1),
-          const SizedBox(height: 12),
-
-          if (!isStarted) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _otpVerifyCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        hintText: 'Enter 4-digit Ride OTP from Customer',
-                        hintStyle: TextStyle(fontSize: 11.5),
-                        border: InputBorder.none,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customerName,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              customerPhone,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () => _callCustomer(customerPhone),
+                        icon: const Icon(Icons.phone, size: 15),
+                        label: const Text('CALL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    onPressed: () => _verifyOtpAndStartTrip(booking),
-                    child: const Text('Start Trip', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () => _completeTrip(booking),
-                child: const Text('COMPLETE THIS TRIP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-              ),
+                const SizedBox(height: 14),
+
+                // 4. Pickup Location Box with Google Maps Navigation Button
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.radio_button_checked, color: Color(0xFF059669), size: 15),
+                              SizedBox(width: 6),
+                              Text('PICKUP LOCATION', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                            ],
+                          ),
+                          InkWell(
+                            onTap: () => _openGoogleMaps(
+                              lat: booking.pickup.latitude,
+                              lng: booking.pickup.longitude,
+                              label: 'Pickup',
+                            ),
+                            child: Row(
+                              children: const [
+                                Icon(Icons.navigation, color: Color(0xFF059669), size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Google Maps',
+                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        booking.pickup.address,
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // 5. Destination Drop Box with Google Maps Navigation Button
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.location_on, color: Color(0xFFDC2626), size: 15),
+                              SizedBox(width: 6),
+                              Text('DESTINATION DROP', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF991B1B))),
+                            ],
+                          ),
+                          InkWell(
+                            onTap: () => _openGoogleMaps(
+                              lat: booking.destination.latitude,
+                              lng: booking.destination.longitude,
+                              label: 'Destination',
+                            ),
+                            child: Row(
+                              children: const [
+                                Icon(Icons.navigation, color: Color(0xFFDC2626), size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Google Maps',
+                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        booking.destination.address,
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 6. Action Stage Buttons
+                if (isAssigned) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _markDriverArrived(booking),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text('I HAVE ARRIVED AT PICKUP (पहुंच गया)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                    ),
+                  ),
+                ] else if (isArrived) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _otpVerifyCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              hintText: 'Enter 4-digit Ride OTP from Customer',
+                              hintStyle: TextStyle(fontSize: 11.5),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _verifyOtpAndStartTrip(booking),
+                          child: const Text('Start Trip 🚗', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (isStarted) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _completeTrip(booking),
+                      icon: const Icon(Icons.flag_rounded, size: 18),
+                      label: const Text('COMPLETE THIS TRIP (सवारी पूरी करें)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+
+                // 7. Cancel / Release ride link
+                Center(
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
+                    onPressed: () => _cancelOrReleaseActiveRide(booking),
+                    icon: const Icon(Icons.refresh, size: 14),
+                    label: const Text('Need to cancel or release this ride?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStepDot({required String label, required bool isDone, required bool isActive}) {
+    return Column(
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: isDone ? const Color(0xFF059669) : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isDone ? const Color(0xFF059669) : const Color(0xFFCBD5E1),
+              width: 2,
+            ),
+          ),
+          child: isDone
+              ? const Icon(Icons.check, size: 12, color: Colors.white)
+              : null,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: isActive || isDone ? FontWeight.w800 : FontWeight.w600,
+            color: isDone ? const Color(0xFF059669) : const Color(0xFF64748B),
+          ),
+        ),
+      ],
     );
   }
 }
