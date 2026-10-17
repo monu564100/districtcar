@@ -198,7 +198,7 @@ class DriverProfileScreen extends ConsumerWidget {
                 // App Version info
                 const Center(
                   child: Text(
-                    'District Car Partner · Version 1.0.0 (Build 17)\nJharkhand Rural & District Mobility',
+                    'District Car Partner · Version 1.0.0 (Build 19)\nJharkhand Rural & District Mobility',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
                   ),

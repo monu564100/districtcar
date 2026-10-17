@@ -77,20 +77,19 @@ class _DriverLoginScreenState extends ConsumerState<DriverLoginScreen>
 
     try {
       final user = await ref.read(driverServiceProvider).signInWithGoogle();
-      final prefs = await SharedPreferences.getInstance();
-      final localOnboarded = (prefs.getBool('driver_onboarded') ?? false) ||
-          (prefs.getBool('driver_is_onboarded') ?? false);
-      final isOnboarded = localOnboarded || await ref.read(driverServiceProvider).isDriverOnboarded(user.uid);
+      final isOnboarded = await ref.read(driverServiceProvider).isDriverOnboarded(user.uid);
 
       if (mounted) {
         if (!isOnboarded) {
           context.go('/driver-onboarding');
         } else {
-          // Permanently mark onboarded & consented so driver is NEVER asked again on subsequent logins
-          await prefs.setBool('driver_onboarded', true);
-          await prefs.setBool('driver_is_onboarded', true);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('driver_user_uid', user.uid);
+          await prefs.setBool('driver_onboarded_${user.uid}', true);
           await prefs.setBool('driver_consent_given', true);
-          context.go('/driver-home');
+          if (mounted) {
+            context.go('/driver-home');
+          }
         }
       }
     } catch (e) {

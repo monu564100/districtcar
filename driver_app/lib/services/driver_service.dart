@@ -354,43 +354,45 @@ class DriverService {
   }
 
   Future<bool> isDriverOnboarded(String uid) async {
-    // 1. First check local SharedPreferences flag for instant session check
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final localOnboarded = (prefs.getBool('driver_onboarded') ?? false) ||
-          (prefs.getBool('driver_is_onboarded') ?? false);
-      final storedPlate = prefs.getString('driver_user_plate') ?? '';
-      final storedPhone = prefs.getString('driver_user_phone') ?? '';
-      if (localOnboarded || storedPlate.isNotEmpty || storedPhone.isNotEmpty) {
-        return true;
-      }
-    } catch (_) {}
+    if (uid.isEmpty) return false;
 
-    // 2. Check Firestore driver document
+    // 1. Authoritative check in Firestore
     try {
       final doc = await _firestore.collection('drivers').doc(uid).get();
-      if (!doc.exists) return false;
+      if (!doc.exists) {
+        // Doc does not exist in Firestore -> driver has not registered
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('driver_onboarded_$uid');
+          await prefs.remove('driver_onboarded');
+          await prefs.remove('driver_is_onboarded');
+        } catch (_) {}
+        return false;
+      }
       final raw = doc.data();
-      final Map<String, dynamic> data = (raw != null) ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+      if (raw == null) return false;
+      final Map<String, dynamic> data = Map<String, dynamic>.from(raw);
 
       final bool isCompleted = data['isProfileCompleted'] == true;
       final String plate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString().trim();
       final String phone = (data['phoneNumber'] ?? data['driverPhone'] ?? '').toString().trim();
-      final String model = (data['vehicleModel'] ?? '').toString().trim();
+      final String category = (data['vehicleCategoryId'] ?? data['category'] ?? '').toString().trim();
       final String status = (data['verificationStatus'] ?? '').toString().trim();
       final num trips = (data['totalTrips'] is num) ? data['totalTrips'] : 0;
 
-      // If driver has completed profile flag, registered plate, phone, vehicle, approved status, or completed trips:
-      if (isCompleted || plate.isNotEmpty || (phone.isNotEmpty && model.isNotEmpty) || status == 'approved' || trips > 0) {
-        // Sync local flag so they are NEVER asked for registration again on this device
+      // If driver has completed profile flag, registered plate + phone, approved status, or completed trips:
+      if (isCompleted || (plate.isNotEmpty && phone.isNotEmpty) || status == 'approved' || trips > 0) {
+        // Sync local flag strictly for this UID
         try {
           final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('driver_user_uid', uid);
+          await prefs.setBool('driver_onboarded_$uid', true);
           await prefs.setBool('driver_onboarded', true);
           await prefs.setBool('driver_is_onboarded', true);
           if (plate.isNotEmpty) await prefs.setString('driver_user_plate', plate);
           if (phone.isNotEmpty) await prefs.setString('driver_user_phone', phone);
           if (data['name'] != null) await prefs.setString('driver_user_name', data['name'].toString());
-          if (data['vehicleCategoryId'] != null) await prefs.setString('driver_user_category', data['vehicleCategoryId'].toString());
+          if (category.isNotEmpty) await prefs.setString('driver_user_category', category);
           if (data['vehicleModel'] != null) await prefs.setString('driver_user_vehicle_model', data['vehicleModel'].toString());
           if (data['vehicleImage'] != null) await prefs.setString('driver_user_vehicle_image', data['vehicleImage'].toString());
           if (data['driverPhoto'] != null) await prefs.setString('driver_user_photo', data['driverPhoto'].toString());
@@ -408,15 +410,18 @@ class DriverService {
         return true;
       }
       return false;
-    } catch (_) {
-      // In case of offline or connection glitch, check SharedPreferences again
+    } catch (e) {
+      debugPrint('Driver onboarded check notice: $e');
+      // In case of offline error, check if locally verified for this UID only
       try {
         final prefs = await SharedPreferences.getInstance();
-        return (prefs.getBool('driver_onboarded') ?? false) ||
-            (prefs.getBool('driver_is_onboarded') ?? false);
-      } catch (_) {
-        return false;
-      }
+        final cachedUid = prefs.getString('driver_user_uid');
+        if (cachedUid == uid) {
+          return (prefs.getBool('driver_onboarded_$uid') ?? false) ||
+              (prefs.getBool('driver_onboarded') ?? false);
+        }
+      } catch (_) {}
+      return false;
     }
   }
 
@@ -828,9 +833,38 @@ class DriverService {
     _localUser = null;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('driver_user_uid');
-      await prefs.remove('driver_user_email');
-      await prefs.remove('driver_user_name');
+      final uid = currentUser?.uid ?? prefs.getString('driver_user_uid');
+      if (uid != null && uid.isNotEmpty) {
+        await prefs.remove('driver_onboarded_$uid');
+      }
+      final keysToRemove = [
+        'driver_user_uid',
+        'driver_user_email',
+        'driver_user_name',
+        'driver_user_phone',
+        'driver_user_plate',
+        'driver_user_category',
+        'driver_user_vehicle_model',
+        'driver_user_vehicle_image',
+        'driver_user_photo',
+        'driver_onboarded',
+        'driver_is_onboarded',
+        'driver_consent_given',
+        'driver_is_online',
+        'driver_is_busy',
+        'driver_active_booking_id',
+        'driver_district',
+        'driver_block',
+        'driver_address',
+        'driver_custom_address',
+        'driver_custom_lat',
+        'driver_custom_lng',
+        'driver_has_manually_changed_location',
+        'driver_dismissed_bookings',
+      ];
+      for (final k in keysToRemove) {
+        await prefs.remove(k);
+      }
     } catch (_) {}
     try {
       await _auth.signOut();

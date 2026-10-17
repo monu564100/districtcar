@@ -74,7 +74,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 17,
+          currentBuildNumber: 19,
         );
       }
 
@@ -1615,10 +1615,61 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('drivers').doc(user.uid).snapshots(),
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                backgroundColor: Color(0xFF0F172A),
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF059669)),
+                ),
+              );
+            }
+
             final rawDoc = (snapshot.hasData && snapshot.data!.exists) ? snapshot.data!.data() : null;
             final Map<String, dynamic> data = (rawDoc is Map)
                 ? Map<String, dynamic>.from(rawDoc)
                 : <String, dynamic>{};
+
+            final bool isRegistered = snapshot.hasData &&
+                snapshot.data!.exists &&
+                (data['isProfileCompleted'] == true ||
+                    ((data['vehiclePlateNumber'] ?? data['vehiclePlate']) != null &&
+                        (data['phoneNumber'] ?? data['driverPhone']) != null));
+
+            if (!isRegistered) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) {
+                  context.go('/driver-onboarding');
+                }
+              });
+              return Scaffold(
+                backgroundColor: const Color(0xFF0F172A),
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          image: const DecorationImage(
+                            image: AssetImage('assets/images/app_logo.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const CircularProgressIndicator(color: Color(0xFF059669)),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Opening Driver Registration...',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
 
             double asDouble(dynamic val, [double fallback = 0.0]) {
               if (val == null) return fallback;
@@ -1865,11 +1916,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
                   // 2. Full-Screen Incoming Ride Calling Notification Overlay
                   if (_isOnline && !isCurrentlyBusy && !isBlockedDueToCommission)
-                    IncomingRequestOverlay(
-                      driverId: user.uid,
-                      vehicleCategory: driverCategory,
-                      driverLocation: _driverLocation,
-                      onAccepted: (booking) => _showRideFlowModal(booking),
+                    Positioned.fill(
+                      child: IncomingRequestOverlay(
+                        driverId: user.uid,
+                        vehicleCategory: driverCategory,
+                        driverLocation: _driverLocation,
+                        onAccepted: (booking) => _showRideFlowModal(booking),
+                      ),
                     ),
                 ],
               ),
