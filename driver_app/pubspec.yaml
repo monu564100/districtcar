@@ -1,6 +1,6 @@
 name: district_car_driver
 description: Production-grade Driver Mobile App for District Car platform.
-version: 1.0.0+16
+version: 1.0.0+17
 publish_to: 'none'
 
 environment:

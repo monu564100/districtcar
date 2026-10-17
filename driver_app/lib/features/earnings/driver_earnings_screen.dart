@@ -179,9 +179,12 @@ class _DriverEarningsScreenState extends ConsumerState<DriverEarningsScreen> {
 
               // 3-Trip Rule: Every 3 completed trips, driver must clear commission
               final int totalCompletedTrips = docs.length;
-              final int unpaidTrips = driverData['unpaidTripsCount'] as int? ?? (totalCompletedTrips % 3);
-              final double pendingCommission = (driverData['pendingCommission'] as num?)?.toDouble() ??
-                  (unpaidTrips > 0 ? (totalEarnings / (totalCompletedTrips == 0 ? 1 : totalCompletedTrips) * unpaidTrips * commissionRate) : 0.0);
+              final int? storedUnpaid = (driverData['unpaidTripsCount'] as num?)?.toInt();
+              final int unpaidTrips = storedUnpaid ?? (totalCompletedTrips > 0 ? (totalCompletedTrips >= 3 ? 3 : totalCompletedTrips) : 0);
+              final double storedPending = (driverData['pendingCommission'] as num?)?.toDouble() ?? 0.0;
+              final double pendingCommission = (storedPending > 0)
+                  ? storedPending
+                  : (unpaidTrips > 0 ? (totalEarnings / (totalCompletedTrips == 0 ? 1 : totalCompletedTrips) * unpaidTrips * commissionRate) : 0.0);
 
               final bool isBlocked = (driverData['isBlocked'] == true) ||
                   (driverData['isBlockedDueToCommission'] == true) ||

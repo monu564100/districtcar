@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import '../../services/driver_service.dart';
@@ -29,23 +30,31 @@ class DriverProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Driver Profile')),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('drivers').doc(user.uid).get(),
+      body: FutureBuilder<List<dynamic>>(
+        future: Future.wait([
+          FirebaseFirestore.instance.collection('drivers').doc(user.uid).get(),
+          SharedPreferences.getInstance(),
+        ]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final raw = snapshot.data?.data();
+          final docSnap = snapshot.data?[0] as DocumentSnapshot?;
+          final prefs = snapshot.data?[1] as SharedPreferences?;
+          final raw = docSnap?.data();
           final data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
           final name = (data['name'] != null && (data['name'] as String).isNotEmpty)
               ? data['name']
-              : (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner');
+              : (prefs?.getString('driver_user_name') ?? (user.displayName != null && user.displayName!.isNotEmpty ? user.displayName! : 'Driver Partner'));
           final phone = (user.phoneNumber != null && user.phoneNumber!.isNotEmpty)
               ? user.phoneNumber!
-              : (data['phoneNumber'] ?? data['phone'] ?? '').toString();
+              : (data['phoneNumber'] ?? data['phone'] ?? prefs?.getString('driver_user_phone') ?? '').toString();
           final status = data['verificationStatus'] ?? 'approved';
-          final driverPhoto = (
+
+          // Prioritize real uploaded driver photo (base64 or URL) over fallback avatar strings
+          final localDriverPhoto = prefs?.getString('driver_user_photo');
+          final rawDriverPhoto = (
               data['driverPhoto'] ??
               data['profilePhoto'] ??
               data['photoUrl'] ??
@@ -54,13 +63,26 @@ class DriverProfileScreen extends ConsumerWidget {
               data['avatarUrl'] ??
               user.profilePhotoUrl
           )?.toString();
-          final vehiclePhoto = (
+          final driverPhoto = (rawDriverPhoto != null && rawDriverPhoto.isNotEmpty && !rawDriverPhoto.startsWith('avatar'))
+              ? rawDriverPhoto
+              : (localDriverPhoto != null && localDriverPhoto.isNotEmpty && !localDriverPhoto.startsWith('avatar')
+                  ? localDriverPhoto
+                  : (rawDriverPhoto ?? localDriverPhoto));
+
+          // Prioritize real uploaded vehicle photo
+          final localVehiclePhoto = prefs?.getString('driver_user_vehicle_image');
+          final rawVehiclePhoto = (
               data['vehicleImage'] ??
               data['vehiclePhoto'] ??
               data['vehiclePhotoUrl'] ??
               data['carPhoto'] ??
               data['carImage']
           )?.toString();
+          final vehiclePhoto = (rawVehiclePhoto != null && rawVehiclePhoto.isNotEmpty && !rawVehiclePhoto.contains('assets/'))
+              ? rawVehiclePhoto
+              : (localVehiclePhoto != null && localVehiclePhoto.isNotEmpty && !localVehiclePhoto.contains('assets/')
+                  ? localVehiclePhoto
+                  : (rawVehiclePhoto ?? localVehiclePhoto));
           final vehiclePlate = (data['vehiclePlateNumber'] ?? data['vehiclePlate'] ?? '').toString();
           final vehicleModel = (data['vehicleModel'] ?? '').toString();
           final standAddress = (data['currentAddress'] ?? data['address'] ?? '').toString();
@@ -176,7 +198,7 @@ class DriverProfileScreen extends ConsumerWidget {
                 // App Version info
                 const Center(
                   child: Text(
-                    'District Car Partner · Version 1.0.0 (Build 16)\nJharkhand Rural & District Mobility',
+                    'District Car Partner · Version 1.0.0 (Build 17)\nJharkhand Rural & District Mobility',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), height: 1.4),
                   ),

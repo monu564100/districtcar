@@ -41,6 +41,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   bool _hasManuallyChangedLocation = false;
   LocationModel? _registeredPermanentLocation;
 
+  String? _cachedLocalDriverPhoto;
+  String? _cachedLocalVehiclePhoto;
+
   LocationModel _driverLocation = LocationModel(
     latitude: 23.3441,
     longitude: 85.3096,
@@ -70,7 +73,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 16,
+          currentBuildNumber: 17,
         );
       }
 
@@ -166,6 +169,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           });
         }
       }
+
+      final savedPhoto = prefs.getString('driver_user_photo');
+      final savedVehImage = prefs.getString('driver_user_vehicle_image');
+      if (mounted) {
+        setState(() {
+          _cachedLocalDriverPhoto = savedPhoto;
+          _cachedLocalVehiclePhoto = savedVehImage;
+        });
+      }
     } catch (_) {}
   }
 
@@ -249,6 +261,41 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       return;
     }
 
+    if (targetOnline) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('drivers').doc(user.uid).get();
+        if (doc.exists) {
+          final Map<String, dynamic>? data = doc.data();
+          if (data != null) {
+            final isBlocked = data['isBlockedDueToCommission'] == true ||
+                data['isBlocked'] == true ||
+                ((data['unpaidTripsCount'] as num?)?.toInt() ?? 0) >= 3;
+            if (isBlocked) {
+              if (mounted) {
+                HapticFeedback.heavyImpact();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Account Blocked: 3 completed rides commission is unpaid. Please pay in Earning & Commission Wallet to go online.',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: const Color(0xFFDC2626),
+                    duration: const Duration(seconds: 4),
+                    action: SnackBarAction(
+                      label: 'PAY NOW',
+                      textColor: Colors.white,
+                      onPressed: () => context.push('/driver-earnings'),
+                    ),
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
     setState(() => _isToggling = true);
 
     try {
@@ -284,6 +331,56 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           _isOnline = targetOnline;
           _isToggling = false;
         });
+      }
+    }
+  }
+
+  bool _isBookingExpired(BookingModel booking) {
+    final now = DateTime.now();
+    final isScheduled = booking.scheduledDate != null && booking.scheduledDate!.trim().isNotEmpty;
+
+    if (!isScheduled) {
+      // Now mode: 30 minutes timeout
+      return now.difference(booking.createdAt).inMinutes >= 30;
+    } else {
+      // Schedule mode: depends on scheduled date and timeslot
+      try {
+        final dateStr = booking.scheduledDate!.trim();
+        DateTime? targetDate = DateTime.tryParse(dateStr);
+
+        if (targetDate == null) {
+          final parts = RegExp(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})').firstMatch(dateStr);
+          if (parts != null) {
+            targetDate = DateTime(int.parse(parts.group(1)!), int.parse(parts.group(2)!), int.parse(parts.group(3)!));
+          }
+        }
+
+        if (targetDate == null) {
+          return now.difference(booking.createdAt).inHours >= 24;
+        }
+
+        int targetHour = 23;
+        int targetMin = 59;
+
+        if (booking.scheduledTimeSlot != null && booking.scheduledTimeSlot!.trim().isNotEmpty) {
+          final slot = booking.scheduledTimeSlot!.trim();
+          final timePart = slot.contains('-') ? slot.split('-').last.trim() : slot;
+          final timeMatch = RegExp(r'(\d+):(\d+)\s*(AM|PM)?', caseSensitive: false).firstMatch(timePart);
+          if (timeMatch != null) {
+            int h = int.parse(timeMatch.group(1)!);
+            final m = int.parse(timeMatch.group(2)!);
+            final ampm = timeMatch.group(3)?.toUpperCase();
+            if (ampm == 'PM' && h < 12) h += 12;
+            if (ampm == 'AM' && h == 12) h = 0;
+            targetHour = h;
+            targetMin = m;
+          }
+        }
+
+        final scheduledFull = DateTime(targetDate.year, targetDate.month, targetDate.day, targetHour, targetMin);
+        return now.isAfter(scheduledFull.add(const Duration(minutes: 30)));
+      } catch (_) {
+        return now.difference(booking.createdAt).inHours >= 24;
       }
     }
   }
@@ -537,7 +634,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   t.cancel();
                   return;
                 }
-                if (remainingSeconds <= 1) {
+                if (remainingSeconds <= 1 || _isBookingExpired(currentBooking)) {
                   t.cancel();
                   bookingSub?.cancel();
                   _dismissedBookingIds.add(currentBooking.id);
@@ -550,7 +647,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Request #${currentBooking.readableId} auto-cancelled (timeout).'),
+                        content: Text('Request #${currentBooking.readableId} out of time / expired.'),
                         backgroundColor: const Color(0xFF64748B),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -788,28 +885,27 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      child: Row(
                                         children: [
                                           const Text(
-                                            'CUSTOMER',
+                                            'Customer: ',
                                             style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.bold,
                                               color: Color(0xFF64748B),
-                                              letterSpacing: 0.5,
                                             ),
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            custName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 14,
-                                              color: Color(0xFF0F172A),
+                                          Expanded(
+                                            child: Text(
+                                              custName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 14,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
@@ -846,6 +942,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                       children: [
                                         const Icon(Icons.phone_android, size: 16, color: Color(0xFF059669)),
                                         const SizedBox(width: 8),
+                                        const Text('Phone: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
                                         Expanded(
                                           child: Text(
                                             custPhone,
@@ -932,6 +1029,25 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                       : () async {
                                           setModalState(() => isProcessing = true);
                                           try {
+                                            final currentDriverDoc = await FirebaseFirestore.instance.collection('drivers').doc(user?.uid).get();
+                                            final currentDriverData = currentDriverDoc.data();
+                                            final isBlockedComm = currentDriverData?['isBlockedDueToCommission'] == true ||
+                                                currentDriverData?['isBlocked'] == true ||
+                                                ((currentDriverData?['unpaidTripsCount'] as num?)?.toInt() ?? 0) >= 3;
+                                            if (isBlockedComm) {
+                                              setModalState(() => isProcessing = false);
+                                              if (modalCtx.mounted) {
+                                                ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Account blocked: 3 completed rides commission is unpaid. Please pay in Earning & Commission Wallet.'),
+                                                    backgroundColor: Color(0xFFDC2626),
+                                                    duration: Duration(seconds: 4),
+                                                  ),
+                                                );
+                                              }
+                                              return;
+                                            }
+
                                             autoCancelTimer?.cancel();
                                             bookingSub?.cancel();
                                             await ref.read(driverServiceProvider).acceptRide(currentBooking.id, null);
@@ -1524,7 +1640,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final double totalEarnings = (rawTotalEarnings > completedTripsGross) ? rawTotalEarnings : (completedTripsGross > 0 ? completedTripsGross : rawTotalEarnings);
             final int totalTrips = (rawTotalTrips > completedTripsCount) ? rawTotalTrips : (completedTripsCount > 0 ? completedTripsCount : rawTotalTrips);
 
-            final String? driverPhoto = (
+            final bool isBlockedDueToCommission = data['isBlockedDueToCommission'] == true;
+
+            final String? firestoreDriverPhoto = (
                 data['driverPhoto'] ??
                 data['profilePhoto'] ??
                 data['photoUrl'] ??
@@ -1534,13 +1652,21 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 user.profilePhotoUrl
             )?.toString();
 
-            final String? vehiclePhoto = (
+            final String? driverPhoto = (firestoreDriverPhoto != null && firestoreDriverPhoto.trim().isNotEmpty && !firestoreDriverPhoto.contains('avatar_1'))
+                ? firestoreDriverPhoto
+                : (_cachedLocalDriverPhoto ?? firestoreDriverPhoto);
+
+            final String? firestoreVehiclePhoto = (
                 data['vehicleImage'] ??
                 data['vehiclePhoto'] ??
                 data['vehiclePhotoUrl'] ??
                 data['carPhoto'] ??
                 data['carImage']
             )?.toString();
+
+            final String? vehiclePhoto = (firestoreVehiclePhoto != null && firestoreVehiclePhoto.trim().isNotEmpty)
+                ? firestoreVehiclePhoto
+                : (_cachedLocalVehiclePhoto ?? firestoreVehiclePhoto);
 
             // Resolve driver's permanent registered stand location from Firestore
             final String registeredStand = (
@@ -1692,6 +1818,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (isBlockedDueToCommission) ...[
+                            _buildCommissionBlockedBanner(),
+                            const SizedBox(height: 12),
+                          ],
                           // A. Hero Visual Radar / Shift Banner (with direct Online / Offline action)
                           _buildHeroBanner(isCurrentlyBusy),
                           const SizedBox(height: 12),
@@ -1736,6 +1866,88 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           },
         );
       },
+    );
+  }
+
+  /// COMMISSION BLOCKED WARNING BANNER (Shows when 3 trips completed without commission payment)
+  Widget _buildCommissionBlockedBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFCA5A5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.lock_clock_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACCOUNT BLOCKED · 3-TRIP COMMISSION DUE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF991B1B),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'You have completed 3 rides. Settle commission to go online and accept new rides.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF7F1D1D),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () => context.push('/driver-earnings'),
+              icon: const Icon(Icons.account_balance_wallet_rounded, size: 16),
+              label: const Text(
+                'PAY COMMISSION NOW (UNBLOCK)',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2460,16 +2672,35 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         final allDocs = snapshot.data?.docs ?? [];
         final List<BookingModel> eligibleBookings = [];
 
+        final currentUid = ref.read(driverServiceProvider).currentUser?.uid;
+
         for (final doc in allDocs) {
           try {
             if (_dismissedBookingIds.contains(doc.id)) continue;
             final raw = doc.data();
             if (raw is! Map) continue;
             final d = Map<String, dynamic>.from(raw);
+
+            // Auto-invisible if already accepted by another driver
+            final assignedDriverId = d['driverId']?.toString();
+            if (assignedDriverId != null && assignedDriverId.isNotEmpty && assignedDriverId != currentUid) {
+              continue;
+            }
+            final bStatus = d['status']?.toString();
+            if (bStatus != null && bStatus != 'searching_driver') {
+              continue;
+            }
+
             final cat = (d['vehicleCategoryId'] ?? 'car').toString();
             if (!_isCategoryEligible(cat, driverCategory)) continue;
 
             final booking = BookingModel.fromMap(d, doc.id);
+
+            // Auto-invisible if out of time (30 min for now mode, or past scheduled time)
+            if (_isBookingExpired(booking)) {
+              continue;
+            }
+
             if (_isDistanceEligible(booking, _driverLocation.latitude, _driverLocation.longitude)) {
               eligibleBookings.add(booking);
             }
@@ -2873,15 +3104,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              customerName,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                const Text('Customer: ', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                Expanded(
+                                  child: Text(
+                                    customerName,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              customerPhone,
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                const Text('Phone: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                Expanded(
+                                  child: Text(
+                                    customerPhone,
+                                    style: const TextStyle(fontSize: 12, color: Color(0xFF1E293B), fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

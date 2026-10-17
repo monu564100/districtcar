@@ -753,6 +753,20 @@ class DriverService {
         final commission = (fare * 0.10).roundToDouble();
         final netFare = fare - commission;
 
+        int currentUnpaid = 0;
+        try {
+          final driverDoc = await _firestore.collection('drivers').doc(uid).get();
+          if (driverDoc.exists) {
+            final Map<String, dynamic>? dData = driverDoc.data();
+            if (dData != null) {
+              currentUnpaid = (dData['unpaidTripsCount'] as num?)?.toInt() ?? 0;
+            }
+          }
+        } catch (_) {}
+
+        final newUnpaid = currentUnpaid + 1;
+        final shouldBlock = newUnpaid >= 3;
+
         await _firestore.collection('drivers').doc(uid).set({
           'isBusy': false,
           'activeBookingId': null,
@@ -760,6 +774,9 @@ class DriverService {
           'totalEarnings': FieldValue.increment(fare),
           'walletBalance': FieldValue.increment(netFare),
           'pendingCommission': FieldValue.increment(commission),
+          'unpaidTripsCount': newUnpaid,
+          'isBlockedDueToCommission': shouldBlock,
+          if (shouldBlock) 'isOnline': false,
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
