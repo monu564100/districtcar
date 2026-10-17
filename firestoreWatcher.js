@@ -13,6 +13,23 @@ const {
 class FirestoreWatcher {
   constructor() {
     this.isListening = false;
+    // In-memory set to guarantee exactly ONE notification per event across real-time snapshot fluctuations
+    this.processedEvents = new Set();
+  }
+
+  _isProcessed(key) {
+    return this.processedEvents.has(key);
+  }
+
+  _markProcessed(key) {
+    this.processedEvents.add(key);
+    // Keep memory clean
+    if (this.processedEvents.size > 2500) {
+      const it = this.processedEvents.values();
+      for (let i = 0; i < 500; i++) {
+        this.processedEvents.delete(it.next().value);
+      }
+    }
   }
 
   start() {
@@ -38,11 +55,14 @@ class FirestoreWatcher {
             const id = change.doc.id;
 
             // 1. New Booking created: status is 'requested' or 'searching_driver'
-            if (change.type === 'added') {
+            if (change.type === 'added' || change.type === 'modified') {
+              const newBookingKey = `${id}_new_booking`;
               if (
                 (data.status === 'requested' || data.status === 'searching_driver') &&
-                !data.notifiedDrivers
+                !data.notifiedDrivers &&
+                !this._isProcessed(newBookingKey)
               ) {
+                this._markProcessed(newBookingKey);
                 console.log(`[FirestoreWatcher] Detected new booking: ${id} (${data.readableId || id})`);
 
                 notificationService.notifyDriversNewBooking({
@@ -63,12 +83,15 @@ class FirestoreWatcher {
 
             // 2. Booking accepted: status transitioned to 'driver_assigned'
             if (change.type === 'modified') {
+              const acceptedKey = `${id}_driver_assigned`;
               if (
                 data.status === 'driver_assigned' &&
                 data.driverId &&
                 data.customerId &&
-                !data.notifiedCustomerAccepted
+                !data.notifiedCustomerAccepted &&
+                !this._isProcessed(acceptedKey)
               ) {
+                this._markProcessed(acceptedKey);
                 console.log(`[FirestoreWatcher] Detected driver assignment for booking ${id}`);
 
                 clientGetDoc(clientDoc(db, 'drivers', data.driverId)).then((driverSnap) => {
@@ -86,6 +109,39 @@ class FirestoreWatcher {
                     clientUpdateDoc(clientDoc(db, 'bookings', id), {
                       notifiedCustomerAccepted: true,
                       notifiedCustomerAcceptedAt: clientServerTimestamp(),
+                    }).catch(() => {});
+                  });
+                });
+              }
+
+              // 3. Trip Initiated / Started Riding -> Zomato Style Live Progress Notification
+              const tripStartedKey = `${id}_trip_started`;
+              if (
+                (data.status === 'trip_started' || data.status === 'in_progress') &&
+                data.customerId &&
+                !data.notifiedCustomerTripStarted &&
+                !this._isProcessed(tripStartedKey)
+              ) {
+                this._markProcessed(tripStartedKey);
+                console.log(`[FirestoreWatcher] Detected trip started for booking ${id}`);
+
+                const driverDocRef = data.driverId ? clientDoc(db, 'drivers', data.driverId) : null;
+                const fetchDriver = driverDocRef ? clientGetDoc(driverDocRef) : Promise.resolve({ exists: () => false });
+
+                fetchDriver.then((driverSnap) => {
+                  const driverData = driverSnap.exists() ? driverSnap.data() : {};
+
+                  notificationService.notifyCustomerTripStarted({
+                    bookingId: id,
+                    customerId: data.customerId,
+                    driverName: driverData.name || data.driverName || 'Partner Driver',
+                    destinationAddress: data.destination?.address || 'Destination',
+                    vehiclePlate: driverData.vehiclePlate || data.vehiclePlate || 'Verified Partner',
+                    vehicleModel: driverData.vehicleModel || data.vehicleModel || 'Cab',
+                  }).then(() => {
+                    clientUpdateDoc(clientDoc(db, 'bookings', id), {
+                      notifiedCustomerTripStarted: true,
+                      notifiedCustomerTripStartedAt: clientServerTimestamp(),
                     }).catch(() => {});
                   });
                 });
