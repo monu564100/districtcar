@@ -13,19 +13,19 @@ class RemoteUpdateScreen extends StatefulWidget {
 class _RemoteUpdateScreenState extends State<RemoteUpdateScreen> {
   // Customer App Form Controllers
   final _custVersionCtrl = TextEditingController(text: '1.0.0');
-  final _custBuildNumberCtrl = TextEditingController(text: '6');
-  final _custUpdateUrlCtrl = TextEditingController(text: 'https://districtcarjharkhand.com/DistrictCar_Customer.apk');
-  final _custTitleCtrl = TextEditingController(text: 'District Car Tours & Travels Update (Build 6)');
-  final _custMessageCtrl = TextEditingController(text: 'New Tours & Travels feature: explore iconic waterfalls, Baidyanath Dham & hills with dedicated cab packages, stay duration, and live fare calculation.');
+  final _custBuildNumberCtrl = TextEditingController(text: '18');
+  final _custUpdateUrlCtrl = TextEditingController(text: 'https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app');
+  final _custTitleCtrl = TextEditingController(text: 'District Car Major Update (Build 18)');
+  final _custMessageCtrl = TextEditingController(text: 'New Zomato-style live ride tracker, 30-second driver search radar, and verified service location checks.');
   bool _custIsForceUpdate = true;
   bool _custIsActive = true;
 
   // Driver App Form Controllers
   final _drvVersionCtrl = TextEditingController(text: '1.0.0');
-  final _drvBuildNumberCtrl = TextEditingController(text: '6');
-  final _drvUpdateUrlCtrl = TextEditingController(text: 'https://districtcarjharkhand.com/DistrictCar_Driver.apk');
-  final _drvTitleCtrl = TextEditingController(text: 'Driver Partner App Update (सारथी - Build 6)');
-  final _drvMessageCtrl = TextEditingController(text: 'New Tours & Travels ride offers, transparent stay waiting allowance, and enhanced push notifications.');
+  final _drvBuildNumberCtrl = TextEditingController(text: '18');
+  final _drvUpdateUrlCtrl = TextEditingController(text: 'https://play.google.com/store/apps/details?id=com.drivercardistrict.app');
+  final _drvTitleCtrl = TextEditingController(text: 'Driver Partner App Update (सारथी - Build 18)');
+  final _drvMessageCtrl = TextEditingController(text: 'New full-screen incoming ride call overlay, OTP-locked trip security, and stand distance calculation.');
   bool _drvIsForceUpdate = true;
   bool _drvIsActive = true;
 
