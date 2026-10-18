@@ -13,7 +13,12 @@ import '../features/destinations/destination_management_screen.dart';
 final adminRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/admin-login',
+    errorBuilder: (context, state) => const AdminLoginScreen(),
     routes: [
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/admin-login',
+      ),
       GoRoute(
         path: '/admin-login',
         builder: (context, state) => const AdminLoginScreen(),
