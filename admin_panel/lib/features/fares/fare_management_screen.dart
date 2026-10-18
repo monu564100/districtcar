@@ -460,102 +460,208 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
                           );
                         }
 
-                        return GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 2.2,
-                            crossAxisSpacing: 20,
-                            mainAxisSpacing: 20,
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                          itemCount: docs.length,
-                          itemBuilder: (context, index) {
-                            final doc = docs[index];
-                            final data = doc.data() as Map<String, dynamic>;
-                            final name = data['displayName'] ?? data['name'] ?? 'Vehicle';
-                            final baseFare = (data['baseFare'] ?? 0).toString();
-                            final perKm = (data['perKmRate'] ?? 0).toString();
-                            final minFare = (data['minimumFare'] ?? 0).toString();
-                            final roundTripDiscount = (data['roundTripDiscountPercent'] ?? 35).toString();
-                            final waitingCharge = (data['hourlyWaitingCharge'] ?? 60).toString();
-                            final commission = (data['platformCommissionPercent'] ?? 10).toString();
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: 1120,
+                                child: Column(
+                                  children: [
+                                    // Horizontal Table Header
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                      color: const Color(0xFFF8FAFC),
+                                      child: Row(
+                                        children: const [
+                                          SizedBox(
+                                            width: 220,
+                                            child: Text('VEHICLE CATEGORY', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 110,
+                                            child: Text('BASE FARE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 110,
+                                            child: Text('RATE / KM', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 120,
+                                            child: Text('MIN FARE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Text('RETURN DISCOUNT', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Text('WAITING CHARGE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Text('COMMISSION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Text('ACTIONS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-                            return Container(
-                              padding: const EdgeInsets.all(22),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.grey.shade200),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary.withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(10),
+                                    // Table Rows
+                                    Expanded(
+                                      child: ListView.separated(
+                                        itemCount: docs.length,
+                                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                                        itemBuilder: (context, index) {
+                                          final doc = docs[index];
+                                          final data = doc.data() as Map<String, dynamic>;
+                                          final name = data['displayName'] ?? data['name'] ?? 'Vehicle';
+                                          final baseFare = (data['baseFare'] ?? 0).toString();
+                                          final perKm = (data['perKmRate'] ?? 0).toString();
+                                          final minFare = (data['minimumFare'] ?? 0).toString();
+                                          final roundTripDiscount = (data['roundTripDiscountPercent'] ?? 35).toString();
+                                          final waitingCharge = (data['hourlyWaitingCharge'] ?? 60).toString();
+                                          final commission = (data['platformCommissionPercent'] ?? 10).toString();
+
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            child: Row(
+                                              children: [
+                                                // Category Name & Icon
+                                                SizedBox(
+                                                  width: 220,
+                                                  child: Row(
+                                                    children: [
+                                                      Container(
+                                                        padding: const EdgeInsets.all(7),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.primary.withValues(alpha: 0.1),
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: const Icon(Icons.directions_car, color: AppColors.primary, size: 18),
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                      Expanded(
+                                                        child: Text(
+                                                          name,
+                                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                // Base Fare
+                                                SizedBox(
+                                                  width: 110,
+                                                  child: Text(
+                                                    '₹$baseFare',
+                                                    style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                                  ),
+                                                ),
+
+                                                // Rate / KM
+                                                SizedBox(
+                                                  width: 110,
+                                                  child: Text(
+                                                    '₹$perKm/km',
+                                                    style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
+                                                  ),
+                                                ),
+
+                                                // Min Fare
+                                                SizedBox(
+                                                  width: 120,
+                                                  child: Text(
+                                                    '₹$minFare',
+                                                    style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                                                  ),
+                                                ),
+
+                                                // Return Discount
+                                                SizedBox(
+                                                  width: 140,
+                                                  child: Text(
+                                                    '$roundTripDiscount% off',
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                                                  ),
+                                                ),
+
+                                                // Waiting Charge
+                                                SizedBox(
+                                                  width: 140,
+                                                  child: Text(
+                                                    '₹$waitingCharge/hr',
+                                                    style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                                                  ),
+                                                ),
+
+                                                // Commission
+                                                SizedBox(
+                                                  width: 140,
+                                                  child: Text(
+                                                    '$commission%',
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)),
+                                                  ),
+                                                ),
+
+                                                // Actions
+                                                SizedBox(
+                                                  width: 140,
+                                                  child: Row(
+                                                    children: [
+                                                      OutlinedButton.icon(
+                                                        onPressed: () => _editFareDialog(doc),
+                                                        icon: const Icon(Icons.edit, size: 13),
+                                                        label: const Text('Edit', style: TextStyle(fontSize: 11.5)),
+                                                        style: OutlinedButton.styleFrom(
+                                                          foregroundColor: AppColors.primary,
+                                                          side: const BorderSide(color: AppColors.primary),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                          minimumSize: Size.zero,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      IconButton(
+                                                        icon: const Icon(Icons.delete_outline, size: 17, color: Color(0xFFDC2626)),
+                                                        tooltip: 'Remove Category',
+                                                        onPressed: () => _deleteCategoryDialog(doc),
+                                                        padding: EdgeInsets.zero,
+                                                        constraints: const BoxConstraints(),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            child: const Icon(Icons.directions_car, color: AppColors.primary, size: 20),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            name,
-                                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          OutlinedButton.icon(
-                                            onPressed: () => _editFareDialog(doc),
-                                            icon: const Icon(Icons.edit, size: 14),
-                                            label: const Text('Edit Rate Card', style: TextStyle(fontSize: 12)),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: AppColors.primary,
-                                              side: const BorderSide(color: AppColors.primary),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
-                                            tooltip: 'Remove Category',
-                                            onPressed: () => _deleteCategoryDialog(doc),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildRatePill('Base Fare', '₹$baseFare'),
-                                      _buildRatePill('Rate / KM', '₹$perKm'),
-                                      _buildRatePill('Min Fare', '₹$minFare'),
-                                      _buildRatePill('Return Discount', '$roundTripDiscount%'),
-                                      _buildRatePill('Waiting', '₹$waitingCharge/hr'),
-                                      _buildRatePill('Commission', '$commission%'),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -566,17 +672,6 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRatePill(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w800)),
-      ],
     );
   }
 }

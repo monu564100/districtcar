@@ -347,40 +347,55 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                           final currencyFmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
-                          return Row(
-                            children: [
-                              _buildMetricCard(
-                                title: 'Total Bookings',
-                                val: '$totalBookings',
-                                sub: 'Live database count',
-                                color: const Color(0xFF2563EB),
-                                icon: Icons.local_taxi_rounded,
-                              ),
-                              const SizedBox(width: 20),
-                              _buildMetricCard(
-                                title: 'Active Online Drivers',
-                                val: '$activeOnlineDrivers',
-                                sub: 'Available for ride match',
-                                color: const Color(0xFF059669),
-                                icon: Icons.sensors_rounded,
-                              ),
-                              const SizedBox(width: 20),
-                              _buildMetricCard(
-                                title: 'Pending Driver Reviews',
-                                val: '$pendingDriverApprovals',
-                                sub: pendingDriverApprovals > 0 ? 'Requires attention' : 'All clear',
-                                color: pendingDriverApprovals > 0 ? const Color(0xFFD97706) : const Color(0xFF64748B),
-                                icon: Icons.assignment_ind_outlined,
-                              ),
-                              const SizedBox(width: 20),
-                              _buildMetricCard(
-                                title: 'Gross Revenue Volume',
-                                val: currencyFmt.format(totalRevenue),
-                                sub: 'Total booking values',
-                                color: const Color(0xFF7C3AED),
-                                icon: Icons.account_balance_wallet_outlined,
-                              ),
-                            ],
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 260,
+                                  child: _buildMetricCard(
+                                    title: 'Total Bookings',
+                                    val: '$totalBookings',
+                                    sub: 'Live database count',
+                                    color: const Color(0xFF2563EB),
+                                    icon: Icons.local_taxi_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                SizedBox(
+                                  width: 260,
+                                  child: _buildMetricCard(
+                                    title: 'Active Online Drivers',
+                                    val: '$activeOnlineDrivers',
+                                    sub: 'Available for ride match',
+                                    color: const Color(0xFF059669),
+                                    icon: Icons.sensors_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                SizedBox(
+                                  width: 260,
+                                  child: _buildMetricCard(
+                                    title: 'Pending Driver Reviews',
+                                    val: '$pendingDriverApprovals',
+                                    sub: pendingDriverApprovals > 0 ? 'Requires attention' : 'All clear',
+                                    color: pendingDriverApprovals > 0 ? const Color(0xFFD97706) : const Color(0xFF64748B),
+                                    icon: Icons.assignment_ind_outlined,
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                SizedBox(
+                                  width: 260,
+                                  child: _buildMetricCard(
+                                    title: 'Gross Revenue Volume',
+                                    val: currencyFmt.format(totalRevenue),
+                                    sub: 'Total booking values',
+                                    color: const Color(0xFF7C3AED),
+                                    icon: Icons.account_balance_wallet_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       );
@@ -506,107 +521,229 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               );
                             }
 
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: filteredDocs.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                              itemBuilder: (context, index) {
-                                final doc = filteredDocs[index];
-                                final data = doc.data() as Map<String, dynamic>;
-                                final bookingId = doc.id;
-                                final readableId = (data['readableId'] ?? bookingId).toString();
-                                final category = (data['vehicleCategoryId'] ?? 'Car').toString().toUpperCase();
-                                final customer = (data['customerName'] ?? 'Customer').toString();
-                                final driver = (data['driverName'] ?? 'Searching...').toString();
-                                final fare = (data['finalFare'] ?? data['estimatedFare'] ?? 0.0).toString();
-                                final status = (data['status'] ?? 'unknown').toString();
-                                final pickup = (data['pickup'] is Map ? data['pickup']['address'] : null) ?? '';
-                                final destination = (data['destination'] is Map ? data['destination']['address'] : null) ?? '';
-
-                                return InkWell(
-                                  onTap: () => _showBookingDetailsModal(data, bookingId),
-                                  hoverColor: const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                                    child: Row(
-                                      children: [
-                                        // ID & Time
-                                        SizedBox(
-                                          width: 140,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text('#$readableId', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0F172A))),
-                                              const SizedBox(height: 2),
-                                              Text(category, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Customer
-                                        Expanded(
-                                          flex: 2,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(customer, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
-                                              const SizedBox(height: 2),
-                                              Text(pickup.split(',').first, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Route arrow
-                                        const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 8),
-                                          child: Icon(Icons.arrow_forward, size: 14, color: Color(0xFF94A3B8)),
-                                        ),
-
-                                        // Destination & Driver
-                                        Expanded(
-                                          flex: 2,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(driver, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
-                                              const SizedBox(height: 2),
-                                              Text(destination.split(',').first, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Fare
-                                        SizedBox(
-                                          width: 90,
-                                          child: Text('₹$fare', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF059669))),
-                                        ),
-
-                                        // Status badge
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusColor(status).withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            status.replaceAll('_', ' ').toUpperCase(),
-                                            style: TextStyle(
-                                              color: _getStatusColor(status),
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 0.3,
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  width: 1380,
+                                  child: Column(
+                                    children: [
+                                      // Horizontal Table Header
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        color: const Color(0xFFF8FAFC),
+                                        child: Row(
+                                          children: const [
+                                            SizedBox(
+                                              width: 140,
+                                              child: Text('BOOKING ID', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
                                             ),
-                                          ),
+                                            SizedBox(
+                                              width: 110,
+                                              child: Text('VEHICLE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 170,
+                                              child: Text('CUSTOMER', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 240,
+                                              child: Text('PICKUP LOCATION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 240,
+                                              child: Text('DESTINATION LOCATION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 170,
+                                              child: Text('ASSIGNED DRIVER', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 110,
+                                              child: Text('FARE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 130,
+                                              child: Text('LIVE STATUS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                            SizedBox(
+                                              width: 70,
+                                              child: Text('ACTION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 8),
-                                        const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
-                                      ],
-                                    ),
+                                      ),
+                                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                                      // Table Rows
+                                      ListView.separated(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: filteredDocs.length,
+                                        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                                        itemBuilder: (context, index) {
+                                          final doc = filteredDocs[index];
+                                          final data = doc.data() as Map<String, dynamic>;
+                                          final bookingId = doc.id;
+                                          final readableId = (data['readableId'] ?? bookingId).toString();
+                                          final category = (data['vehicleCategoryId'] ?? 'Car').toString().toUpperCase();
+                                          final customer = (data['customerName'] ?? 'Customer').toString();
+                                          final driver = (data['driverName'] ?? 'Searching...').toString();
+                                          final fare = (data['finalFare'] ?? data['estimatedFare'] ?? 0.0).toString();
+                                          final status = (data['status'] ?? 'unknown').toString();
+                                          final pickup = (data['pickup'] is Map ? data['pickup']['address'] : null) ?? '';
+                                          final destination = (data['destination'] is Map ? data['destination']['address'] : null) ?? '';
+
+                                          return InkWell(
+                                            onTap: () => _showBookingDetailsModal(data, bookingId),
+                                            hoverColor: const Color(0xFFF8FAFC),
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                              child: Row(
+                                                children: [
+                                                  // ID
+                                                  SizedBox(
+                                                    width: 140,
+                                                    child: Text(
+                                                      '#$readableId',
+                                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0F172A)),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+
+                                                  // Category
+                                                  SizedBox(
+                                                    width: 110,
+                                                    child: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFFF1F5F9),
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: Text(
+                                                          category,
+                                                          style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  // Customer
+                                                  SizedBox(
+                                                    width: 170,
+                                                    child: Text(
+                                                      customer,
+                                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+
+                                                  // Pickup Address
+                                                  SizedBox(
+                                                    width: 240,
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(Icons.radio_button_checked, size: 12, color: Color(0xFF16A34A)),
+                                                        const SizedBox(width: 6),
+                                                        Expanded(
+                                                          child: Text(
+                                                            pickup.isNotEmpty ? pickup : 'Pickup not specified',
+                                                            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  // Destination Address
+                                                  SizedBox(
+                                                    width: 240,
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(Icons.location_on, size: 13, color: Color(0xFFDC2626)),
+                                                        const SizedBox(width: 6),
+                                                        Expanded(
+                                                          child: Text(
+                                                            destination.isNotEmpty ? destination : 'Destination not specified',
+                                                            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  // Driver
+                                                  SizedBox(
+                                                    width: 170,
+                                                    child: Text(
+                                                      driver,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 13,
+                                                        color: driver == 'Searching...' ? const Color(0xFFD97706) : const Color(0xFF0F172A),
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+
+                                                  // Fare
+                                                  SizedBox(
+                                                    width: 110,
+                                                    child: Text(
+                                                      '₹$fare',
+                                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, color: Color(0xFF059669)),
+                                                    ),
+                                                  ),
+
+                                                  // Status badge
+                                                  SizedBox(
+                                                    width: 130,
+                                                    child: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: _getStatusColor(status).withOpacity(0.12),
+                                                          borderRadius: BorderRadius.circular(10),
+                                                        ),
+                                                        child: Text(
+                                                          status.replaceAll('_', ' ').toUpperCase(),
+                                                          style: TextStyle(
+                                                            color: _getStatusColor(status),
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.w900,
+                                                            letterSpacing: 0.3,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  // Action Chevron
+                                                  const SizedBox(
+                                                    width: 70,
+                                                    child: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Icon(Icons.chevron_right, size: 20, color: Color(0xFF94A3B8)),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
+                                ),
+                              ),
                             );
                           },
                         ),

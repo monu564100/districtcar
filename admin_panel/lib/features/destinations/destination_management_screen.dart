@@ -647,126 +647,215 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                         return const Center(child: Text('No destinations found'));
                       }
 
-                      return ListView.separated(
-                        padding: const EdgeInsets.all(28),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 14),
-                        itemBuilder: (context, index) {
-                          final item = filtered[index];
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                      return Container(
+                        margin: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
-                            child: Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Image.network(
-                                    item.imageUrl,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 80,
-                                      height: 80,
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(Icons.image),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFDCFCE7),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              item.category.toUpperCase(),
-                                              style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 10),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              item.district,
-                                              style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600, fontSize: 10),
-                                            ),
-                                          ),
-                                          if (item.isTrending) ...[
-                                            const SizedBox(width: 8),
-                                            const Text('🔥 Trending', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        item.name,
-                                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0F172A)),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.locationAddress,
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 20),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Starting ₹${item.startingFare.toInt()}',
-                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF059669)),
-                                    ),
-                                    Text(
-                                      '~${item.approxDistanceKm.toInt()} km distance',
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
-                                          tooltip: 'Edit Destination',
-                                          onPressed: () => _showAddEditDialog(existing: item),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: 1120,
+                              child: Column(
+                                children: [
+                                  // Horizontal Table Header
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                    color: const Color(0xFFF8FAFC),
+                                    child: Row(
+                                      children: const [
+                                        SizedBox(
+                                          width: 80,
+                                          child: Text('PHOTO', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                                          tooltip: 'Delete Destination',
-                                          onPressed: () => _confirmDelete(item),
+                                        SizedBox(
+                                          width: 240,
+                                          child: Text('DESTINATION NAME & LOCATION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 140,
+                                          child: Text('CATEGORY', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 130,
+                                          child: Text('DISTRICT', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 130,
+                                          child: Text('DISTANCE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 140,
+                                          child: Text('STARTING FARE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 130,
+                                          child: Text('POPULARITY', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                        ),
+                                        SizedBox(
+                                          width: 100,
+                                          child: Text('ACTIONS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                                  // Table Rows
+                                  Expanded(
+                                    child: ListView.separated(
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                                      itemBuilder: (context, index) {
+                                        final item = filtered[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          child: Row(
+                                            children: [
+                                              // Photo
+                                              SizedBox(
+                                                width: 80,
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  child: Image.network(
+                                                    item.imageUrl,
+                                                    width: 52,
+                                                    height: 52,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => Container(
+                                                      width: 52,
+                                                      height: 52,
+                                                      color: Colors.grey.shade300,
+                                                      child: const Icon(Icons.image, size: 20),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // Name & Location
+                                              SizedBox(
+                                                width: 240,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      item.name,
+                                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      item.locationAddress,
+                                                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // Category
+                                              SizedBox(
+                                                width: 140,
+                                                child: Align(
+                                                  alignment: Alignment.centerLeft,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFDCFCE7),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      item.category.toUpperCase(),
+                                                      style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 10.5),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // District
+                                              SizedBox(
+                                                width: 130,
+                                                child: Text(
+                                                  item.district,
+                                                  style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                                                ),
+                                              ),
+
+                                              // Distance
+                                              SizedBox(
+                                                width: 130,
+                                                child: Text(
+                                                  '~${item.approxDistanceKm.toInt()} km',
+                                                  style: const TextStyle(fontSize: 13, color: Color(0xFF475569), fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+
+                                              // Starting Fare
+                                              SizedBox(
+                                                width: 140,
+                                                child: Text(
+                                                  '₹${item.startingFare.toInt()}',
+                                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, color: Color(0xFF059669)),
+                                                ),
+                                              ),
+
+                                              // Popularity
+                                              SizedBox(
+                                                width: 130,
+                                                child: item.isTrending
+                                                    ? Row(
+                                                        children: const [
+                                                          Text('🔥 Trending', style: TextStyle(color: Colors.orange, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                                                        ],
+                                                      )
+                                                    : const Text('Standard', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
+                                              ),
+
+                                              // Actions
+                                              SizedBox(
+                                                width: 100,
+                                                child: Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+                                                      tooltip: 'Edit Destination',
+                                                      onPressed: () => _showAddEditDialog(existing: item),
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                                      tooltip: 'Delete Destination',
+                                                      onPressed: () => _confirmDelete(item),
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       );
                     },
                   ),

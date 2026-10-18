@@ -149,7 +149,7 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Details Card
+                // Details Card - 2-Column Horizontal Grid
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -157,16 +157,32 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: Column(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _dossierRow('Full Name:', name),
-                      _dossierRow('Contact Phone:', phone),
-                      _dossierRow('Vehicle Category:', category),
-                      _dossierRow('Vehicle Model:', model),
-                      _dossierRow('Registration Plate:', plate),
-                      _dossierRow('Permanent Stand:', stand),
-                      _dossierRow('Age:', age),
-                      _dossierRow('Verification Status:', currentStatus.toUpperCase()),
+                      // Left Column
+                      Expanded(
+                        child: Column(
+                          children: [
+                            _dossierRow('Full Name:', name),
+                            _dossierRow('Contact Phone:', phone),
+                            _dossierRow('Age:', age),
+                            _dossierRow('Permanent Stand:', stand),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Right Column
+                      Expanded(
+                        child: Column(
+                          children: [
+                            _dossierRow('Vehicle Category:', category),
+                            _dossierRow('Vehicle Model:', model),
+                            _dossierRow('Registration Plate:', plate),
+                            _dossierRow('Verification Status:', currentStatus.toUpperCase()),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -314,136 +330,253 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                           );
                         }
 
-                        return ListView.builder(
-                          itemCount: docs.length,
-                          itemBuilder: (context, index) {
-                            final data = docs[index].data() as Map<String, dynamic>;
-                            final driverId = docs[index].id;
-                            final name = (data['name'] ?? 'Driver Applicant').toString();
-                            final phone = (data['phoneNumber'] ?? data['phone'] ?? '').toString();
-                            final vehicleCategory = (data['vehicleCategoryId'] ?? 'Car').toString().toUpperCase();
-                            final plate = (data['vehiclePlate'] ?? data['licensePlate'] ?? '').toString();
-                            final stand = (data['currentAddress'] ?? data['locationAddress'] ?? data['stand'] ?? data['block'] ?? 'Jharkhand Stand').toString();
-                            final driverPhoto = data['driverPhoto']?.toString();
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3)),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  // Driver Avatar or Photo
-                                  Container(
-                                    width: 58,
-                                    height: 58,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: const Color(0xFFE2E8F0),
-                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 3)),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: 1200,
+                                child: Column(
+                                  children: [
+                                    // Horizontal Table Header
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                      color: const Color(0xFFF8FAFC),
+                                      child: Row(
+                                        children: const [
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text('PHOTO', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 190,
+                                            child: Text('APPLICANT NAME', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 120,
+                                            child: Text('CATEGORY', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 150,
+                                            child: Text('CONTACT PHONE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 160,
+                                            child: Text('VEHICLE PLATE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 180,
+                                            child: Text('STAND / LOCATION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 120,
+                                            child: Text('DOSSIER', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                          SizedBox(
+                                            width: 210,
+                                            child: Text('VERIFICATION ACTION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: driverPhoto != null && driverPhoto.isNotEmpty
-                                        ? Image.network(
-                                            driverPhoto,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Color(0xFF475569), size: 30),
-                                          )
-                                        : const Icon(Icons.person, color: Color(0xFF475569), size: 30),
-                                  ),
-                                  const SizedBox(width: 18),
+                                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-                                  // Driver info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(vehicleCategory, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                    // Table Rows
+                                    Expanded(
+                                      child: ListView.separated(
+                                        itemCount: docs.length,
+                                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                                        itemBuilder: (context, index) {
+                                          final data = docs[index].data() as Map<String, dynamic>;
+                                          final driverId = docs[index].id;
+                                          final name = (data['name'] ?? 'Driver Applicant').toString();
+                                          final phone = (data['phoneNumber'] ?? data['phone'] ?? '').toString();
+                                          final vehicleCategory = (data['vehicleCategoryId'] ?? 'Car').toString().toUpperCase();
+                                          final plate = (data['vehiclePlate'] ?? data['licensePlate'] ?? '').toString();
+                                          final stand = (data['currentAddress'] ?? data['locationAddress'] ?? data['stand'] ?? data['block'] ?? 'Jharkhand Stand').toString();
+                                          final driverPhoto = data['driverPhoto']?.toString();
+
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                            child: Row(
+                                              children: [
+                                                // Driver Photo
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: Container(
+                                                    width: 42,
+                                                    height: 42,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: const Color(0xFFE2E8F0),
+                                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                                    ),
+                                                    clipBehavior: Clip.antiAlias,
+                                                    child: driverPhoto != null && driverPhoto.isNotEmpty
+                                                        ? Image.network(
+                                                            driverPhoto,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Color(0xFF475569), size: 22),
+                                                          )
+                                                        : const Icon(Icons.person, color: Color(0xFF475569), size: 22),
+                                                  ),
+                                                ),
+
+                                                // Applicant Name
+                                                SizedBox(
+                                                  width: 190,
+                                                  child: Text(
+                                                    name,
+                                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+
+                                                // Category
+                                                SizedBox(
+                                                  width: 120,
+                                                  child: Align(
+                                                    alignment: Alignment.centerLeft,
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFFF1F5F9),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: Text(vehicleCategory, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                // Phone Number
+                                                SizedBox(
+                                                  width: 150,
+                                                  child: Text(
+                                                    phone,
+                                                    style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                                                  ),
+                                                ),
+
+                                                // Vehicle Plate
+                                                SizedBox(
+                                                  width: 160,
+                                                  child: Text(
+                                                    plate.isNotEmpty ? plate : 'Not Provided',
+                                                    style: TextStyle(
+                                                      fontSize: 12.5,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: plate.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                // Stand / Location
+                                                SizedBox(
+                                                  width: 180,
+                                                  child: Text(
+                                                    stand.split(',').first,
+                                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+
+                                                // Dossier Button
+                                                SizedBox(
+                                                  width: 120,
+                                                  child: Align(
+                                                    alignment: Alignment.centerLeft,
+                                                    child: TextButton.icon(
+                                                      onPressed: () => _showDriverDossierDialog(data, driverId),
+                                                      icon: const Icon(Icons.visibility_outlined, size: 15),
+                                                      label: const Text('Dossier', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4)),
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                // Action buttons
+                                                SizedBox(
+                                                  width: 210,
+                                                  child: Row(
+                                                    children: [
+                                                      if (_selectedStatus == 'pending') ...[
+                                                        OutlinedButton(
+                                                          style: OutlinedButton.styleFrom(
+                                                            foregroundColor: const Color(0xFFDC2626),
+                                                            side: const BorderSide(color: Color(0xFFFECACA)),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            minimumSize: Size.zero,
+                                                          ),
+                                                          onPressed: _isProcessing
+                                                              ? null
+                                                              : () => _verifyDriver(driverId, 'rejected', reason: 'Documents rejected by Admin'),
+                                                          child: const Text('REJECT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFF059669),
+                                                            foregroundColor: Colors.white,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            minimumSize: Size.zero,
+                                                            elevation: 0,
+                                                          ),
+                                                          onPressed: _isProcessing ? null : () => _verifyDriver(driverId, 'approved'),
+                                                          child: const Text('APPROVE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        ),
+                                                      ] else if (_selectedStatus == 'approved') ...[
+                                                        OutlinedButton(
+                                                          style: OutlinedButton.styleFrom(
+                                                            foregroundColor: const Color(0xFFDC2626),
+                                                            side: const BorderSide(color: Color(0xFFFECACA)),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            minimumSize: Size.zero,
+                                                          ),
+                                                          onPressed: _isProcessing
+                                                              ? null
+                                                              : () => _verifyDriver(driverId, 'rejected', reason: 'Suspended by Operations Admin'),
+                                                          child: const Text('SUSPEND', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        ),
+                                                      ] else ...[
+                                                        ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFF059669),
+                                                            foregroundColor: Colors.white,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            minimumSize: Size.zero,
+                                                            elevation: 0,
+                                                          ),
+                                                          onPressed: _isProcessing ? null : () => _verifyDriver(driverId, 'approved'),
+                                                          child: const Text('RE-APPROVE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text('📞 $phone ${plate.isNotEmpty ? '• 🚘 $plate' : ''}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
-                                        const SizedBox(height: 2),
-                                        Text('📍 Stand: ${stand.split(',').first}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Action: View Dossier
-                                  TextButton.icon(
-                                    onPressed: () => _showDriverDossierDialog(data, driverId),
-                                    icon: const Icon(Icons.visibility_outlined, size: 16),
-                                    label: const Text('View Dossier', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                  const SizedBox(width: 10),
-
-                                  // Action buttons depending on state
-                                  if (_selectedStatus == 'pending') ...[
-                                    OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFFDC2626),
-                                        side: const BorderSide(color: Color(0xFFFECACA)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          );
+                                        },
                                       ),
-                                      onPressed: _isProcessing
-                                          ? null
-                                          : () => _verifyDriver(driverId, 'rejected', reason: 'Documents rejected by Admin'),
-                                      child: const Text('REJECT', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF059669),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      onPressed: _isProcessing ? null : () => _verifyDriver(driverId, 'approved'),
-                                      child: const Text('APPROVE', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    ),
-                                  ] else if (_selectedStatus == 'approved') ...[
-                                    OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFFDC2626),
-                                        side: const BorderSide(color: Color(0xFFFECACA)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      onPressed: _isProcessing
-                                          ? null
-                                          : () => _verifyDriver(driverId, 'rejected', reason: 'Suspended by Operations Admin'),
-                                      child: const Text('SUSPEND', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    ),
-                                  ] else ...[
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF059669),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      onPressed: _isProcessing ? null : () => _verifyDriver(driverId, 'approved'),
-                                      child: const Text('RE-APPROVE', style: TextStyle(fontWeight: FontWeight.bold)),
                                     ),
                                   ],
-                                ],
+                                ),
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         );
                       },
                     ),

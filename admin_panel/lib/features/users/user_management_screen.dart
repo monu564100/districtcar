@@ -186,75 +186,198 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
           ),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final doc = filtered[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final isBlocked = data['isBlocked'] == true || data['isBlockedDueToCommission'] == true;
-              final name = data['name'] ?? data['fullName'] ?? 'Driver Partner';
-              final phone = data['phoneNumber'] ?? data['phone'] ?? 'No phone';
-              final plate = data['vehiclePlateNumber'] ?? 'Plate N/A';
-              final model = data['vehicleModel'] ?? 'Vehicle';
-              final trips = data['totalTrips'] ?? 0;
-
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isBlocked ? Icons.block : Icons.drive_eta,
-                    color: isBlocked ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
-                    size: 22,
-                  ),
-                ),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                subtitle: Text(
-                  '$phone · $model ($plate) · $trips completed trips',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 1020,
+                child: Column(
                   children: [
+                    // Horizontal Table Header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isBlocked ? 'BLOCKED' : 'ACTIVE',
-                        style: TextStyle(
-                          color: isBlocked ? const Color(0xFFB91C1C) : const Color(0xFF15803D),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      color: const Color(0xFFF8FAFC),
+                      child: Row(
+                        children: const [
+                          SizedBox(
+                            width: 240,
+                            child: Text('DRIVER PARTNER', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 160,
+                            child: Text('CONTACT PHONE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 220,
+                            child: Text('VEHICLE & PLATE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 130,
+                            child: Text('TOTAL TRIPS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 120,
+                            child: Text('STATUS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 130,
+                            child: Text('ACTION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isBlocked ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _toggleDriverBlock(doc.id, isBlocked),
-                      child: Text(
-                        isBlocked ? 'UNBLOCK' : 'BLOCK',
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                    // Table Rows
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (context, index) {
+                          final doc = filtered[index];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final isBlocked = data['isBlocked'] == true || data['isBlockedDueToCommission'] == true;
+                          final name = data['name'] ?? data['fullName'] ?? 'Driver Partner';
+                          final phone = data['phoneNumber'] ?? data['phone'] ?? 'No phone';
+                          final plate = data['vehiclePlateNumber'] ?? 'Plate N/A';
+                          final model = data['vehicleModel'] ?? 'Vehicle';
+                          final trips = data['totalTrips'] ?? 0;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            child: Row(
+                              children: [
+                                // Driver Partner
+                                SizedBox(
+                                  width: 240,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isBlocked ? Icons.block : Icons.drive_eta,
+                                          color: isBlocked ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                                          size: 19,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Contact Phone
+                                SizedBox(
+                                  width: 160,
+                                  child: Text(
+                                    phone,
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+
+                                // Vehicle & Plate
+                                SizedBox(
+                                  width: 220,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          plate,
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          model,
+                                          style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Total Trips
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    '$trips trips',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                  ),
+                                ),
+
+                                // Status
+                                SizedBox(
+                                  width: 120,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        isBlocked ? 'BLOCKED' : 'ACTIVE',
+                                        style: TextStyle(
+                                          color: isBlocked ? const Color(0xFFB91C1C) : const Color(0xFF15803D),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Action
+                                SizedBox(
+                                  width: 130,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isBlocked ? const Color(0xFF15803D) : const Color(0xFFDC2626),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () => _toggleDriverBlock(doc.id, isBlocked),
+                                      child: Text(
+                                        isBlocked ? 'UNBLOCK' : 'BLOCK',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         );
       },
@@ -288,74 +411,179 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
           ),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final doc = filtered[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final isBlocked = data['isBlocked'] == true;
-              final name = data['name'] ?? 'Customer';
-              final phone = data['phoneNumber'] ?? data['phone'] ?? 'No phone';
-              final email = data['email'] ?? 'No email';
-              final dob = data['dateOfBirth'] ?? 'DOB N/A';
-
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFEFF6FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isBlocked ? Icons.block : Icons.person,
-                    color: isBlocked ? const Color(0xFFDC2626) : const Color(0xFF2563EB),
-                    size: 22,
-                  ),
-                ),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                subtitle: Text(
-                  '$phone · $email · DOB: $dob',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 1020,
+                child: Column(
                   children: [
+                    // Horizontal Table Header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isBlocked ? 'BLOCKED' : 'ACTIVE',
-                        style: TextStyle(
-                          color: isBlocked ? const Color(0xFFB91C1C) : const Color(0xFF15803D),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      color: const Color(0xFFF8FAFC),
+                      child: Row(
+                        children: const [
+                          SizedBox(
+                            width: 240,
+                            child: Text('CUSTOMER', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 160,
+                            child: Text('CONTACT PHONE', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 220,
+                            child: Text('EMAIL ADDRESS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 130,
+                            child: Text('DATE OF BIRTH', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 120,
+                            child: Text('STATUS', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                          SizedBox(
+                            width: 130,
+                            child: Text('ACTION', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5)),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isBlocked ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _toggleCustomerBlock(doc.id, isBlocked),
-                      child: Text(
-                        isBlocked ? 'UNBLOCK' : 'BLOCK',
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                    // Table Rows
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (context, index) {
+                          final doc = filtered[index];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final isBlocked = data['isBlocked'] == true;
+                          final name = data['name'] ?? 'Customer';
+                          final phone = data['phoneNumber'] ?? data['phone'] ?? 'No phone';
+                          final email = data['email'] ?? 'No email';
+                          final dob = data['dateOfBirth'] ?? 'DOB N/A';
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            child: Row(
+                              children: [
+                                // Customer
+                                SizedBox(
+                                  width: 240,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFEFF6FF),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isBlocked ? Icons.block : Icons.person,
+                                          color: isBlocked ? const Color(0xFFDC2626) : const Color(0xFF2563EB),
+                                          size: 19,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Contact Phone
+                                SizedBox(
+                                  width: 160,
+                                  child: Text(
+                                    phone,
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+
+                                // Email
+                                SizedBox(
+                                  width: 220,
+                                  child: Text(
+                                    email,
+                                    style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+
+                                // Date of Birth
+                                SizedBox(
+                                  width: 130,
+                                  child: Text(
+                                    dob,
+                                    style: const TextStyle(fontSize: 12.5, color: Color(0xFF334155)),
+                                  ),
+                                ),
+
+                                // Status
+                                SizedBox(
+                                  width: 120,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isBlocked ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        isBlocked ? 'BLOCKED' : 'ACTIVE',
+                                        style: TextStyle(
+                                          color: isBlocked ? const Color(0xFFB91C1C) : const Color(0xFF15803D),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Action
+                                SizedBox(
+                                  width: 130,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isBlocked ? const Color(0xFF15803D) : const Color(0xFFDC2626),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () => _toggleCustomerBlock(doc.id, isBlocked),
+                                      child: Text(
+                                        isBlocked ? 'UNBLOCK' : 'BLOCK',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         );
       },
