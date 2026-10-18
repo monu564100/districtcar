@@ -1,0 +1,38 @@
+# District Car — Jharkhand Tours & Travels Mobility System
+> District Car is Jharkhand's premier app-based mobility network and outstation travel provider. We connect Ranchi, Jamshedpur, Dhanbad, Bokaro, Deoghar, Latehar, Khunti, and Ramgarh with verified chauffeurs, transparent fixed pricing, and round-trip sightseeing packages.
+
+## Core Links & Applications
+- Customer Mobile App: https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app
+- Driver Partner App: https://play.google.com/store/apps/details?id=com.drivercardistrict.app
+- Official Website: https://districtcar.in/
+- Master Tours & Sightseeing Hub: https://districtcar.in/tours.html
+- Travel Blogs & Road Trip Guides: https://districtcar.in/blogs.html
+- Full AI Knowledge File: https://districtcar.in/llms-full.txt
+- Markdown Travel Guide: https://districtcar.in/tours.md
+
+## Featured Tours & Destination Guides
+- Hundru Falls (98m Subarnarekha drop, 44 km from Ranchi, ₹1,199 RT): https://districtcar.in/tours/hundru-falls.html
+- Patratu Valley & Dam (Hairpin ghats & speed boating, 40 km, ₹899 RT): https://districtcar.in/tours/patratu-valley.html
+- Netarhat Hill Station (Queen of Chotanagpur, 3,700 ft, 156 km, ₹2,799 RT): https://districtcar.in/tours/netarhat.html
+- Baidyanath Dham Deoghar (Sacred Jyotirlinga & VIP Darshan, 250 km, ₹3,999): https://districtcar.in/tours/baidyanath-dham-deoghar.html
+- Betla National Park (Elephants & Chero Forts, 170 km, ₹3,499 RT): https://districtcar.in/tours/betla-national-park.html
+- Dassam Falls (44m Kanchi river cascade, 40 km, ₹1,299 RT): https://districtcar.in/tours/dassam-falls.html
+- Tri-Waterfall Combo (Hundru + Jonha + Dassam in 1 day, ₹2,499 RT): https://districtcar.in/tours/tri-waterfall-combo.html
+- Panchghagh Falls (5 gentle cascades, Khunti, 52 km, ₹1,399 RT): https://districtcar.in/tours/panchghagh-falls.html
+- Jonha Falls (Gautamdhara Buddhist falls, 42 km, ₹1,249 RT): https://districtcar.in/tours/jonha-falls.html
+- Lodh Falls (143m highest waterfall in Jharkhand, Latehar, ₹3,499 RT): https://districtcar.in/tours/lodh-falls.html
+- Rajrappa Temple (Maa Chhinnamastika Shaktipeeth, Ramgarh, 70 km, ₹1,499 RT): https://districtcar.in/tours/rajrappa-temple.html
+- Shikharji Parasnath (1,365m supreme Jain pilgrimage, Giridih, ₹2,999 RT): https://districtcar.in/tours/shikharji-parasnath.html
+
+## Travel Guides & Editorial Articles
+- Top 7 Waterfalls in Jharkhand: https://districtcar.in/blog/top-waterfalls-in-jharkhand.html
+- Ranchi to Netarhat Road Trip 2026: https://districtcar.in/blog/ranchi-to-netarhat-road-trip-guide.html
+- Deoghar Baidyanath Dham Yatra & VIP Pass: https://districtcar.in/blog/deoghar-baidyanath-dham-kanwar-yatra-cab.html
+- Patratu Valley Day Tour Guide: https://districtcar.in/blog/patratu-valley-day-tour-guide.html
+- Betla National Park Safari Guide: https://districtcar.in/blog/betla-national-park-safari-guide.html
+
+## Vehicle Categories & Inclusions
+- Economy Mini (Alto, WagonR): 4 Seats, Boot space for 2 bags, AC, ideal for budget day trips.
+- Prime Sedan AC (Dzire, Etios, Amaze): 4 Seats, Spacious legroom, large trunk, ideal for families.
+- Heavy-Duty SUV (Ertiga, Innova, Bolero Neo): 6-7 Seats, superior ground clearance for ghats and forest routes.
+- All round-trip bookings include dedicated driver waiting time (3 to 5 hours), doorstep pickup, and no surge pricing.

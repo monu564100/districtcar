@@ -1,51 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Main Home Page -->
   <url>
     <loc>https://districtcar.in/</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://districtcar.in/assets/gramin_poster.jpg</image:loc>
-      <image:title>District Car Jharkhand Rural Mobility</image:title>
-      <image:caption>Connecting all 24 districts of Jharkhand with affordable cabs</image:caption>
+      <image:loc>https://districtcar.in/assets/app_logo.jpg</image:loc>
+      <image:title>District Car Jharkhand Mobility Network</image:title>
+      <image:caption>Connecting all 24 districts of Jharkhand with affordable cabs and tours</image:caption>
     </image:image>
   </url>
+
+  <!-- Master Tours & Sightseeing Hub -->
   <url>
-    <loc>https://districtcar.in/#pricing</loc>
-    <lastmod>2026-10-08</lastmod>
+    <loc>https://districtcar.in/tours.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://districtcar.in/assets/tour_banner_jharkhand.jpg</image:loc>
+      <image:title>Jharkhand Sightseeing & Tours Hub</image:title>
+      <image:caption>Book outstation and waterfall tour packages across Jharkhand</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Master Blogs & Travel Guides Hub -->
+  <url>
+    <loc>https://districtcar.in/blogs.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Tour Place Pages -->
+  <url>
+    <loc>https://districtcar.in/tours/hundru-falls.html</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://districtcar.in/#districts</loc>
-    <lastmod>2026-10-08</lastmod>
+    <loc>https://districtcar.in/tours/patratu-valley.html</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://districtcar.in/#driver</loc>
-    <lastmod>2026-10-08</lastmod>
+    <loc>https://districtcar.in/tours/netarhat.html</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://districtcar.in/#safety</loc>
-    <lastmod>2026-10-08</lastmod>
+    <loc>https://districtcar.in/tours/baidyanath-dham-deoghar.html</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://districtcar.in/#faq</loc>
-    <lastmod>2026-10-08</lastmod>
+    <loc>https://districtcar.in/tours/betla-national-park.html</loc>
+    <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://districtcar.in/#terms</loc>
-    <lastmod>2026-10-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://districtcar.in/tours/dassam-falls.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
+  <url>
+    <loc>https://districtcar.in/tours/tri-waterfall-combo.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours/panchghagh-falls.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours/jonha-falls.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours/lodh-falls.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours/rajrappa-temple.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours/shikharji-parasnath.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- High-Ranking Travel Blog Posts -->
+  <url>
+    <loc>https://districtcar.in/blog/top-waterfalls-in-jharkhand.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blog/ranchi-to-netarhat-road-trip-guide.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blog/deoghar-baidyanath-dham-kanwar-yatra-cab.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blog/patratu-valley-day-tour-guide.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blog/betla-national-park-safari-guide.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- AI and Machine Traversable Documentation -->
+  <url>
+    <loc>https://districtcar.in/llms.txt</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/tours.md</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
 </urlset>
