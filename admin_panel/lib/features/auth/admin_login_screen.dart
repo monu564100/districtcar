@@ -82,6 +82,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('>>> BUILDING AdminLoginScreen <<<');
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A), // Dark elegant security theme
       body: Center(

@@ -6,18 +6,25 @@ import 'core/router.dart';
 
 import 'package:district_car_shared/firebase_options.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 4));
-    }
-  } catch (e) {
-    debugPrint('Firebase admin init notice: $e');
-  }
+  debugPrint('>>> ADMIN PANEL MAIN STARTED <<<');
+
   runApp(const ProviderScope(child: DistrictCarAdminPanelApp()));
+
+  Future.microtask(() async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        debugPrint('>>> INITIALIZING FIREBASE WEB <<<');
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 4));
+        debugPrint('>>> FIREBASE WEB INITIALIZED SUCCESSFULLY <<<');
+      }
+    } catch (e) {
+      debugPrint('>>> FIREBASE INIT NOTICE: $e <<<');
+    }
+  });
 }
 
 class DistrictCarAdminPanelApp extends ConsumerWidget {
@@ -25,6 +32,7 @@ class DistrictCarAdminPanelApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('>>> BUILDING DistrictCarAdminPanelApp <<<');
     final router = ref.watch(adminRouterProvider);
 
     return MaterialApp.router(
