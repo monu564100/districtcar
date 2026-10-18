@@ -316,13 +316,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                   // Real-Time KPI Grid Stream
                   StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance.collection('bookings').snapshots(),
+                    stream: FirebaseFirestore.instance.collection('bookings').snapshots().handleError((e) => debugPrint('KPI bookings error: $e')),
                     builder: (context, bookingsSnap) {
                       return StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance.collection('drivers').snapshots(),
+                        stream: FirebaseFirestore.instance.collection('drivers').snapshots().handleError((e) => debugPrint('KPI drivers error: $e')),
                         builder: (context, driversSnap) {
-                          final bookingDocs = bookingsSnap.data?.docs ?? [];
-                          final driverDocs = driversSnap.data?.docs ?? [];
+                          final bookingDocs = bookingsSnap.hasData ? bookingsSnap.data!.docs : <QueryDocumentSnapshot>[];
+                          final driverDocs = driversSnap.hasData ? driversSnap.data!.docs : <QueryDocumentSnapshot>[];
 
                           int totalBookings = bookingDocs.length;
                           double totalRevenue = 0.0;
@@ -466,8 +466,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               .collection('bookings')
                               .orderBy('createdAt', descending: true)
                               .limit(50)
-                              .snapshots(),
+                              .snapshots()
+                              .handleError((err) => debugPrint('Bookings list stream error: $err')),
                           builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(40),
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.sync_problem_rounded, size: 40, color: Color(0xFF94A3B8)),
+                                      const SizedBox(height: 12),
+                                      const Text('Bookings database is connecting...', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                      const SizedBox(height: 4),
+                                      Text('${snapshot.error}', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
                             if (snapshot.connectionState == ConnectionState.waiting) {
                               return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
                             }

@@ -161,8 +161,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
 
   Widget _buildDriversList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('drivers').snapshots(),
+      stream: FirebaseFirestore.instance.collection('drivers').snapshots().handleError((e) => debugPrint('User management drivers error: $e')),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Padding(padding: const EdgeInsets.all(32), child: Text('Unable to load drivers: ${snapshot.error}', style: const TextStyle(color: Color(0xFF64748B)))));
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -386,8 +389,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
 
   Widget _buildCustomersList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'customer').snapshots(),
+      stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'customer').snapshots().handleError((e) => debugPrint('User management customers error: $e')),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Padding(padding: const EdgeInsets.all(32), child: Text('Unable to load customers: ${snapshot.error}', style: const TextStyle(color: Color(0xFF64748B)))));
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }

@@ -6,25 +6,63 @@ import 'core/router.dart';
 
 import 'package:district_car_shared/firebase_options.dart';
 
-void main() {
+import 'package:firebase_auth/firebase_auth.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('>>> ADMIN PANEL MAIN STARTED <<<');
+
+  // Custom ErrorWidget builder to avoid red screen on web JS interop edge cases
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint('Flutter Error: ${details.exception}');
+    return Material(
+      color: const Color(0xFF0F172A),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_sync_outlined, color: Color(0xFF38BDF8), size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Syncing with Operations Cloud...',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                details.exceptionAsString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint('Firebase initialized successfully.');
+    }
+  } catch (e) {
+    debugPrint('Firebase admin init error: $e');
+  }
+
+  // Ensure Firebase Auth is active
+  try {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+      debugPrint('Admin session authenticated anonymously.');
+    }
+  } catch (e) {
+    debugPrint('Admin auth notice: $e');
+  }
 
   runApp(const ProviderScope(child: DistrictCarAdminPanelApp()));
-
-  Future.microtask(() async {
-    try {
-      if (Firebase.apps.isEmpty) {
-        debugPrint('>>> INITIALIZING FIREBASE WEB <<<');
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        ).timeout(const Duration(seconds: 4));
-        debugPrint('>>> FIREBASE WEB INITIALIZED SUCCESSFULLY <<<');
-      }
-    } catch (e) {
-      debugPrint('>>> FIREBASE INIT NOTICE: $e <<<');
-    }
-  });
 }
 
 class DistrictCarAdminPanelApp extends ConsumerWidget {

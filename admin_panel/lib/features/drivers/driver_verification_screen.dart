@@ -298,8 +298,12 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                       stream: FirebaseFirestore.instance
                           .collection('drivers')
                           .where('verificationStatus', isEqualTo: _selectedStatus)
-                          .snapshots(),
+                          .snapshots()
+                          .handleError((e) => debugPrint('Verification stream error: $e')),
                       builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Center(child: Padding(padding: const EdgeInsets.all(32), child: Text('Unable to load verification queue: ${snapshot.error}', style: const TextStyle(color: Color(0xFF64748B)))));
+                        }
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
                         }

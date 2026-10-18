@@ -67,8 +67,11 @@ class _DriverEarningsReportScreenState extends State<DriverEarningsReportScreen>
           const AdminSidebar(activeRoute: '/driver-earnings'),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('drivers').snapshots(),
+              stream: FirebaseFirestore.instance.collection('drivers').snapshots().handleError((e) => debugPrint('Drivers earnings stream error: $e')),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Padding(padding: const EdgeInsets.all(32), child: Text('Unable to load drivers: ${snapshot.error}', style: const TextStyle(color: Color(0xFF64748B)))));
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
