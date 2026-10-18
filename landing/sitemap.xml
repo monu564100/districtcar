@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <!-- Main Home Page -->
   <url>
@@ -8,11 +7,6 @@
     <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-    <image:image>
-      <image:loc>https://districtcar.in/assets/app_logo.jpg</image:loc>
-      <image:title>District Car Jharkhand Mobility Network</image:title>
-      <image:caption>Connecting all 24 districts of Jharkhand with affordable cabs and tours</image:caption>
-    </image:image>
   </url>
 
   <!-- Master Tours & Sightseeing Hub -->
@@ -21,11 +15,6 @@
     <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
-    <image:image>
-      <image:loc>https://districtcar.in/assets/tour_banner_jharkhand.jpg</image:loc>
-      <image:title>Jharkhand Sightseeing & Tours Hub</image:title>
-      <image:caption>Book outstation and waterfall tour packages across Jharkhand</image:caption>
-    </image:image>
   </url>
 
   <!-- Master Blogs & Travel Guides Hub -->
@@ -140,20 +129,6 @@
     <lastmod>2026-10-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
-  </url>
-
-  <!-- AI and Machine Traversable Documentation -->
-  <url>
-    <loc>https://districtcar.in/llms.txt</loc>
-    <lastmod>2026-10-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.70</priority>
-  </url>
-  <url>
-    <loc>https://districtcar.in/tours.md</loc>
-    <lastmod>2026-10-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.70</priority>
   </url>
 
 </urlset>
