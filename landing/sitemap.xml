@@ -9,11 +9,27 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Master Tours & Sightseeing Hub -->
+  <!-- Jharkhand Tours & Travels Hub -->
   <url>
     <loc>https://districtcar.in/tours.html</loc>
     <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- Jharkhand Driver App Dedicated Page -->
+  <url>
+    <loc>https://districtcar.in/jharkhand-driver-app.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- Rural Driving Car Dedicated Page -->
+  <url>
+    <loc>https://districtcar.in/rural-driving-car.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
 
@@ -22,6 +38,14 @@
     <loc>https://districtcar.in/blogs.html</loc>
     <lastmod>2026-10-18</lastmod>
     <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Cornerstone Guide: Jharkhand Tours and Travels -->
+  <url>
+    <loc>https://districtcar.in/blog/jharkhand-tours-and-travels-complete-guide.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
 
