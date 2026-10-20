@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:district_car_shared/models/models.dart';
 import 'package:district_car_shared/services/destinations_service.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class DestinationManagementScreen extends StatefulWidget {
   const DestinationManagementScreen({super.key});
@@ -511,13 +511,10 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/destinations'),
-          Expanded(
-            child: Column(
+    return AdminScaffold(
+      activeRoute: '/destinations',
+      title: 'Tours & Popular Places',
+      body: Column(
               children: [
                 // Top Header Bar
                 Container(
@@ -862,9 +859,6 @@ class _DestinationManagementScreenState extends State<DestinationManagementScree
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

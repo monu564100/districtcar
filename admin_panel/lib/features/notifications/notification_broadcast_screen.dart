@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class NotificationBroadcastScreen extends StatefulWidget {
   const NotificationBroadcastScreen({super.key});
@@ -381,13 +381,10 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/notifications'),
-          Expanded(
-            child: SingleChildScrollView(
+    return AdminScaffold(
+      activeRoute: '/notifications',
+      title: 'Push Notifications & Offers',
+      body: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,9 +786,6 @@ class _NotificationBroadcastScreenState extends State<NotificationBroadcastScree
                 ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 

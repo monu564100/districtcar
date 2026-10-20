@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class DriverEarningsReportScreen extends StatefulWidget {
   const DriverEarningsReportScreen({super.key});
@@ -60,13 +60,10 @@ class _DriverEarningsReportScreenState extends State<DriverEarningsReportScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/driver-earnings'),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
+    return AdminScaffold(
+      activeRoute: '/driver-earnings',
+      title: 'Driver Trips & Commission',
+      body: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('drivers').snapshots().handleError((e) => debugPrint('Drivers earnings stream error: $e')),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -515,9 +512,6 @@ class _DriverEarningsReportScreenState extends State<DriverEarningsReportScreen>
                 );
               },
             ),
-          ),
-        ],
-      ),
     );
   }
 

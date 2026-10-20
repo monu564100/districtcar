@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class FareManagementScreen extends StatefulWidget {
   const FareManagementScreen({super.key});
@@ -378,13 +378,10 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/fares'),
-          Expanded(
-            child: Padding(
+    return AdminScaffold(
+      activeRoute: '/fares',
+      title: 'Dynamic Fares & Pricing',
+      body: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,9 +666,6 @@ class _FareManagementScreenState extends State<FareManagementScreen> {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -78,13 +78,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/users'),
-          Expanded(
-            child: Padding(
+    return AdminScaffold(
+      activeRoute: '/users',
+      title: 'User Moderation & Drivers',
+      body: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,9 +150,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
                 ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 

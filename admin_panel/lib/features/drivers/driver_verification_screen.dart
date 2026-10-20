@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class DriverVerificationScreen extends StatefulWidget {
   const DriverVerificationScreen({super.key});
@@ -248,13 +248,10 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/driver-verification'),
-          Expanded(
-            child: Padding(
+    return AdminScaffold(
+      activeRoute: '/driver-verification',
+      title: 'Driver Verifications',
+      body: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,9 +585,6 @@ class _DriverVerificationScreenState extends State<DriverVerificationScreen> {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 

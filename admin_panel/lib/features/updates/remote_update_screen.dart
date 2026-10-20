@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
-import '../../widgets/admin_sidebar.dart';
+import '../../widgets/admin_scaffold.dart';
 
 class RemoteUpdateScreen extends StatefulWidget {
   const RemoteUpdateScreen({super.key});
@@ -122,13 +122,10 @@ class _RemoteUpdateScreenState extends State<RemoteUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Row(
-        children: [
-          const AdminSidebar(activeRoute: '/remote-updates'),
-          Expanded(
-            child: SingleChildScrollView(
+    return AdminScaffold(
+      activeRoute: '/remote-updates',
+      title: 'Remote App Updates',
+      body: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,9 +206,6 @@ class _RemoteUpdateScreenState extends State<RemoteUpdateScreen> {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 
