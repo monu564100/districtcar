@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>District Car - Customer Pamphlet (ग्राहक प्रचार पत्र)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Tiro+Devanagari+Hindi:ital@0;1&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      background: #0f172a;
+      font-family: 'Poppins', 'Tiro Devanagari Hindi', sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 30px 15px;
+      color: #1e293b;
+    }
+
+    /* Print settings for A4 paper */
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .pamphlet-sheet {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .pamphlet-sheet {
+      width: 794px; /* A4 width at 96 DPI */
+      min-height: 1123px; /* A4 height at 96 DPI */
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.45);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Banner / Header */
+    .header-hero {
+      background: linear-gradient(135deg, #0d4a2d 0%, #15623c 45%, #1e7b4f 100%);
+      color: #ffffff;
+      padding: 28px 36px 24px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header-hero::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(244, 166, 42, 0.25) 0%, rgba(244, 166, 42, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .top-brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      width: 58px;
+      height: 58px;
+      background: #ffffff;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+      padding: 6px;
+    }
+
+    .logo-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .brand-names h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .brand-names h1 span {
+      color: #f4a62a;
+    }
+
+    .brand-names p {
+      font-size: 13px;
+      font-weight: 600;
+      color: #a7f3d0;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .jharkhand-tag {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 30px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fef08a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main Punchline */
+    .hero-tagline {
+      margin-top: 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-tagline .hindi-headline {
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #ffffff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .hero-tagline .hindi-headline span {
+      color: #f4a62a;
+      background: linear-gradient(90deg, #fbbd23, #f4a62a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-tagline .sub-desc {
+      font-size: 14.5px;
+      color: #d1fae5;
+      margin-top: 8px;
+      font-weight: 500;
+      max-width: 650px;
+      line-height: 1.45;
+    }
+
+    /* Pill Badges Row */
+    .highlight-pills {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .pill-item {
+      background: #ffffff;
+      color: #065f46;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-item.gold {
+      background: #f4a62a;
+      color: #78350f;
+    }
+
+    /* Middle Content Body */
+    .content-body {
+      padding: 24px 34px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Vehicles Available Showcase */
+    .section-title-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .bar {
+      width: 5px;
+      height: 20px;
+      background: #1e7b4f;
+      border-radius: 4px;
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .vehicles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .vehicle-card {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 10px;
+      text-align: center;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .vehicle-card .badge-rec {
+      position: absolute;
+      top: -8px;
+      right: 12px;
+      background: #1e7b4f;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .vehicle-card img {
+      width: 72px;
+      height: 52px;
+      object-fit: contain;
+      margin: 0 auto 6px auto;
+      display: block;
+    }
+
+    .vehicle-card h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .vehicle-card p.capacity {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .vehicle-card .price-tag {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 4px 6px;
+      margin-top: 8px;
+    }
+
+    /* Key Features 4-Box Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .feature-box {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .feature-box .icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+
+    .feature-box.green .icon-box { background: #dcfce7; color: #166534; }
+    .feature-box.amber .icon-box { background: #fef3c7; color: #92400e; }
+    .feature-box.blue .icon-box { background: #dbeafe; color: #1e40af; }
+    .feature-box.purple .icon-box { background: #f3e8ff; color: #6b21a8; }
+
+    .feature-box .info h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.25;
+    }
+
+    .feature-box .info p {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* Popular Routes / Tour Packages banner */
+    .routes-banner {
+      background: linear-gradient(90deg, #fef9c3 0%, #fff7ed 100%);
+      border: 1.5px dashed #f59e0b;
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .routes-content h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .routes-content p {
+      font-size: 12px;
+      color: #78350f;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .routes-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .route-pill {
+      background: #ffffff;
+      border: 1px solid #fcd34d;
+      color: #b45309;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    /* Bottom Action Area (Download, QR, Helpline) */
+    .footer-action {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 22px 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+    }
+
+    .footer-left {
+      flex: 1;
+    }
+
+    .footer-left .cta-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #f8fafc;
+      line-height: 1.2;
+    }
+
+    .footer-left .cta-title span {
+      color: #f4a62a;
+    }
+
+    .footer-left .cta-sub {
+      font-size: 12.5px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .footer-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .store-badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .store-badge svg {
+      width: 20px;
+      height: 20px;
+      fill: #38bdf8;
+    }
+
+    .phone-support-box {
+      background: #1e7b4f;
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(30, 123, 79, 0.4);
+    }
+
+    .phone-support-box .num {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fef08a;
+      letter-spacing: 0.5px;
+    }
+
+    /* QR Code Box */
+    .qr-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+      width: 130px;
+    }
+
+    .qr-card img, .qr-card svg {
+      width: 100px;
+      height: 100px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .qr-card p {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+
+    /* Print Controller Bar on Web */
+    .print-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e7b4f;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: none;
+      z-index: 999;
+      transition: transform 0.15s ease;
+    }
+
+    .print-bar:hover {
+      transform: scale(1.04);
+      background: #15623c;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print Button for User in Browser -->
+  <button class="print-bar no-print" onclick="window.print()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    प्रिंट करें / Save as PDF (A4 Pamphlet)
+  </button>
+
+  <div class="pamphlet-sheet">
+    <!-- Top Header -->
+    <div class="header-hero">
+      <div class="top-brand-row">
+        <div class="logo-container">
+          <div class="logo-badge">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#1e7b4f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+              <circle cx="7" cy="17" r="2"/>
+              <path d="M9 17h6"/>
+              <circle cx="17" cy="17" r="2"/>
+            </svg>
+          </div>
+          <div class="brand-names">
+            <h1>DISTRICT <span>CAR</span></h1>
+            <p>झारखंड की अपनी कैब सेवा</p>
+          </div>
+        </div>
+        <div class="jharkhand-tag">
+          <span>🌿</span> 24 जिलों में उपलब्ध
+        </div>
+      </div>
+
+      <div class="hero-tagline">
+        <div class="hindi-headline">
+          गांव हो या शहर, सफर होगा <span>आसान और सुरक्षित!</span>
+        </div>
+        <div class="sub-desc">
+          अब किसी भी गांव या कस्बे से जिला अस्पताल, रेलवे स्टेशन, बाजार या रांची एयरपोर्ट के लिए तुरंत कैब और ऑटो बुक करें। बिना किसी मोलभाव के फिक्स्ड और किफायती दर!
+        </div>
+      </div>
+
+      <div class="highlight-pills">
+        <div class="pill-item">✅ फिक्स्ड फेयर (No Bargaining)</div>
+        <div class="pill-item gold">⚡ 100% रिटर्न राइड गारंटी</div>
+        <div class="pill-item">🛡️ 24x7 वेरिफाइड लोकल ड्राइवर</div>
+        <div class="pill-item">🏔️ टूर और पिकनिक पैकेज</div>
+      </div>
+    </div>
+
+    <!-- Middle Body Content -->
+    <div class="content-body">
+      <!-- Vehicle Category Grid -->
+      <div class="section-title-wrap">
+        <div class="section-title">
+          <div class="bar"></div>
+          आपकी हर जरूरत के लिए गाड़ियां उपलब्ध
+        </div>
+        <div class="section-sub">डोरस्टेप पिकअप & ड्रॉप</div>
+      </div>
+
+      <div class="vehicles-grid">
+        <!-- Auto -->
+        <div class="vehicle-card">
+          <div class="badge-rec">किफायती</div>
+          <div style="font-size: 34px; line-height: 1.2;">🛺</div>
+          <h3>ऑटो रिक्शा</h3>
+          <p class="capacity">3 सीटर • लोकल सफर</p>
+          <div class="price-tag">₹15/किमी से शुरू</div>
+        </div>
+
+        <!-- Mini -->
+        <div class="vehicle-card">
+          <div style="font-size: 34px; line-height: 1.2;">🚗</div>
+          <h3>मिनी (Alto/WagonR)</h3>
+          <p class="capacity">4 सीटर • AC कंफर्ट</p>
+          <div class="price-tag">₹22/किमी से शुरू</div>
+        </div>
+
+        <!-- Sedan -->
+        <div class="vehicle-card">
+          <div class="badge-rec">पॉपुलर</div>
+          <div style="font-size: 34px; line-height: 1.2;">🚘</div>
+          <h3>सेडान (Dzire)</h3>
+          <p class="capacity">4 सीटर • फैमिली कम्फर्ट</p>
+          <div class="price-tag">₹26/किमी से शुरू</div>
+        </div>
+
+        <!-- SUV -->
+        <div class="vehicle-card">
+          <div style="font-size: 34px; line-height: 1.2;">🚙</div>
+          <h3>एसयूवी (Bolero/Ertiga)</h3>
+          <p class="capacity">6-7 सीटर • रफ रोड्स</p>
+          <div class="price-tag">₹32/किमी से शुरू</div>
+        </div>
+      </div>
+
+      <!-- 4 Pillars of District Car -->
+      <div class="section-title-wrap">
+        <div class="section-title">
+          <div class="bar"></div>
+          डिस्ट्रिक्ट कार ही क्यों चुनें?
+        </div>
+        <div class="section-sub">झारखंड के लोगों का सच्चा भरोसा</div>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-box green">
+          <div class="icon-box">💰</div>
+          <div class="info">
+            <h4>पारदर्शी और फिक्स्ड रेट</h4>
+            <p>मीटर या मनमाना किराया नहीं। बुकिंग से पहले ही पूरा किराया स्क्रीन पर दिखेगा। कोई छिपा चार्ज नहीं।</p>
+          </div>
+        </div>
+
+        <div class="feature-box amber">
+          <div class="icon-box">🔄</div>
+          <div class="info">
+            <h4>100% रिटर्न राइड गारंटी</h4>
+            <p>दूरदराज के गांव या अस्पताल जाने पर वापस लौटने की चिंता खत्म। उसी समय वापसी राइड भी बुक करें।</p>
+          </div>
+        </div>
+
+        <div class="feature-box blue">
+          <div class="icon-box">🏥</div>
+          <div class="info">
+            <h4>इमरजेंसी व हॉस्पिटल कनेक्ट</h4>
+            <p>रात-बिरात मरीज को जिला अस्पताल, सदर हॉस्पिटल या रिम्स (RIMS) ले जाने के लिए 24 घंटे तत्पर कैब सेवा।</p>
+          </div>
+        </div>
+
+        <div class="feature-box purple">
+          <div class="icon-box">🛡️</div>
+          <div class="info">
+            <h4>सुरक्षा और लाइव ट्रैकिंग</h4>
+            <p>पुलिस वेरिफाइड चालक, लाइव GPS लोकेशन शेयरिंग, और परिवार की सुरक्षा के लिए इन-ऐप SOS बटन।</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outstation & Tourism highlight -->
+      <div class="routes-banner">
+        <div class="routes-content">
+          <h4>🌲 झारखंड दर्शन एवं टूरिज्म स्पेशल पैकेज</h4>
+          <p>परिवार और दोस्तों के साथ घूमें झारखंड के खूबसूरत जलप्रपात और धार्मिक स्थल</p>
+        </div>
+        <div class="routes-tags">
+          <span class="route-pill">हुंडरू & जोन्हा फॉल</span>
+          <span class="route-pill">पतरातू वैली</span>
+          <span class="route-pill">देवघर बैद्यनाथ धाम</span>
+          <span class="route-pill">पारसनाथ सम्मेद शिखर</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Footer / CTA -->
+    <div class="footer-action">
+      <div class="footer-left">
+        <div class="cta-title">
+          आज ही डाउनलोड करें <span>District Car App</span>
+        </div>
+        <div class="cta-sub">
+          गूगल प्ले स्टोर पर उपलब्ध • फोन नंबर से तुरंत लॉगिन • 1 मिनट में राइड बुक
+        </div>
+
+        <div class="footer-badges">
+          <div class="phone-support-box">
+            <span>📞 फोन बुकिंग / सहायता:</span>
+            <span class="num">+91 98765 43210</span>
+          </div>
+
+          <a href="https://districtcar.in" class="store-badge">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            districtcar.in
+          </a>
+        </div>
+      </div>
+
+      <!-- QR Code -->
+      <div class="qr-card">
+        <!-- SVG Vector QR Code Graphic -->
+        <svg viewBox="0 0 100 100" fill="#0f172a">
+          <!-- Corners -->
+          <rect x="5" y="5" width="28" height="28" fill="#1e7b4f" rx="4"/>
+          <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="13" y="13" width="12" height="12" fill="#1e7b4f" rx="2"/>
+
+          <rect x="67" y="5" width="28" height="28" fill="#1e7b4f" rx="4"/>
+          <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="75" y="13" width="12" height="12" fill="#1e7b4f" rx="2"/>
+
+          <rect x="5" y="67" width="28" height="28" fill="#1e7b4f" rx="4"/>
+          <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="13" y="75" width="12" height="12" fill="#1e7b4f" rx="2"/>
+
+          <!-- Data blocks -->
+          <rect x="38" y="8" width="8" height="8"/>
+          <rect x="50" y="8" width="12" height="8"/>
+          <rect x="38" y="20" width="8" height="14"/>
+          <rect x="50" y="22" width="12" height="6"/>
+          
+          <rect x="8" y="38" width="8" height="8"/>
+          <rect x="20" y="38" width="12" height="8"/>
+          <rect x="38" y="38" width="8" height="8"/>
+          <rect x="50" y="38" width="8" height="8"/>
+          <rect x="62" y="38" width="16" height="8"/>
+          <rect x="82" y="38" width="10" height="8"/>
+
+          <rect x="8" y="50" width="14" height="8"/>
+          <rect x="26" y="50" width="6" height="8"/>
+          <rect x="38" y="50" width="18" height="8"/>
+          <rect x="62" y="50" width="10" height="8"/>
+          <rect x="76" y="50" width="16" height="8"/>
+
+          <rect x="38" y="66" width="12" height="8"/>
+          <rect x="54" y="66" width="8" height="8"/>
+          <rect x="66" y="66" width="14" height="8"/>
+          <rect x="84" y="66" width="8" height="8"/>
+
+          <rect x="38" y="78" width="8" height="14"/>
+          <rect x="50" y="78" width="16" height="6"/>
+          <rect x="70" y="78" width="8" height="14"/>
+          <rect x="82" y="78" width="10" height="14"/>
+        </svg>
+        <p>स्कैन करें व ऐप पाएं</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

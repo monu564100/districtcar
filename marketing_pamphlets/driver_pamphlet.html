@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>District Car - Driver Partner Pamphlet (चालक साथी भर्ती पत्र)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Tiro+Devanagari+Hindi:ital@0;1&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      background: #064e3b;
+      font-family: 'Poppins', 'Tiro Devanagari Hindi', sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 30px 15px;
+      color: #1e293b;
+    }
+
+    /* Print settings for A4 paper */
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .pamphlet-sheet {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .pamphlet-sheet {
+      width: 794px;
+      min-height: 1123px;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.45);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Banner / Header */
+    .header-hero {
+      background: linear-gradient(135deg, #064e3b 0%, #059669 55%, #10b981 100%);
+      color: #ffffff;
+      padding: 28px 36px 24px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header-hero::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, rgba(245, 158, 11, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .top-brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      width: 58px;
+      height: 58px;
+      background: #ffffff;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    }
+
+    .brand-names h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .brand-names h1 span {
+      color: #f59e0b;
+    }
+
+    .brand-names p {
+      font-size: 13px;
+      font-weight: 700;
+      color: #a7f3d0;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .partner-tag {
+      background: #f59e0b;
+      color: #78350f;
+      border-radius: 30px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+    }
+
+    /* Hero Headline */
+    .hero-tagline {
+      margin-top: 18px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-tagline .hindi-headline {
+      font-size: 31px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+
+    .hero-tagline .hindi-headline span {
+      color: #fef08a;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .hero-tagline .sub-desc {
+      font-size: 15px;
+      color: #d1fae5;
+      margin-top: 8px;
+      font-weight: 500;
+      max-width: 650px;
+      line-height: 1.45;
+    }
+
+    /* Highlight Pills */
+    .highlight-pills {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .pill-item {
+      background: #ffffff;
+      color: #065f46;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-item.gold {
+      background: #fef08a;
+      color: #854d0e;
+    }
+
+    /* Content Body */
+    .content-body {
+      padding: 22px 34px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .bar {
+      width: 5px;
+      height: 20px;
+      background: #059669;
+      border-radius: 4px;
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    /* 4 Partner Benefits Grid */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .benefit-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .benefit-card .icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px;
+    }
+
+    .benefit-card.c1 .icon-wrap { background: #dcfce7; color: #166534; }
+    .benefit-card.c2 .icon-wrap { background: #fef3c7; color: #92400e; }
+    .benefit-card.c3 .icon-wrap { background: #dbeafe; color: #1e40af; }
+    .benefit-card.c4 .icon-wrap { background: #fee2e2; color: #991b1b; }
+
+    .benefit-card .info h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.25;
+    }
+
+    .benefit-card .info p {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 3px;
+      line-height: 1.35;
+    }
+
+    /* Accepted Vehicles Banner */
+    .vehicles-row {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+
+    .vehicles-row h4 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .veh-badges {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .v-pill {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .v-pill .v-icon {
+      font-size: 26px;
+    }
+
+    .v-pill .v-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+
+    .v-pill .v-earn {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #059669;
+      margin-top: 2px;
+    }
+
+    /* 3-Step Simple Onboarding */
+    .steps-container {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1.5px dashed #059669;
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+
+    .steps-container h4 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #065f46;
+      margin-bottom: 10px;
+    }
+
+    .steps-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .step-item {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #a7f3d0;
+      position: relative;
+    }
+
+    .step-num {
+      position: absolute;
+      top: -8px;
+      left: 10px;
+      background: #059669;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .step-item h5 {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+
+    .step-item p {
+      font-size: 10.5px;
+      color: #475569;
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    /* Footer Action */
+    .footer-action {
+      background: #064e3b;
+      color: #ffffff;
+      padding: 22px 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .footer-left {
+      flex: 1;
+    }
+
+    .footer-left .cta-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .footer-left .cta-title span {
+      color: #f59e0b;
+    }
+
+    .footer-left .cta-sub {
+      font-size: 12.5px;
+      color: #a7f3d0;
+      margin-top: 4px;
+    }
+
+    .footer-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .phone-box {
+      background: #f59e0b;
+      color: #78350f;
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    }
+
+    .phone-box .num {
+      font-size: 16px;
+      font-weight: 900;
+      color: #000000;
+    }
+
+    /* QR Code Box */
+    .qr-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+      width: 130px;
+    }
+
+    .qr-card svg {
+      width: 100px;
+      height: 100px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .qr-card p {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+
+    /* Print Button */
+    .print-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #059669;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: none;
+      z-index: 999;
+      transition: transform 0.15s ease;
+    }
+
+    .print-bar:hover {
+      transform: scale(1.04);
+      background: #047857;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print Button for User in Browser -->
+  <button class="print-bar no-print" onclick="window.print()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    प्रिंट करें / Save as PDF (Driver Pamphlet)
+  </button>
+
+  <div class="pamphlet-sheet">
+    <!-- Top Header -->
+    <div class="header-hero">
+      <div class="top-brand-row">
+        <div class="logo-container">
+          <div class="logo-badge">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+              <circle cx="7" cy="17" r="2"/>
+              <path d="M9 17h6"/>
+              <circle cx="17" cy="17" r="2"/>
+            </svg>
+          </div>
+          <div class="brand-names">
+            <h1>DISTRICT <span>CAR</span></h1>
+            <p>ड्राइवर पार्टनर भर्ती अभियान</p>
+          </div>
+        </div>
+        <div class="partner-tag">
+          ⭐ पार्टनर बनें • मालिक बनें
+        </div>
+      </div>
+
+      <div class="hero-tagline">
+        <div class="hindi-headline">
+          जुड़ें अपनी गाड़ी के साथ, हर महीने कमाएं <span>₹30,000 से ₹50,000+!</span>
+        </div>
+        <div class="sub-desc">
+          अपनी गाड़ी के खुद मालिक बनें। कोई बॉस नहीं, जब मन चाहे तब ऐप ऑन करें। गांव से जिला और आउटस्टेशन की पक्की बुकिंग पाएं।
+        </div>
+      </div>
+
+      <div class="highlight-pills">
+        <div class="pill-item gold">🔥 पहले 30 दिन 0% कमीशन!</div>
+        <div class="pill-item">⚡ तुरंत दैनिक बैंक ट्रांसफर (Daily Payout)</div>
+        <div class="pill-item">🛡️ एक्सीडेंट इंश्योरेंस सुरक्षा</div>
+        <div class="pill-item">🤝 24x7 लोकल झारखंड हेल्पलाइन</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="content-body">
+      <!-- 4 Pillars of Partner Benefits -->
+      <div class="section-title-wrap">
+        <div class="section-title">
+          <div class="bar"></div>
+          डिस्ट्रिक्ट कार पार्टनर बनने के मुख्य फायदे
+        </div>
+        <div class="section-sub">मेहनत आपकी, पूरी कमाई आपकी</div>
+      </div>
+
+      <div class="benefits-grid">
+        <div class="benefit-card c1">
+          <div class="icon-wrap">💳</div>
+          <div class="info">
+            <h4>इंस्टेंट वॉलेट और डेली निकासी</h4>
+            <p>सफर पूरा होते ही पैसा आपके ऐप वॉलेट में। सीधे अपने बैंक खाते या UPI (GPay/PhonePe) में तुरंत ट्रांसफर करें।</p>
+          </div>
+        </div>
+
+        <div class="benefit-card c2">
+          <div class="icon-wrap">📍</div>
+          <div class="info">
+            <h4>गांव और शहर दोनों से लगातार बुकिंग</h4>
+            <p>खाली लौटने का कोई झंझट नहीं। जिला अस्पताल, कोर्ट, रेलवे स्टेशन और ग्रामीण कस्बों से राउंड-ट्रिप राइड्स।</p>
+          </div>
+        </div>
+
+        <div class="benefit-card c3">
+          <div class="icon-wrap">⏰</div>
+          <div class="info">
+            <h4>अपनी मर्जी के काम के घंटे</h4>
+            <p>सुबह, दोपहर या रात - जब खाली हों ऐप ऑन करें और कमाई शुरू करें। खेती, दुकान या नौकरी के साथ भी पार्ट-टाइम करें।</p>
+          </div>
+        </div>
+
+        <div class="benefit-card c4">
+          <div class="icon-wrap">🏔️</div>
+          <div class="info">
+            <h4>टूरिज्म एवं लंबी दूरी के बड़े फेयर</h4>
+            <p>पतरातू, देवघर, पारसनाथ और जलप्रपातों के लिए टूरिस्ट और फैमिली बुकिंग्स, जिसमें बड़ी और एकमुश्त कमाई होती है।</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Eligible Vehicles -->
+      <div class="vehicles-row">
+        <h4>🚘 कौन-कौन सी गाड़ियां जुड़ सकती हैं? (कमर्शियल व प्राइवेट)</h4>
+        <div class="veh-badges">
+          <div class="v-pill">
+            <div class="v-icon">🛺</div>
+            <div class="v-name">ऑटो रिक्शा</div>
+            <div class="v-earn">₹20,000 - ₹30,000/माह</div>
+          </div>
+          <div class="v-pill">
+            <div class="v-icon">🚗</div>
+            <div class="v-name">मिनी कार (Alto/WagonR)</div>
+            <div class="v-earn">₹30,000 - ₹40,000/माह</div>
+          </div>
+          <div class="v-pill">
+            <div class="v-icon">🚘</div>
+            <div class="v-name">सेडान (Dzire/Etios)</div>
+            <div class="v-earn">₹35,000 - ₹50,000/माह</div>
+          </div>
+          <div class="v-pill">
+            <div class="v-icon">🚙</div>
+            <div class="v-name">एसयूवी (Bolero/Innova)</div>
+            <div class="v-earn">₹45,000 - ₹65,000/माह</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Step Simple Joining Process -->
+      <div class="steps-container">
+        <h4>📋 केवल 3 आसान चरणों में ड्राइवर पार्टनर बनें:</h4>
+        <div class="steps-row">
+          <div class="step-item">
+            <span class="step-num">स्टेप 1</span>
+            <h5>ऐप डाउनलोड करें</h5>
+            <p>गूगल प्ले स्टोर से <b>District Car Driver</b> ऐप इंस्टॉल करें और मोबाइल नंबर से लॉगिन करें।</p>
+          </div>
+          <div class="step-item">
+            <span class="step-num">स्टेप 2</span>
+            <h5>दस्तावेज अपलोड करें</h5>
+            <p>ड्राइविंग लाइसेंस (DL), आधार कार्ड, गाड़ी की RC और बैंक पासबुक की फोटो अपलोड करें।</p>
+          </div>
+          <div class="step-item">
+            <span class="step-num">स्टेप 3</span>
+            <h5>वेरिफिकेशन & कमाई</h5>
+            <p>24 घंटे में आईडी चालू हो जाएगी। पहली राइड स्वीकार करें और पहले ही दिन से कमाई शुरू करें!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Footer -->
+    <div class="footer-action">
+      <div class="footer-left">
+        <div class="cta-title">
+          आज ही अपनी गाड़ी जोड़ें • <span>District Car Driver App</span>
+        </div>
+        <div class="cta-sub">
+          सीमित समय ऑफर: पहले 30 दिनों तक 0% प्लेटफॉर्म फीस • आज ही रजिस्टर करें
+        </div>
+
+        <div class="footer-badges">
+          <div class="phone-box">
+            <span>📞 ड्राइवर हेल्पडेस्क / रजिस्ट्रेशन:</span>
+            <span class="num">+91 98765 43210</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR Code -->
+      <div class="qr-card">
+        <svg viewBox="0 0 100 100" fill="#064e3b">
+          <rect x="5" y="5" width="28" height="28" fill="#059669" rx="4"/>
+          <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="13" y="13" width="12" height="12" fill="#059669" rx="2"/>
+
+          <rect x="67" y="5" width="28" height="28" fill="#059669" rx="4"/>
+          <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="75" y="13" width="12" height="12" fill="#059669" rx="2"/>
+
+          <rect x="5" y="67" width="28" height="28" fill="#059669" rx="4"/>
+          <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
+          <rect x="13" y="75" width="12" height="12" fill="#059669" rx="2"/>
+
+          <rect x="38" y="8" width="8" height="8"/>
+          <rect x="50" y="8" width="12" height="8"/>
+          <rect x="38" y="20" width="8" height="14"/>
+          <rect x="50" y="22" width="12" height="6"/>
+          
+          <rect x="8" y="38" width="8" height="8"/>
+          <rect x="20" y="38" width="12" height="8"/>
+          <rect x="38" y="38" width="8" height="8"/>
+          <rect x="50" y="38" width="8" height="8"/>
+          <rect x="62" y="38" width="16" height="8"/>
+          <rect x="82" y="38" width="10" height="8"/>
+
+          <rect x="8" y="50" width="14" height="8"/>
+          <rect x="26" y="50" width="6" height="8"/>
+          <rect x="38" y="50" width="18" height="8"/>
+          <rect x="62" y="50" width="10" height="8"/>
+          <rect x="76" y="50" width="16" height="8"/>
+
+          <rect x="38" y="66" width="12" height="8"/>
+          <rect x="54" y="66" width="8" height="8"/>
+          <rect x="66" y="66" width="14" height="8"/>
+          <rect x="84" y="66" width="8" height="8"/>
+
+          <rect x="38" y="78" width="8" height="14"/>
+          <rect x="50" y="78" width="16" height="6"/>
+          <rect x="70" y="78" width="8" height="14"/>
+          <rect x="82" y="78" width="10" height="14"/>
+        </svg>
+        <p>स्कैन करें व ड्राइवर ऐप पाएं</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
