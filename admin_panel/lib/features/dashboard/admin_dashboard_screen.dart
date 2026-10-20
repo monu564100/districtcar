@@ -266,48 +266,100 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Operations Overview',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                          ),
-                          SizedBox(height: 6),
-                          Text('Real-time system health, live bookings, and platform performance metrics across Jharkhand.', style: TextStyle(color: Color(0xFF64748B))),
-                        ],
-                      ),
-                      Row(
+                  // Responsive Header
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 750;
+                      if (isMobile) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Operations Overview',
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Real-time system health, live bookings, and platform metrics across Jharkhand.',
+                              style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                            ),
+                            const SizedBox(height: 14),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  ),
+                                  onPressed: () => context.go('/notifications'),
+                                  icon: const Icon(Icons.campaign_outlined, size: 16),
+                                  label: const Text('Send Push Offer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF059669),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  ),
+                                  onPressed: () => context.go('/driver-verification'),
+                                  icon: const Icon(Icons.verified_user_outlined, size: 16),
+                                  label: const Text('Driver Approvals', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Operations Overview',
+                                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                ),
+                                SizedBox(height: 6),
+                                Text('Real-time system health, live bookings, and platform performance metrics across Jharkhand.', style: TextStyle(color: Color(0xFF64748B))),
+                              ],
                             ),
-                            onPressed: () => context.go('/notifications'),
-                            icon: const Icon(Icons.campaign_outlined, size: 18),
-                            label: const Text('Send Push Offer', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF059669),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                            onPressed: () => context.go('/driver-verification'),
-                            icon: const Icon(Icons.verified_user_outlined, size: 18),
-                            label: const Text('Driver Approvals', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 16),
+                          Row(
+                            children: [
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                onPressed: () => context.go('/notifications'),
+                                icon: const Icon(Icons.campaign_outlined, size: 18),
+                                label: const Text('Send Push Offer', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF059669),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                onPressed: () => context.go('/driver-verification'),
+                                icon: const Icon(Icons.verified_user_outlined, size: 18),
+                                label: const Text('Driver Approvals', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
 
@@ -778,36 +830,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required Color color,
     required IconData icon,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12.5, fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: color.withOpacity(0.10), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icon, color: color, size: 18),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(val, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: color)),
-            const SizedBox(height: 6),
-            Text(sub, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12.5, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(val, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: color)),
+          const SizedBox(height: 6),
+          Text(sub, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
+        ],
       ),
     );
   }

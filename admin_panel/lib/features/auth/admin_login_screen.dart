@@ -68,12 +68,21 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         _isSuccess = true;
         _errorMessage = null;
       });
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
-        context.go('/dashboard');
+        try {
+          context.go('/dashboard');
+        } catch (e) {
+          debugPrint('Admin login navigation error: $e');
+          setState(() {
+            _isSuccess = false;
+            _errorMessage = 'Navigation failed: $e';
+          });
+        }
       }
     } else {
       setState(() {
+        _isSuccess = false;
         _errorMessage = 'Incorrect PIN! Access Denied.';
         _enteredPin = '';
       });
