@@ -3,17 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:district_car_shared/theme/app_theme.dart';
 import 'core/router.dart';
-
 import 'package:district_car_shared/firebase_options.dart';
-
-import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Custom ErrorWidget builder to avoid red screen on web JS interop edge cases
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    debugPrint('Flutter Error: ${details.exception}');
+    debugPrint('Flutter Web Handled Notice: ${details.exception}');
     return Material(
       color: const Color(0xFF0F172A),
       child: Center(
@@ -49,17 +46,7 @@ void main() async {
       debugPrint('Firebase initialized successfully.');
     }
   } catch (e) {
-    debugPrint('Firebase admin init error: $e');
-  }
-
-  // Ensure Firebase Auth is active
-  try {
-    if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
-      debugPrint('Admin session authenticated anonymously.');
-    }
-  } catch (e) {
-    debugPrint('Admin auth notice: $e');
+    debugPrint('Firebase admin init notice: $e');
   }
 
   runApp(const ProviderScope(child: DistrictCarAdminPanelApp()));
@@ -70,7 +57,6 @@ class DistrictCarAdminPanelApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint('>>> BUILDING DistrictCarAdminPanelApp <<<');
     final router = ref.watch(adminRouterProvider);
 
     return MaterialApp.router(

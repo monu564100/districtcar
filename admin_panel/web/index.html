@@ -1,42 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="District Car - Operations & Fleet Management Admin Console">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="district_car_admin">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="District Car Admin">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>district_car_admin</title>
+  <title>District Car — Operations & Admin Console</title>
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <!-- Firebase JS SDK (compat libraries for FlutterFire Web) -->
+
+  <!-- Firebase JS SDK (Compat libraries for FlutterFire Web) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-functions-compat.js"></script>
+  <script>
+    // Pre-initialize Firebase in JavaScript
+    const firebaseConfig = {
+      apiKey: "AIzaSyDwi6OV-l7mDqCpPaRI4Yn9gUXiZrf73QM",
+      authDomain: "districtcar-4b880.firebaseapp.com",
+      projectId: "districtcar-4b880",
+      storageBucket: "districtcar-4b880.firebasestorage.app",
+      messagingSenderId: "319163006406",
+      appId: "1:319163006406:web:c4807f606480e920fa46c7"
+    };
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+      try {
+        firebase.initializeApp(firebaseConfig);
+      } catch (e) {
+        console.warn("Firebase JS pre-init notice:", e);
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0F172A;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #0F172A;
+      color: #FFFFFF;
+      z-index: 9999;
+      transition: opacity 0.4s ease-out;
+    }
+    .brand-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #1E7B4F 0%, #0F5A38 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 24px rgba(30, 123, 79, 0.35);
+      margin-bottom: 24px;
+    }
+    .brand-icon svg {
+      width: 32px;
+      height: 32px;
+      fill: #FFFFFF;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+    .brand-subtitle {
+      font-size: 13px;
+      color: #94A3B8;
+      margin-bottom: 28px;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3.5px solid rgba(255, 255, 255, 0.1);
+      border-top: 3.5px solid #1E7B4F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-container">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-4.66l.12-.34h13.77l.11.34V17z"/>
+        <circle cx="7.5" cy="14.5" r="1.5"/>
+        <circle cx="16.5" cy="14.5" r="1.5"/>
+      </svg>
+    </div>
+    <div class="brand-title">DISTRICT CAR ADMIN</div>
+    <div class="brand-subtitle">Starting Operations Console...</div>
+    <div class="spinner"></div>
+  </div>
 
   <script src="flutter_bootstrap.js" async></script>
 </body>
