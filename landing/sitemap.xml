@@ -47,6 +47,38 @@
     <priority>0.90</priority>
   </url>
 
+  <!-- AI, GEO & AEO Canonical Knowledge Files -->
+  <url>
+    <loc>https://districtcar.in/geo.md</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/aeo.md</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/districts-geo.md</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/waterfalls-geo.md</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/llms.txt</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
   <!-- Cornerstone Guide: Jharkhand Tours and Travels -->
   <url>
     <loc>https://districtcar.in/blog/jharkhand-tours-and-travels-complete-guide.html</loc>

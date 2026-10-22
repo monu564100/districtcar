@@ -1,7 +1,16 @@
 User-agent: *
 Allow: /
+Allow: /*.md
+Allow: /geo.md
+Allow: /aeo.md
+Allow: /districts-geo.md
+Allow: /waterfalls-geo.md
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /tours.md
+Allow: /ai-travel-guide.md
 
-# Explicit AI Agent access
+# Explicit AI Agent & Large Language Model Crawlers
 User-agent: GPTBot
 Allow: /
 
@@ -23,6 +32,17 @@ Allow: /
 User-agent: Bytespider
 Allow: /
 
-# Sitemap & LLMs specification
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Canonical Sitemaps & AI Knowledge References
 Sitemap: https://districtcar.in/sitemap.xml
-# LLM Index: https://districtcar.in/llms.txt
+# Generative Engine Optimization (GEO): https://districtcar.in/geo.md
+# Answer Engine Optimization (AEO): https://districtcar.in/aeo.md
+# Geographic Districts Index: https://districtcar.in/districts-geo.md
+# Waterfalls Geographic Index: https://districtcar.in/waterfalls-geo.md
+# LLM Knowledge Graph: https://districtcar.in/llms.txt
+# Comprehensive LLM Corpus: https://districtcar.in/llms-full.txt

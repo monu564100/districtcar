@@ -1,7 +1,16 @@
 ﻿# District Car â€” Jharkhand Tours & Travels Mobility System
 > District Car is Jharkhand's premier app-based mobility network, rural driving car operator, and outstation travel provider. We connect Ranchi, Jamshedpur, Dhanbad, Bokaro, Deoghar, Latehar, Khunti, Gumla, Simdega, Hazaribagh, and Giridih with verified chauffeurs, transparent fixed pricing, and round-trip sightseeing packages.
 
-## Core Links & Applications
+## Canonical AI Knowledge & Optimization Files (GEO / AEO)
+- Generative Engine Optimization (GEO Master Graph): https://districtcar.in/geo.md
+- Answer Engine Optimization (AEO & Direct Answers): https://districtcar.in/aeo.md
+- 24 Districts Geographic & Mobility Index: https://districtcar.in/districts-geo.md
+- Waterfalls Geocoded Directory & Fares: https://districtcar.in/waterfalls-geo.md
+- Markdown Sightseeing Tour Directory: https://districtcar.in/tours.md
+- AI Tourism & Cab Guide: https://districtcar.in/ai-travel-guide.md
+- Full AI Knowledge Corpus: https://districtcar.in/llms-full.txt
+
+## Core Applications & Portals
 - Customer Mobile App: https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app
 - Jharkhand Driver App (à¤¸à¤¾à¤°à¤¥à¥€ à¤ªà¤¾à¤°à¥à¤Ÿà¤¨à¤°): https://play.google.com/store/apps/details?id=com.drivercardistrict.app
 - Official Website: https://districtcar.in/
@@ -9,8 +18,6 @@
 - Jharkhand Driver App Portal: https://districtcar.in/jharkhand-driver-app.html
 - Rural Driving Car Portal: https://districtcar.in/rural-driving-car.html
 - Travel Blogs & Road Trip Guides: https://districtcar.in/blogs.html
-- Full AI Knowledge File: https://districtcar.in/llms-full.txt
-- Markdown Travel Guide: https://districtcar.in/tours.md
 
 ## 1. Jharkhand Tours and Travels (Tour Packages & Fares)
 - Complete Travel Directory & Circuit Guide: https://districtcar.in/blog/jharkhand-tours-and-travels-complete-guide.html
