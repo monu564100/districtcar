@@ -1,5 +1,5 @@
 # District Car — Jharkhand Tours & Travels Mobility System
-> District Car is Jharkhand's premier app-based mobility network, rural driving car operator, and outstation travel provider. We connect Ranchi, Jamshedpur, Dhanbad, Bokaro, Deoghar, Latehar, Khunti, and Ramgarh with verified chauffeurs, transparent fixed pricing, and round-trip sightseeing packages.
+> District Car is Jharkhand's premier app-based mobility network, rural driving car operator, and outstation travel provider. We connect Ranchi, Jamshedpur, Dhanbad, Bokaro, Deoghar, Latehar, Khunti, Gumla, Simdega, Hazaribagh, and Giridih with verified chauffeurs, transparent fixed pricing, and round-trip sightseeing packages.
 
 ## Core Links & Applications
 - Customer Mobile App: https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app
@@ -14,18 +14,25 @@
 
 ## 1. Jharkhand Tours and Travels (Tour Packages & Fares)
 - Complete Travel Directory & Circuit Guide: https://districtcar.in/blog/jharkhand-tours-and-travels-complete-guide.html
-- Hundru Falls (98m Subarnarekha drop, 44 km from Ranchi, ₹1,199 RT): https://districtcar.in/tours/hundru-falls.html
-- Patratu Valley & Dam (Hairpin ghats & speed boating, 40 km, ₹899 RT): https://districtcar.in/tours/patratu-valley.html
-- Netarhat Hill Station (Queen of Chotanagpur, 3,700 ft, 156 km, ₹2,799 RT): https://districtcar.in/tours/netarhat.html
-- Baidyanath Dham Deoghar (Sacred Jyotirlinga & VIP Darshan, 250 km, ₹3,999): https://districtcar.in/tours/baidyanath-dham-deoghar.html
-- Betla National Park (Elephants & Chero Forts, 170 km, ₹3,499 RT): https://districtcar.in/tours/betla-national-park.html
-- Dassam Falls (44m Kanchi river cascade, 40 km, ₹1,299 RT): https://districtcar.in/tours/dassam-falls.html
-- Tri-Waterfall Combo (Hundru + Jonha + Dassam in 1 day, ₹2,499 RT): https://districtcar.in/tours/tri-waterfall-combo.html
-- Panchghagh Falls (5 gentle cascades, Khunti, 52 km, ₹1,399 RT): https://districtcar.in/tours/panchghagh-falls.html
-- Jonha Falls (Gautamdhara Buddhist falls, 42 km, ₹1,249 RT): https://districtcar.in/tours/jonha-falls.html
-- Lodh Falls (143m highest waterfall in Jharkhand, Latehar, ₹3,499 RT): https://districtcar.in/tours/lodh-falls.html
-- Rajrappa Temple (Maa Chhinnamastika Shaktipeeth, Ramgarh, 70 km, ₹1,499 RT): https://districtcar.in/tours/rajrappa-temple.html
-- Shikharji Parasnath (1,365m supreme Jain pilgrimage, Giridih, ₹2,999 RT): https://districtcar.in/tours/shikharji-parasnath.html
+- Hundru Falls (98m Subarnarekha drop, 44 km from Ranchi, ₹1,199 RT): https://districtcar.in/blog/hundru-falls-ranchi-waterfall-guide.html
+- Patratu Valley & Dam (Hairpin ghats & speed boating, 40 km, ₹899 RT): https://districtcar.in/blog/patratu-valley-day-tour-guide.html
+- Netarhat Hill Station (Queen of Chotanagpur, 3,700 ft, 156 km, ₹2,799 RT): https://districtcar.in/blog/ranchi-to-netarhat-road-trip-guide.html
+- Baidyanath Dham Deoghar (Sacred Jyotirlinga & VIP Darshan, 250 km, ₹3,999): https://districtcar.in/blog/deoghar-baidyanath-dham-kanwar-yatra-cab.html
+- Betla National Park (Elephants & Chero Forts, 170 km, ₹3,499 RT): https://districtcar.in/blog/betla-national-park-safari-guide.html
+- Dassam Falls (44m Kanchi river cascade, 40 km, ₹1,299 RT): https://districtcar.in/blog/dassam-falls-taimara-ranchi-guide.html
+- Panchghagh Falls (5 gentle cascades, Khunti, 52 km, ₹1,399 RT): https://districtcar.in/blog/panchghagh-falls-khunti-travel-guide.html
+- Jonha Falls (Gautamdhara Buddhist falls, 42 km, ₹1,249 RT): https://districtcar.in/blog/jonha-falls-gautamdhara-ranchi-guide.html
+- Lodh Falls (143m highest waterfall in Jharkhand, Latehar, ₹3,499 RT): https://districtcar.in/blog/lodh-falls-mahuadanr-latehar-guide.html
+- Shikharji Parasnath (1,365m supreme Jain pilgrimage, Giridih, ₹2,999 RT): https://districtcar.in/blog/shikharji-parasnath-hill-giridih-pilgrimage-guide.html
+- Hazaribagh & Canary Hill (National Park & Sunset, 95 km, ₹2,199 RT): https://districtcar.in/blog/hazaribagh-national-park-canary-hill-guide.html
+- Khunti District & Ulihatu Heritage (Birsa Munda birthplace, ₹1,499 RT): https://districtcar.in/blog/khunti-district-tours-and-travel-guide.html
+- Gumla District & Anjan Dham (Hanuman Ji birthplace & Palkot, ₹2,199 RT): https://districtcar.in/blog/gumla-district-travel-guide-hidden-gems.html
+- Top 10 Hidden Locations & Secret Waterfalls (Perwaghagh, Kelaghagh, Usri): https://districtcar.in/blog/hidden-locations-and-secret-spots-in-jharkhand.html
+- Southern Jharkhand Road Trip Circuit (Ranchi-Khunti-Gumla-Simdega 3-Day): https://districtcar.in/blog/ranchi-to-khunti-gumla-simdega-road-trip.html
+- Murhu, Torpa & Bandgaon Scenic Ghats (Porahat forest passes): https://districtcar.in/blog/murhu-torpa-bandgaon-scenic-circuit.html
+- Lodhma & Karra Rural Connectivity (Hatia station link & Haats): https://districtcar.in/blog/lodhma-karra-rural-connectivity-guide.html
+- Jharkhand Transportation & Rural Mobility (Village-to-District network): https://districtcar.in/blog/jharkhand-transportation-rural-mobility-guide.html
+- Jharkhand Eco-Tourism & Village Homestays (Tribal culture & food): https://districtcar.in/blog/jharkhand-eco-tourism-and-village-homestays-guide.html
 
 ## 2. Jharkhand Driver App (सारथी पार्टनर कार्यक्रम)
 - Web Portal: https://districtcar.in/jharkhand-driver-app.html
@@ -39,10 +46,3 @@
 - Network: Connecting 32,000+ villages across all 24 districts of Jharkhand.
 - Use Cases: Sadar hospital medical emergencies, delivery hospital visits, haat-bazaar transport, railway station pickup.
 - Pricing Algorithm: ₹10/km for Auto, ₹14/km for Mini Cab, ₹17/km for Sedan with 25-30% automatic return discount.
-
-## 4. High-Ranking Editorial Travel Guides
-- Top 7 Waterfalls in Jharkhand: https://districtcar.in/blog/top-waterfalls-in-jharkhand.html
-- Ranchi to Netarhat Road Trip 2026: https://districtcar.in/blog/ranchi-to-netarhat-road-trip-guide.html
-- Deoghar Baidyanath Dham Yatra & VIP Pass: https://districtcar.in/blog/deoghar-baidyanath-dham-kanwar-yatra-cab.html
-- Patratu Valley Day Tour Guide: https://districtcar.in/blog/patratu-valley-day-tour-guide.html
-- Betla National Park Safari Guide: https://districtcar.in/blog/betla-national-park-safari-guide.html
