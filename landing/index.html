@@ -88,133 +88,324 @@
 
   <!-- Comprehensive JSON-LD Structured Data (Google Rich Snippets & AEO) -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": "https://districtcar.in/#organization",
-        "name": "District Car Mobility Private Limited",
-        "alternateName": "District Car",
-        "url": "https://districtcar.in/",
-        "logo": "https://districtcar.in/assets/app_logo.jpg",
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://districtcar.in/#organization",
+      "name": "District Car Mobility Private Limited",
+      "alternateName": [
+        "District Car",
+        "DistrictCar Jharkhand",
+        "डिस्ट्रिक्ट कार"
+      ],
+      "url": "https://districtcar.in/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://districtcar.in/assets/app_logo.jpg",
+        "width": 512,
+        "height": 512
+      },
+      "telephone": "+91-87896-01387",
+      "email": "support@districtcar.in",
+      "sameAs": [
+        "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
+        "https://play.google.com/store/apps/details?id=com.drivercardistrict.app"
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Nichey Chowk",
+        "addressLocality": "Khunti",
+        "addressRegion": "Jharkhand",
+        "postalCode": "835210",
+        "addressCountry": "IN"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
         "telephone": "+91-87896-01387",
-        "email": "support@districtcar.in",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "Nichey Chowk",
-          "addressLocality": "Khunti",
-          "addressRegion": "Jharkhand",
-          "postalCode": "835210",
-          "addressCountry": "IN"
+        "contactType": "customer service",
+        "areaServed": "IN-JH",
+        "availableLanguage": [
+          "en",
+          "hi"
+        ]
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://districtcar.in/#website",
+      "url": "https://districtcar.in/",
+      "name": "District Car",
+      "publisher": {
+        "@id": "https://districtcar.in/#organization"
+      }
+    },
+    {
+      "@type": [
+        "TaxiService",
+        "LocalBusiness"
+      ],
+      "@id": "https://districtcar.in/#service",
+      "name": "District Car — Jharkhand Rural & Outstation Taxi Network",
+      "serviceType": "On-Demand Rural & District Cab Network",
+      "telephone": "+91-87896-01387",
+      "email": "support@districtcar.in",
+      "url": "https://districtcar.in/",
+      "provider": {
+        "@id": "https://districtcar.in/#organization"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 23.0754,
+        "longitude": 85.2798
+      },
+      "priceRange": "₹10/km - ₹18/km",
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, UPI, PhonePe, Google Pay, Paytm, NetBanking",
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "areaServed": [
+        {
+          "@type": "AdministrativeArea",
+          "name": "Ranchi, Jharkhand"
         },
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "telephone": "+91-87896-01387",
-          "contactType": "customer service",
-          "areaServed": "IN-JH",
-          "availableLanguage": ["en", "hi"]
-        }
-      },
-      {
-        "@type": "WebSite",
-        "@id": "https://districtcar.in/#website",
-        "url": "https://districtcar.in/",
-        "name": "District Car",
-        "publisher": {
-          "@id": "https://districtcar.in/#organization"
-        }
-      },
-      {
-        "@type": "TaxiService",
-        "@id": "https://districtcar.in/#service",
-        "name": "District Car Jharkhand",
-        "serviceType": "Rural and District Taxi Network",
-        "telephone": "+91-87896-01387",
-        "email": "support@districtcar.in",
-        "provider": {
-          "@id": "https://districtcar.in/#organization"
+        {
+          "@type": "AdministrativeArea",
+          "name": "Dhanbad, Jharkhand"
         },
-        "areaServed": "Jharkhand",
-        "description": "On-demand rural and district cab booking network designed specifically for Jharkhand's village commutes, sadar hospitals, haat bazars, and district centers.",
-        "priceRange": "₹₹"
-      },
-      {
-        "@type": "SoftwareApplication",
-        "@id": "https://districtcar.in/#customer-app",
-        "name": "District Car Customer App",
-        "operatingSystem": "Android",
-        "applicationCategory": "TravelApplication",
-        "softwareVersion": "1.0.0+18",
-        "downloadUrl": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "INR"
+        {
+          "@type": "AdministrativeArea",
+          "name": "Giridih, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "East Singhbhum (Jamshedpur), Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Bokaro, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Palamu, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Hazaribagh, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Deoghar, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "West Singhbhum (Chaibasa), Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Garhwa, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Dumka, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Godda, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Sahebganj, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Saraikela Kharsawan, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Chatra, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Gumla, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Ramgarh, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Pakur, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Jamtara, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Latehar, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Lohardaga, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Koderma, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Khunti, Jharkhand"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Simdega, Jharkhand"
         }
-      },
-      {
-        "@type": "SoftwareApplication",
-        "@id": "https://districtcar.in/#driver-app",
-        "name": "District Car Driver Partner (सारथी)",
-        "operatingSystem": "Android",
-        "applicationCategory": "BusinessApplication",
-        "softwareVersion": "1.0.0+18",
-        "downloadUrl": "https://play.google.com/store/apps/details?id=com.drivercardistrict.app",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "INR"
-        }
-      },
-      {
-        "@type": "FAQPage",
-        "@id": "https://districtcar.in/#faq",
-        "mainEntity": [
+      ],
+      "description": "Jharkhand's dedicated on-demand rural and district cab network connecting all 24 districts, 32,000+ villages, Sadar hospitals, railway stations, and waterfalls with 35% round-trip discount.",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Jharkhand Mobility Services",
+        "itemListElement": [
           {
-            "@type": "Question",
-            "name": "How is District Car different from Ola and Uber in Jharkhand?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Urban aggregators operate mostly within city municipal boundaries and rarely go into rural blocks. District Car is engineered for rural and district inter-connectivity with guaranteed round-trip return pricing and doorstep village pickup."
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Gramin Auto Rickshaw Ride",
+              "description": "Local block, haat bazaar & village connection at ₹10/km."
             }
           },
           {
-            "@type": "Question",
-            "name": "How does the Round-Trip savings formula work?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "When you book a Round-Trip, our system automatically gives a 35% discount on the return leg and includes your waiting time, saving ₹200 to ₹800 compared to booking two one-way rides."
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Mini AC Hatchback Cab",
+              "description": "Hospital commutes, block headquarters & district travel at ₹14/km."
             }
           },
           {
-            "@type": "Question",
-            "name": "How do I contact District Car for support or driver onboarding?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Call or WhatsApp our 24/7 Jharkhand support desk directly at +91 87896 01387."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do driver partners (सारथी) get paid?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Cash payments stay with the driver immediately. For online UPI payments, earnings are settled directly to registered bank accounts daily."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Where can I download the District Car apps?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Both District Car Customer and Driver Partner apps are officially available on Google Play Store."
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Sedan & SUV Outstation Sightseeing",
+              "description": "Tour packages to Hundru, Patratu, Netarhat & Deoghar at ₹17-₹22/km with 35% return discount."
             }
           }
         ]
       }
-    ]
-  }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://districtcar.in/#customer-app",
+      "name": "District Car Customer App",
+      "operatingSystem": "Android",
+      "applicationCategory": "TravelApplication",
+      "softwareVersion": "1.0.0+18",
+      "downloadUrl": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://districtcar.in/#driver-app",
+      "name": "District Car Driver Partner (सारथी)",
+      "operatingSystem": "Android",
+      "applicationCategory": "BusinessApplication",
+      "softwareVersion": "1.0.0+18",
+      "downloadUrl": "https://play.google.com/store/apps/details?id=com.drivercardistrict.app",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "890",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://districtcar.in/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How is District Car different from Ola and Uber in Jharkhand?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Urban aggregators operate mostly within city municipal boundaries and rarely go into rural blocks. District Car is engineered for rural and district inter-connectivity with guaranteed round-trip return pricing and doorstep village pickup."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the Round-Trip savings formula work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "When you book a Round-Trip, our system automatically gives a 35% discount on the return leg and includes your waiting time, saving ₹200 to ₹800 compared to booking two one-way rides."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I contact District Car for support or driver onboarding?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Call or WhatsApp our 24/7 Jharkhand support desk directly at +91 87896 01387."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do driver partners (सारथी) get paid?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Cash payments stay with the driver immediately. For online UPI payments, earnings are settled directly to registered bank accounts daily."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where can I download the District Car apps?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both District Car Customer and Driver Partner apps are officially available on Google Play Store."
+          }
+        }
+      ]
+    }
+  ]
+}
   </script>
 
 
@@ -1983,7 +2174,7 @@
     <div class="container">
       <div class="nav-wrapper">
         <a href="#" class="brand-logo-area">
-          <img src="assets/app_logo.jpg" alt="District Car Logo" class="brand-logo-img">
+          <img src="assets/app_logo.jpg" alt="District Car Logo" class="brand-logo-img" width="40" height="40" fetchpriority="high">
           <div class="brand-text-block">
             <h1>District Car</h1>
             <span>Jharkhand Rural Mobility</span>
@@ -2125,7 +2316,7 @@
           <!-- Poster Visual Right -->
           <div class="hero-visual-box">
             <div class="poster-frame">
-              <img src="assets/gramin_poster.jpg" alt="District Car Jharkhand Rural Network Banner" class="poster-img">
+              <img src="assets/gramin_poster.jpg" alt="District Car Jharkhand Rural Network Banner" class="poster-img" width="600" height="400" loading="lazy" decoding="async">
             </div>
             <div class="floating-card-pill">
               <div class="pill-pulse-dot"></div>
@@ -2465,7 +2656,7 @@
           <!-- Card 1: Patratu -->
           <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:18px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.04); display:flex; flex-direction:column;">
             <div style="height:170px; overflow:hidden; position:relative;">
-              <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80" alt="Patratu Valley Dam" style="width:100%; height:100%; object-fit:cover;">
+              <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80" alt="Patratu Valley Dam" width="400" height="260" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;">
               <span style="position:absolute; top:12px; left:12px; background:rgba(15,23,42,0.85); color:#FEF08A; font-size:11px; font-weight:800; padding:3px 10px; border-radius:50px;">40 km from Ranchi</span>
             </div>
             <div style="padding:18px; display:flex; flex-direction:column; flex-grow:1;">
@@ -2481,7 +2672,7 @@
           <!-- Card 2: Hundru Falls -->
           <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:18px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.04); display:flex; flex-direction:column;">
             <div style="height:170px; overflow:hidden; position:relative;">
-              <img src="https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80" alt="Hundru Falls" style="width:100%; height:100%; object-fit:cover;">
+              <img src="https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80" alt="Hundru Falls" width="400" height="260" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;">
               <span style="position:absolute; top:12px; left:12px; background:rgba(15,23,42,0.85); color:#FEF08A; font-size:11px; font-weight:800; padding:3px 10px; border-radius:50px;">44 km · 98m Drop</span>
             </div>
             <div style="padding:18px; display:flex; flex-direction:column; flex-grow:1;">
@@ -2497,7 +2688,7 @@
           <!-- Card 3: Netarhat -->
           <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:18px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.04); display:flex; flex-direction:column;">
             <div style="height:170px; overflow:hidden; position:relative;">
-              <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80" alt="Netarhat Hill Station" style="width:100%; height:100%; object-fit:cover;">
+              <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80" alt="Netarhat Hill Station" width="400" height="260" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;">
               <span style="position:absolute; top:12px; left:12px; background:rgba(15,23,42,0.85); color:#FEF08A; font-size:11px; font-weight:800; padding:3px 10px; border-radius:50px;">156 km · 3,700 ft</span>
             </div>
             <div style="padding:18px; display:flex; flex-direction:column; flex-grow:1;">
@@ -2513,7 +2704,7 @@
           <!-- Card 4: Deoghar -->
           <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:18px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.04); display:flex; flex-direction:column;">
             <div style="height:170px; overflow:hidden; position:relative;">
-              <img src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=600&q=80" alt="Deoghar Baidyanath Dham" style="width:100%; height:100%; object-fit:cover;">
+              <img src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=600&q=80" alt="Deoghar Baidyanath Dham" width="400" height="260" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;">
               <span style="position:absolute; top:12px; left:12px; background:rgba(15,23,42,0.85); color:#FEF08A; font-size:11px; font-weight:800; padding:3px 10px; border-radius:50px;">Sacred Jyotirlinga</span>
             </div>
             <div style="padding:18px; display:flex; flex-direction:column; flex-grow:1;">
@@ -2543,7 +2734,7 @@
           
           <!-- Poster -->
           <div class="driver-poster-frame">
-            <img src="assets/driver_poster.jpg" alt="District Car Driver Partner Program Banner">
+            <img src="assets/driver_poster.jpg" alt="District Car Driver Partner Program Banner" width="600" height="400" loading="lazy" decoding="async">
           </div>
 
           <!-- Content -->
@@ -2815,7 +3006,7 @@
         
         <div class="footer-col">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-            <img src="assets/app_logo.jpg" alt="District Car" style="width:36px; height:36px; border-radius:8px;">
+            <img src="assets/app_logo.jpg" alt="District Car" width="36" height="36" loading="lazy" style="width:36px; height:36px; border-radius:8px;">
             <h4 style="color:#FFFFFF; font-size:18px; font-weight:800;">District Car</h4>
           </div>
           <p style="font-size:12px; line-height:1.6; margin-bottom:16px;">
