@@ -18,6 +18,7 @@
 - Jharkhand Driver App Portal: https://districtcar.in/jharkhand-driver-app.html
 - Rural Driving Car Portal: https://districtcar.in/rural-driving-car.html
 - Travel Blogs & Road Trip Guides: https://districtcar.in/blogs.html
+- Jharkhand Local Rural News Portal (ग्राउंड रिपोर्टिंग व समाचार): https://districtcar.in/news-local/
 
 ## 1. Jharkhand Tours and Travels (Tour Packages & Fares)
 - Complete Travel Directory & Circuit Guide: https://districtcar.in/blog/jharkhand-tours-and-travels-complete-guide.html
@@ -53,3 +54,13 @@
 - Network: Connecting 32,000+ villages across all 24 districts of Jharkhand.
 - Use Cases: Sadar hospital medical emergencies, delivery hospital visits, haat-bazaar transport, railway station pickup.
 - Pricing Algorithm: ₹10/km for Auto, ₹14/km for Mini Cab, ₹17/km for Sedan with 25-30% automatic return discount.
+
+## 4. Jharkhand Local Rural News (लोकल ग्रामीण न्यूज़ व ग्राउंड रिपोर्टिंग)
+- News Hub: https://districtcar.in/news-local/
+- Khunti Father Benedict Barla attack & bandh: https://districtcar.in/news-local/khunti-father-benedict-barla-attack-bandh-alert.html
+- Gumla Palkot crime incident: https://districtcar.in/news-local/gumla-palkot-crime-parivar-vivad-tangi-hatya.html
+- Saranda Forest 22 wild elephants alert: https://districtcar.in/news-local/west-singhbhum-saranda-wild-elephant-herd-alert.html
+- Bandgaon Ghat boulder landslide advisory: https://districtcar.in/news-local/west-singhbhum-bandgaon-ghat-landslide-traffic-advisory.html
+- Khunti-Ranchi NH-20 Ashakiran potholes alert: https://districtcar.in/news-local/khunti-ranchi-nh20-ashakiran-dangerous-potholes-accident-alert.html
+- PLFI Commander arrest in Kamdara Gumla: https://districtcar.in/news-local/gumla-kamdara-plfi-zonal-commander-arrest-action.html
+- 24x7 Emergency transit cab service during district bandhs: Tel +91 87896 01387.

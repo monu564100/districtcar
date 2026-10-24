@@ -9,6 +9,8 @@ Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /tours.md
 Allow: /ai-travel-guide.md
+Allow: /news-local/
+Allow: /news-local.html
 
 # Explicit AI Agent & Large Language Model Crawlers
 User-agent: GPTBot
