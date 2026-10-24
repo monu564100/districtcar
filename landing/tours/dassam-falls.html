@@ -5,14 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <!-- Monetag Verification & Ad Network Tag -->
   <meta name="monetag" content="96c9266c796ec372a0bcddee0fa8c2b8">
-  <!-- Monetag MultiTag & Active Ad Script -->
-  <script src="https://quge5.com/88/tag.min.js" data-zone="301190" async data-cfasync="false"></script>
+  <!-- Monetag Push Notifications Only (No Click Redirects / No Popunders) -->
+  <script>
+    (function(d,z,s){
+      s.src='https://5gvci.com/act/files/tag.min.js?z=' + z;
+      try {
+        (d.body || d.documentElement).appendChild(s);
+      } catch(e) {}
+    })(document, 12110380, document.createElement('script'));
+  </script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/sw.js').catch(function(e) {});
       });
     }
+  </script>
+  <script>
+    // Prevent third-party link hijacking & popunder redirects on legitimate user clicks
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('a, button, input');
+      if (link && (link.tagName === 'A' || link.tagName === 'BUTTON')) {
+        e.stopPropagation();
+      }
+    }, true);
   </script>
   <title>Dassam Falls Ranchi Cab Booking & Travel Guide | Fare ₹1,099 — District Car</title>
   <meta name="title" content="Dassam Falls Ranchi Cab Booking & Travel Guide | Fare ₹1,099 — District Car">
