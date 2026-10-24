@@ -1952,6 +1952,20 @@
       }
     }
   </style>
+  <script>
+    // Protect District Car navigation from ad click hijacking
+    ['click', 'mousedown', 'pointerdown'].forEach(function(evt) {
+      document.addEventListener(evt, function(e) {
+        var el = e.target.closest('a, button, input');
+        if (el) {
+          var href = el.getAttribute('href') || '';
+          if (href.startsWith('/') || href.startsWith('.') || href.startsWith('#') || href.startsWith('tel:') || href.includes('districtcar.in') || href.includes('play.google.com')) {
+            e.stopPropagation();
+          }
+        }
+      }, true);
+    });
+  </script>
 </head>
 <body>
 
