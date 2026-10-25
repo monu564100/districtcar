@@ -79,7 +79,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 24,
+          currentBuildNumber: 25,
         );
       }
 
@@ -403,25 +403,34 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       if (snap.exists && snap.data() != null) {
         final uData = snap.data()!;
         final uName = (uData['name'] ?? uData['displayName'] ?? uData['fullName'])?.toString().trim() ?? '';
-        final uPhone = (uData['phoneNumber'] ?? uData['phone'] ?? uData['mobile'] ?? uData['userPhone'])?.toString().trim() ?? '';
-        if (uName.isNotEmpty || uPhone.isNotEmpty) {
-          _customerDetailsCache[customerId] = {
-            'name': uName.isNotEmpty ? uName : 'Customer Rider',
-            'phone': uPhone.isNotEmpty ? uPhone : '+91 87896 01387',
-          };
-          if (bookingId != null && bookingId.isNotEmpty) {
-            FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
-              if (uName.isNotEmpty) 'customerName': uName,
-              if (uPhone.isNotEmpty) 'customerPhone': uPhone,
-            }, SetOptions(merge: true)).catchError((_) {});
-          }
-          if (mounted) {
-            setState(() {});
-          }
+        final uPhone = (uData['phoneNumber'] ?? uData['phone'] ?? uData['mobile'] ?? uData['userPhone'] ?? uData['contact'])?.toString().trim() ?? '';
+        _customerDetailsCache[customerId] = {
+          'name': uName.isNotEmpty ? uName : 'District Customer',
+          'phone': uPhone.isNotEmpty ? uPhone : '+91 87896 01387',
+        };
+        if (bookingId != null && bookingId.isNotEmpty) {
+          FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
+            if (uName.isNotEmpty) 'customerName': uName,
+            if (uPhone.isNotEmpty) 'customerPhone': uPhone,
+          }, SetOptions(merge: true)).catchError((_) {});
         }
+        if (mounted) {
+          setState(() {});
+        }
+      } else {
+        _customerDetailsCache[customerId] = {
+          'name': 'District Customer',
+          'phone': '+91 87896 01387',
+        };
+        if (mounted) setState(() {});
       }
     }).catchError((_) {
       _pendingCustomerFetches.remove(customerId);
+      _customerDetailsCache[customerId] = {
+        'name': 'District Customer',
+        'phone': '+91 87896 01387',
+      };
+      if (mounted) setState(() {});
     });
   }
 
@@ -683,12 +692,21 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final isAssigned = status == 'driver_assigned' || status == 'driver_arrived';
             final isStarted = status == 'trip_started';
             final fare = (currentBooking.finalFare ?? currentBooking.estimatedFare).toStringAsFixed(0);
-            final custName = (currentBooking.customerName != null && currentBooking.customerName!.trim().isNotEmpty)
+            if (currentBooking.customerId.isNotEmpty &&
+                (currentBooking.customerName == null || currentBooking.customerName!.trim().isEmpty || currentBooking.customerPhone == null || currentBooking.customerPhone!.trim().isEmpty)) {
+              _fetchCustomerDetailsOnce(currentBooking.customerId, currentBooking.id);
+            }
+            final modalCached = _customerDetailsCache[currentBooking.customerId];
+            final custName = (currentBooking.customerName != null && currentBooking.customerName!.trim().isNotEmpty && currentBooking.customerName != 'District Customer' && currentBooking.customerName != 'District Rider')
                 ? currentBooking.customerName!.trim()
-                : 'District Rider';
+                : ((modalCached?['name'] != null && modalCached!['name']!.trim().isNotEmpty)
+                    ? modalCached['name']!.trim()
+                    : (currentBooking.customerName?.trim().isNotEmpty == true ? currentBooking.customerName!.trim() : 'District Rider'));
             final custPhone = (currentBooking.customerPhone != null && currentBooking.customerPhone!.trim().isNotEmpty)
                 ? currentBooking.customerPhone!.trim()
-                : '+91 87896 01387';
+                : ((modalCached?['phone'] != null && modalCached!['phone']!.trim().isNotEmpty)
+                    ? modalCached['phone']!.trim()
+                    : '+91 87896 01387');
             final pickupDistanceKm = _calculatePickupDistanceKm(currentBooking);
 
             if (isSearching && autoCancelTimer == null) {
@@ -3105,12 +3123,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                     _fetchCustomerDetailsOnce(booking.customerId, booking.id);
                                   }
                                   final reqCached = _customerDetailsCache[booking.customerId];
-                                  final rName = (booking.customerName != null && booking.customerName!.trim().isNotEmpty && booking.customerName != 'District Customer')
+                                  final rName = (booking.customerName != null && booking.customerName!.trim().isNotEmpty && booking.customerName != 'District Customer' && booking.customerName != 'District Rider')
                                       ? booking.customerName!.trim()
-                                      : ((reqCached?['name'] != null && reqCached!['name']!.isNotEmpty) ? reqCached['name']! : 'District Rider');
-                                  final rPhone = (booking.customerPhone != null && booking.customerPhone!.trim().isNotEmpty && booking.customerPhone != '+91 87896 01387')
+                                      : ((reqCached?['name'] != null && reqCached!['name']!.trim().isNotEmpty) ? reqCached['name']!.trim() : 'District Rider');
+                                  final rPhone = (booking.customerPhone != null && booking.customerPhone!.trim().isNotEmpty)
                                       ? booking.customerPhone!.trim()
-                                      : ((reqCached?['phone'] != null && reqCached!['phone']!.isNotEmpty) ? reqCached['phone']! : '+91 87896 01387');
+                                      : ((reqCached?['phone'] != null && reqCached!['phone']!.trim().isNotEmpty) ? reqCached['phone']!.trim() : '+91 87896 01387');
                                   return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -3261,21 +3279,22 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     }
 
     final cached = _customerDetailsCache[booking.customerId];
-    final customerName = (booking.customerName != null &&
+    final String customerName = (booking.customerName != null &&
             booking.customerName!.trim().isNotEmpty &&
             booking.customerName != 'District Customer' &&
             booking.customerName != 'District Rider')
         ? booking.customerName!.trim()
-        : ((cached?['name'] != null && cached!['name']!.isNotEmpty)
-            ? cached['name']!
-            : 'District Customer');
+        : ((cached?['name'] != null && cached!['name']!.trim().isNotEmpty)
+            ? cached['name']!.trim()
+            : (booking.customerName?.trim().isNotEmpty == true
+                ? booking.customerName!.trim()
+                : 'District Customer'));
 
-    final customerPhone = (booking.customerPhone != null &&
-            booking.customerPhone!.trim().isNotEmpty &&
-            booking.customerPhone != '+91 87896 01387')
+    final String customerPhone = (booking.customerPhone != null &&
+            booking.customerPhone!.trim().isNotEmpty)
         ? booking.customerPhone!.trim()
-        : ((cached?['phone'] != null && cached!['phone']!.isNotEmpty)
-            ? cached['phone']!
+        : ((cached?['phone'] != null && cached!['phone']!.trim().isNotEmpty)
+            ? cached['phone']!.trim()
             : '+91 87896 01387');
     final fare = (booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0);
 
@@ -3375,58 +3394,98 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Customer Info Strip: 100% Robust Layout & Visible Calling Action
+                // 3. Customer Info Container: Above Pickup Location Box
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                    border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF059669).withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Avatar circle with Person Icon
                       Container(
-                        padding: const EdgeInsets.all(9),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFDCFCE7),
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
                           shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
                         ),
-                        child: const Icon(Icons.person, color: Color(0xFF047857), size: 22),
+                        child: const Center(
+                          child: Icon(Icons.person_rounded, color: Color(0xFF047857), size: 24),
+                        ),
                       ),
                       const SizedBox(width: 12),
+
+                      // Customer Name & Phone Number (Flexible & Never Overflows)
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: const Text(
+                                    'CUSTOMER / RIDER',
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF475569),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
                             Text(
                               customerName,
                               style: const TextStyle(
-                                fontSize: 14.5,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFF0F172A),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             InkWell(
                               onTap: () => _callCustomer(customerPhone),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.phone, size: 14, color: Color(0xFF059669)),
+                                  const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF059669)),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    customerPhone,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF059669),
+                                  Flexible(
+                                    child: Text(
+                                      customerPhone,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF059669),
+                                        letterSpacing: 0.3,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -3434,18 +3493,37 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF059669),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
+                      const SizedBox(width: 10),
+
+                      // Prominent Calling Icon Button
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _callCustomer(customerPhone),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF10B981), Color(0xFF059669)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF059669).withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.call, color: Colors.white, size: 22),
+                            ),
+                          ),
                         ),
-                        onPressed: () => _callCustomer(customerPhone),
-                        icon: const Icon(Icons.call, size: 16),
-                        label: const Text('CALL', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
                       ),
                     ],
                   ),

@@ -603,12 +603,11 @@ class DriverService {
           if (uDoc.exists && uDoc.data() != null) {
             cName = (uDoc.data()?['name'] ?? uDoc.data()?['displayName'] ?? uDoc.data()?['fullName'])?.toString().trim();
             cPhone = (uDoc.data()?['phone'] ?? uDoc.data()?['phoneNumber'] ?? uDoc.data()?['mobile'])?.toString().trim();
-            if (cName != null || cPhone != null) {
-              await _firestore.collection('bookings').doc(bookingId).set({
-                if (cName != null && cName.isNotEmpty) 'customerName': cName,
-                if (cPhone != null && cPhone.isNotEmpty) 'customerPhone': cPhone,
-              }, SetOptions(merge: true));
-            }
+            final resolvedPhone = (cPhone != null && cPhone.isNotEmpty) ? cPhone : ((currentDoc.data()?['customerPhone'] as String?)?.isNotEmpty == true ? currentDoc.data()!['customerPhone'] : '+91 87896 01387');
+            await _firestore.collection('bookings').doc(bookingId).set({
+              if (cName != null && cName.isNotEmpty) 'customerName': cName,
+              'customerPhone': resolvedPhone,
+            }, SetOptions(merge: true));
           }
         }
         if (cId.isNotEmpty) {
@@ -661,7 +660,7 @@ class DriverService {
         'vehicleModel': vehicleModel,
         'vehicleImage': vehicleImage,
         if (cName != null && cName.isNotEmpty) 'customerName': cName,
-        if (cPhone != null && cPhone.isNotEmpty) 'customerPhone': cPhone,
+        'customerPhone': (cPhone != null && cPhone.isNotEmpty) ? cPhone : ((currentDoc.data()?['customerPhone'] as String?)?.isNotEmpty == true ? currentDoc.data()!['customerPhone'] : '+91 87896 01387'),
         if (driverPhoto != null) 'driverPhoto': driverPhoto,
         'acceptedAt': FieldValue.serverTimestamp(),
       });

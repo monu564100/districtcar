@@ -120,6 +120,8 @@ export interface BookingRecord {
   id: string; // Document ID
   readableId: string; // DC-YYYYMMDD-XXXXXX
   customerId: string;
+  customerName?: string;
+  customerPhone?: string;
   driverId?: string;
   vehicleCategoryId: string;
   vehicleId?: string;

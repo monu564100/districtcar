@@ -84,11 +84,17 @@ export const createBooking = functions.https.onCall(async (data, context) => {
   const readableId = generateReadableBookingId();
   const rideOtp = generateRideOtp();
 
+  const customerData = customerDoc.data();
+  const customerName = (customerData?.name || customerData?.displayName || customerData?.fullName || '').trim() || 'District Customer';
+  const customerPhone = (customerData?.phoneNumber || customerData?.phone || customerData?.mobile || '').trim() || '+91 87896 01387';
+
   const bookingRef = db.collection('bookings').doc();
   const newBooking: BookingRecord = {
     id: bookingRef.id,
     readableId,
     customerId,
+    customerName,
+    customerPhone,
     vehicleCategoryId: categoryId,
     pickup: {
       ...pickup,
