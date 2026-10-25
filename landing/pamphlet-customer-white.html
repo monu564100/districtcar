@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>District Car — Customer Pamphlet (White Theme Print Ready)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Tiro+Devanagari+Hindi:ital@0;1&family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    @page {
+      size: A5 portrait;
+      margin: 0;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Poppins', 'Tiro Devanagari Hindi', sans-serif;
+      background: #F1F5F9;
+      color: #0F172A;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+    }
+    
+    /* Top print bar (hidden in print) */
+    .print-controls {
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .btn-print {
+      background: #059669;
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-print:hover {
+      background: #047857;
+      transform: translateY(-1px);
+    }
+
+    /* A5 Pamphlet Canvas */
+    .pamphlet-sheet {
+      width: 148mm;
+      min-height: 210mm;
+      height: 210mm;
+      background: #FFFFFF;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10mm 10mm 8mm 10mm;
+      border: 1px solid #E2E8F0;
+    }
+
+    /* Header */
+    .p-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #059669;
+      padding-bottom: 7px;
+      margin-bottom: 8px;
+    }
+
+    .brand-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid #E2E8F0;
+    }
+
+    .brand-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: #0F172A;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-subtitle {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #059669;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+    }
+
+    .badge-iso {
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 9px;
+      font-weight: 800;
+      text-align: right;
+      line-height: 1.3;
+    }
+
+    /* Main Punchy Tagline Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, #F8FAFC 0%, #F0FDF4 100%);
+      border: 1.5px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 8px 12px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .hero-headline {
+      font-size: 15px;
+      font-weight: 900;
+      color: #0F172A;
+      line-height: 1.3;
+      font-family: 'Tiro Devanagari Hindi', 'Poppins', serif;
+    }
+
+    .hero-subline {
+      font-size: 10px;
+      color: #047857;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    /* 4-Pillar Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+
+    .f-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-left: 3.5px solid #059669;
+      border-radius: 8px;
+      padding: 7px 9px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+
+    .f-card.alert-card {
+      border-left-color: #DC2626;
+      background: #FEF2F2;
+      border-color: #FECACA;
+    }
+
+    .f-card.discount-card {
+      border-left-color: #D97706;
+      background: #FFFBEB;
+      border-color: #FDE68A;
+    }
+
+    .f-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .f-title i {
+      font-size: 12px;
+      color: #059669;
+    }
+
+    .alert-card .f-title i {
+      color: #DC2626;
+    }
+
+    .discount-card .f-title i {
+      color: #D97706;
+    }
+
+    .f-desc {
+      font-size: 9px;
+      color: #334155;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    .f-desc strong {
+      color: #0F172A;
+      font-weight: 800;
+    }
+
+    /* Pricing Table Strip */
+    .fare-strip {
+      background: #0F172A;
+      color: #FFFFFF;
+      border-radius: 10px;
+      padding: 7px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .fare-item {
+      text-align: center;
+    }
+
+    .fare-vehicle {
+      font-size: 8.5px;
+      color: #94A3B8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .fare-rate {
+      font-size: 13px;
+      font-weight: 900;
+      color: #FEF08A;
+      line-height: 1.1;
+    }
+
+    .fare-rate span {
+      font-size: 9px;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* 3 Simple Steps */
+    .steps-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 5px 10px;
+      margin-bottom: 8px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 8.5px;
+      color: #334155;
+      font-weight: 700;
+    }
+
+    .step-num {
+      width: 17px;
+      height: 17px;
+      background: #059669;
+      color: #FFFFFF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    /* Call to Action Footer Box */
+    .cta-footer {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #FFFFFF;
+      border-radius: 12px;
+      padding: 9px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(5,150,105,0.25);
+    }
+
+    .cta-left {
+      max-width: 65%;
+    }
+
+    .cta-phone-label {
+      font-size: 9px;
+      font-weight: 800;
+      color: #FEF08A;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cta-phone-number {
+      font-size: 19px;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 1px 0;
+    }
+
+    .cta-service-tag {
+      font-size: 8.5px;
+      color: #D1FAE5;
+      font-weight: 600;
+    }
+
+    .qr-box {
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 5px;
+      text-align: center;
+      flex-shrink: 0;
+      width: 64px;
+    }
+
+    .qr-img {
+      width: 54px;
+      height: 54px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .qr-label {
+      font-size: 7px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-top: 2px;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+
+    /* Sub-footer micro text */
+    .micro-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 5px;
+      font-size: 7.5px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    /* Print Optimization Rules */
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .pamphlet-sheet {
+        box-shadow: none;
+        border: none;
+        width: 100%;
+        height: 100%;
+        page-break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen controls for easy printing -->
+  <div class="print-controls no-print">
+    <span><strong>District Car • White-Themed Customer Pamphlet</strong> (Print Ready A4 / A5)</span>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
+      <a href="assets/district_car_customer_pamphlet_white.jpg" download="District_Car_Customer_Pamphlet_v1.jpg" class="btn-print" style="background:#0284C7; text-decoration:none;"><i class="fa-solid fa-image"></i> Download Design 1 (JPG)</a>
+      <a href="assets/district_car_customer_flyer_white.jpg" download="District_Car_Customer_Pamphlet_v2.jpg" class="btn-print" style="background:#4F46E5; text-decoration:none;"><i class="fa-solid fa-image"></i> Download Design 2 (JPG)</a>
+    </div>
+  </div>
+
+  <!-- Printable A5 Sheet -->
+  <div class="pamphlet-sheet">
+    
+    <!-- Header -->
+    <header class="p-header">
+      <div class="brand-area">
+        <img src="assets/app_logo.jpg" alt="District Car" class="brand-logo">
+        <div>
+          <div class="brand-title">District Car</div>
+          <span class="brand-subtitle">झारखंड की अपनी ग्रामीण व जिला कैब सेवा</span>
+        </div>
+      </div>
+      <div class="badge-iso">
+        <span>⭐ 4.8 रेटिंग</span><br>
+        <strong>100% वेरिफाइड ड्राइवर</strong>
+      </div>
+    </header>
+
+    <!-- Punchy Headline -->
+    <div class="hero-banner">
+      <div class="hero-headline">
+        गाँव-गाँव पहुँची पक्की गाड़ी — अब न लंबा इंतज़ार, न मनमाना किराया!
+      </div>
+      <div class="hero-subline">
+        घर बैठे 1 कॉल या ऐप से गाड़ी बुलाएं • सीधे आपके दरवाजे पर पिकअप
+      </div>
+    </div>
+
+    <!-- 4 Key Services / Features Grid -->
+    <div class="features-grid">
+      
+      <div class="f-card">
+        <div class="f-title"><i class="fa-solid fa-car"></i> घर बैठे आसान बुकिंग</div>
+        <div class="f-desc">
+          ब्लॉक, बाजार, हाट या रिश्तेदारी जाने के लिए बस <strong>1 कॉल करें</strong> या <strong>ऐप खोलें</strong>। 10 से 15 मिनट में आपके घर गाड़ी हाजिर।
+        </div>
+      </div>
+
+      <div class="f-card discount-card">
+        <div class="f-title"><i class="fa-solid fa-arrows-rotate"></i> राउंड-ट्रिप पर 35% छूट</div>
+        <div class="f-desc">
+          जाकर उसी गाड़ी से वापस आने पर <strong>35% सीधा डिस्काउंट</strong> + <strong>फ्री वेटिंग टाइम</strong>। अलग-अलग दो बार गाड़ी करने से ₹500 तक की सीधी बचत।
+        </div>
+      </div>
+
+      <div class="f-card alert-card">
+        <div class="f-title"><i class="fa-solid fa-truck-medical"></i> 24x7 इमरजेंसी व अस्पताल</div>
+        <div class="f-desc">
+          आधी रात 2 बजे भी <strong>सदर अस्पताल, डिलीवरी, रिम्स (RIMS)</strong> या मेडिकल इमरजेंसी में बिना किसी रुकावट तुरंत गाड़ी मिलेगी।
+        </div>
+      </div>
+
+      <div class="f-card">
+        <div class="f-title"><i class="fa-solid fa-mountain-sun"></i> तीर्थ व टूरिज्म पैकेज</div>
+        <div class="f-desc">
+          <strong>पंचघाघ, हुंडरू, जोन्हा, पतरातू, नेतरहाट, देवघर बाबा धाम</strong> व रजरप्पा के लिए फिक्स रेट में साफ-सुथरी फैमिली एसी कैब उपलब्ध।
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Transparent Fare Strip -->
+    <div class="fare-strip">
+      <div class="fare-item">
+        <div class="fare-vehicle">ऑटो रिक्शा</div>
+        <div class="fare-rate">₹10 <span>/किमी</span></div>
+      </div>
+      <div style="width:1px; height:22px; background:#334155;"></div>
+      <div class="fare-item">
+        <div class="fare-vehicle">मिनी एसी कार</div>
+        <div class="fare-rate">₹14 <span>/किमी</span></div>
+      </div>
+      <div style="width:1px; height:22px; background:#334155;"></div>
+      <div class="fare-item">
+        <div class="fare-vehicle">प्राइम सेडान</div>
+        <div class="fare-rate">₹17 <span>/किमी</span></div>
+      </div>
+      <div style="width:1px; height:22px; background:#334155;"></div>
+      <div class="fare-item">
+        <div class="fare-vehicle">7-सीटर SUV</div>
+        <div class="fare-rate">₹22 <span>/किमी</span></div>
+      </div>
+    </div>
+
+    <!-- 3 Easy Steps to Book -->
+    <div class="steps-row">
+      <div class="step-item">
+        <span class="step-num">1</span>
+        <span>कॉल करें या ऐप खोलें</span>
+      </div>
+      <i class="fa-solid fa-arrow-right" style="font-size:8px; color:#94A3B8;"></i>
+      <div class="step-item">
+        <span class="step-num">2</span>
+        <span>कहाँ जाना है बताएं</span>
+      </div>
+      <i class="fa-solid fa-arrow-right" style="font-size:8px; color:#94A3B8;"></i>
+      <div class="step-item">
+        <span class="step-num">3</span>
+        <span>दरवाजे पर गाड़ी पाएं</span>
+      </div>
+    </div>
+
+    <!-- Call to Action Box -->
+    <div class="cta-footer">
+      <div class="cta-left">
+        <div class="cta-phone-label"><i class="fa-solid fa-phone-volume"></i> 24 घंटे हेल्पलाइन (कॉल या व्हाट्सएप)</div>
+        <div class="cta-phone-number">
+          <i class="fa-solid fa-phone"></i> 87896 01387
+        </div>
+        <div class="cta-service-tag">
+          खूंटी • गुमला • सिमडेगा • लातेहार • रांची • संपूर्ण 24 जिले
+        </div>
+      </div>
+
+      <!-- Real Scannable QR Code for App Download -->
+      <div class="qr-box">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app" alt="Download District Car App" class="qr-img">
+        <div class="qr-label">स्कैन करें<br>ऐप डाउनलोड</div>
+      </div>
+    </div>
+
+    <!-- Bottom Tiny Footer -->
+    <footer class="micro-footer">
+      <span>Google Play Store: <strong>District Car</strong></span>
+      <span>वेबसाइट: <strong>districtcar.in</strong></span>
+      <span>जीरो कैंसिलेशन • सुरक्षित यात्रा</span>
+    </footer>
+
+  </div>
+
+</body>
+</html>
