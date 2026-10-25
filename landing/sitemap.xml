@@ -284,6 +284,32 @@
   </url>
 
 
+  <url>
+    <loc>https://districtcar.in/blogs/</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <!-- NEW: 22 Trending Jharkhand Blogs (Unique Places) -->
+  <url>
+    <loc>https://districtcar.in/blogs/patratu-valley-ranchi-scenic-ghat-road-boating-guide.html</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blogs/pahari-mandir-ranchi-hill-shiva-temple-views-guide.html</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://districtcar.in/blogs/bhatinda-falls-dhanbad-rocky-cascade-picnic-guide.html</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>
+
   <!-- Jharkhand Local Rural News Section (24+ Districts Ground Reporting) -->
   <url>
     <loc>https://districtcar.in/news-local/</loc>

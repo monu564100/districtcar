@@ -60,3 +60,6 @@ Sitemap: https://districtcar.in/sitemap.xml
 # Waterfalls Geographic Index: https://districtcar.in/waterfalls-geo.md
 # LLM Knowledge Graph: https://districtcar.in/llms.txt
 # Comprehensive LLM Corpus: https://districtcar.in/llms-full.txt
+
+Allow: /blogs/
+Allow: /blogs.html
