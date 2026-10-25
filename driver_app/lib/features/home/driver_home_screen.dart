@@ -52,15 +52,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     address: 'Albert Ekka Chowk Stand, Ranchi, Jharkhand',
   );
 
+  final ScrollController _homeScrollController = ScrollController();
+  final Map<String, Map<String, String>> _customerDetailsCache = {};
+  final Set<String> _pendingCustomerFetches = {};
+
   late final AnimationController _radarPulseController;
   late final Animation<double> _radarPulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _otpVerifyCtrl.addListener(() {
-      if (mounted) setState(() {});
-    });
     _radarPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -78,7 +79,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 21,
+          currentBuildNumber: 24,
         );
       }
 
@@ -134,6 +135,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     _radarPulseController.dispose();
     _otpVerifyCtrl.dispose();
     _homeOtpFocusNode.dispose();
+    _homeScrollController.dispose();
     super.dispose();
   }
 
@@ -389,6 +391,38 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         return now.difference(booking.createdAt).inHours >= 24;
       }
     }
+  }
+
+  void _fetchCustomerDetailsOnce(String customerId, [String? bookingId]) {
+    if (customerId.isEmpty || _customerDetailsCache.containsKey(customerId) || _pendingCustomerFetches.contains(customerId)) {
+      return;
+    }
+    _pendingCustomerFetches.add(customerId);
+    FirebaseFirestore.instance.collection('users').doc(customerId).get().then((snap) {
+      _pendingCustomerFetches.remove(customerId);
+      if (snap.exists && snap.data() != null) {
+        final uData = snap.data()!;
+        final uName = (uData['name'] ?? uData['displayName'] ?? uData['fullName'])?.toString().trim() ?? '';
+        final uPhone = (uData['phoneNumber'] ?? uData['phone'] ?? uData['mobile'] ?? uData['userPhone'])?.toString().trim() ?? '';
+        if (uName.isNotEmpty || uPhone.isNotEmpty) {
+          _customerDetailsCache[customerId] = {
+            'name': uName.isNotEmpty ? uName : 'Customer Rider',
+            'phone': uPhone.isNotEmpty ? uPhone : '+91 87896 01387',
+          };
+          if (bookingId != null && bookingId.isNotEmpty) {
+            FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
+              if (uName.isNotEmpty) 'customerName': uName,
+              if (uPhone.isNotEmpty) 'customerPhone': uPhone,
+            }, SetOptions(merge: true)).catchError((_) {});
+          }
+          if (mounted) {
+            setState(() {});
+          }
+        }
+      }
+    }).catchError((_) {
+      _pendingCustomerFetches.remove(customerId);
+    });
   }
 
   void _callCustomer(String? phone) async {
@@ -1468,8 +1502,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     });
   }
 
-  void _verifyOtpAndStartTrip(BookingModel booking) async {
-    final enteredOtp = _otpVerifyCtrl.text.trim();
+  void _verifyOtpAndStartTrip(BookingModel booking, [String? otpOverride]) async {
+    final enteredOtp = (otpOverride != null && otpOverride.isNotEmpty) ? otpOverride.trim() : _otpVerifyCtrl.text.trim();
     if (enteredOtp.isNotEmpty && enteredOtp != booking.rideOtp && enteredOtp != '1234') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Incorrect OTP entered! Please check with customer.')),
@@ -1681,7 +1715,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               final b = BookingModel.fromMap(m, doc.id);
               _activeBooking = b;
 
-              // Fallback to query users/{customerId} if customer details missing in booking document
+              // Ensure customer details are fetched once and cached (No infinite rebuild loop!)
               if (b.customerId.isNotEmpty &&
                   (b.customerPhone == null ||
                    b.customerPhone!.trim().isEmpty ||
@@ -1689,23 +1723,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                    b.customerName!.trim().isEmpty ||
                    b.customerName == 'District Rider' ||
                    b.customerName == 'District Customer')) {
-                FirebaseFirestore.instance.collection('users').doc(b.customerId).get().then((uSnap) {
-                  if (uSnap.exists && uSnap.data() != null) {
-                    final uData = uSnap.data()!;
-                    final uName = (uData['name'] ?? uData['displayName'] ?? uData['fullName'])?.toString().trim();
-                    final uPhone = (uData['phone'] ?? uData['phoneNumber'] ?? uData['mobile'])?.toString().trim();
-                    if ((uName != null && uName.isNotEmpty) || (uPhone != null && uPhone.isNotEmpty)) {
-                      if (mounted) {
-                        setState(() {
-                          _activeBooking = _activeBooking?.copyWith(
-                            customerName: (uName != null && uName.isNotEmpty) ? uName : _activeBooking?.customerName,
-                            customerPhone: (uPhone != null && uPhone.isNotEmpty) ? uPhone : _activeBooking?.customerPhone,
-                          );
-                        });
-                      }
-                    }
-                  }
-                }).catchError((_) {});
+                _fetchCustomerDetailsOnce(b.customerId, b.id);
               }
             } catch (_) {}
           } else if (_activeBooking != null) {
@@ -1969,9 +1987,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               ),
               body: Stack(
                 children: [
-                  // 1. Direct Scrollable Viewport (NO fragile nesting, guaranteed rendering)
+                  // 1. Direct Scrollable Viewport with persistent key and controller
                   Positioned.fill(
                     child: SingleChildScrollView(
+                      key: const PageStorageKey<String>('driver_home_main_scroll'),
+                      controller: _homeScrollController,
                       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                       child: Column(
@@ -1981,6 +2001,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                             _buildCommissionBlockedBanner(),
                             const SizedBox(height: 12),
                           ],
+
+                          // ACTIVE TRIP CARD PROMINENTLY AT THE VERY TOP WHEN ACCEPTED
+                          if (_activeBooking != null) ...[
+                            _buildZomatoActiveTripCard(_activeBooking!),
+                            const SizedBox(height: 16),
+                          ],
+
                           // A. Hero Visual Radar / Shift Banner (with direct Online / Offline action)
                           _buildHeroBanner(isCurrentlyBusy),
                           const SizedBox(height: 12),
@@ -2006,12 +2033,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           // D. Quick Metrics Strip (Wallet, Trips, Rating)
                           _buildQuickMetricsStrip(walletBalance, totalEarnings, totalTrips, rating),
                           const SizedBox(height: 16),
-
-                          // E. Zomato-Style Active Trip Card (When booking is active)
-                          if (_activeBooking != null) ...[
-                            _buildZomatoActiveTripCard(_activeBooking!),
-                            const SizedBox(height: 16),
-                          ],
 
                           // F. Eligible Booking Requests Feed (With BOTH Clear Visible ACCEPT & DECLINE Buttons)
                           _buildRequestsSection(driverCategory, isCurrentlyBusy),
@@ -3077,21 +3098,37 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                (booking.customerName != null && booking.customerName!.trim().isNotEmpty)
-                                    ? booking.customerName!.trim()
-                                    : 'District Customer',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                (booking.customerPhone != null && booking.customerPhone!.trim().isNotEmpty)
-                                    ? booking.customerPhone!.trim()
-                                    : '+91 87896 01387',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Builder(
+                                builder: (context) {
+                                  if (booking.customerId.isNotEmpty &&
+                                      (booking.customerName == null || booking.customerName!.trim().isEmpty || booking.customerPhone == null || booking.customerPhone!.trim().isEmpty)) {
+                                    _fetchCustomerDetailsOnce(booking.customerId, booking.id);
+                                  }
+                                  final reqCached = _customerDetailsCache[booking.customerId];
+                                  final rName = (booking.customerName != null && booking.customerName!.trim().isNotEmpty && booking.customerName != 'District Customer')
+                                      ? booking.customerName!.trim()
+                                      : ((reqCached?['name'] != null && reqCached!['name']!.isNotEmpty) ? reqCached['name']! : 'District Rider');
+                                  final rPhone = (booking.customerPhone != null && booking.customerPhone!.trim().isNotEmpty && booking.customerPhone != '+91 87896 01387')
+                                      ? booking.customerPhone!.trim()
+                                      : ((reqCached?['phone'] != null && reqCached!['phone']!.isNotEmpty) ? reqCached['phone']! : '+91 87896 01387');
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        rName,
+                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        rPhone,
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -3212,12 +3249,34 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final isAssigned = status == 'driver_assigned';
     final isArrived = status == 'driver_arrived';
     final isStarted = status == 'trip_started';
-    final customerName = (booking.customerName != null && booking.customerName!.trim().isNotEmpty)
+
+    if (booking.customerId.isNotEmpty &&
+        (booking.customerName == null ||
+         booking.customerName!.trim().isEmpty ||
+         booking.customerPhone == null ||
+         booking.customerPhone!.trim().isEmpty ||
+         booking.customerName == 'District Customer' ||
+         booking.customerName == 'District Rider')) {
+      _fetchCustomerDetailsOnce(booking.customerId, booking.id);
+    }
+
+    final cached = _customerDetailsCache[booking.customerId];
+    final customerName = (booking.customerName != null &&
+            booking.customerName!.trim().isNotEmpty &&
+            booking.customerName != 'District Customer' &&
+            booking.customerName != 'District Rider')
         ? booking.customerName!.trim()
-        : 'District Customer';
-    final customerPhone = (booking.customerPhone != null && booking.customerPhone!.trim().isNotEmpty)
+        : ((cached?['name'] != null && cached!['name']!.isNotEmpty)
+            ? cached['name']!
+            : 'District Customer');
+
+    final customerPhone = (booking.customerPhone != null &&
+            booking.customerPhone!.trim().isNotEmpty &&
+            booking.customerPhone != '+91 87896 01387')
         ? booking.customerPhone!.trim()
-        : '+91 87896 01387';
+        : ((cached?['phone'] != null && cached!['phone']!.isNotEmpty)
+            ? cached['phone']!
+            : '+91 87896 01387');
     final fare = (booking.finalFare ?? booking.estimatedFare).toStringAsFixed(0);
 
     return Container(
@@ -3493,165 +3552,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 ),
                 const SizedBox(height: 14),
 
-                // 6. Action Stage Buttons - Interactive 4-Box PIN Input & Dynamic Start Ride Button
+                // 6. Action Stage Buttons - Dedicated Isolated 4-Box PIN Input (Zero Screen Scroll/Refresh Glitch!)
                 if (isAssigned || isArrived) ...[
-                  Builder(
-                    builder: (context) {
-                      final enteredOtp = _otpVerifyCtrl.text.trim();
-                      final isOtpComplete = enteredOtp.length == 4;
-
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.pin, color: Color(0xFF059669), size: 18),
-                                SizedBox(width: 6),
-                                Text(
-                                  'CUSTOMER RIDE OTP',
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF065F46)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Ask the customer for their 4-digit Ride OTP to start trip.',
-                              style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Interactive 4-Digit Display Boxes
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _homeOtpFocusNode.requestFocus(),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Visual 4-Digit Display Boxes
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(4, (index) {
-                                      final hasDigit = index < enteredOtp.length;
-                                      final digit = hasDigit ? enteredOtp[index] : '';
-                                      final isCurrent = index == enteredOtp.length;
-                                      return Container(
-                                        width: 52,
-                                        height: 56,
-                                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: isCurrent
-                                                ? const Color(0xFF059669)
-                                                : (hasDigit ? const Color(0xFF10B981) : const Color(0xFFCBD5E1)),
-                                            width: isCurrent ? 2.5 : 1.5,
-                                          ),
-                                          boxShadow: [
-                                            if (isCurrent)
-                                              BoxShadow(
-                                                color: const Color(0xFF059669).withValues(alpha: 0.2),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                          ],
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          digit.isNotEmpty ? digit : '•',
-                                          style: TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w900,
-                                            color: digit.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-
-                                  // Actual Underlying Input (Positioned over the boxes)
-                                  Positioned.fill(
-                                    child: Opacity(
-                                      opacity: 0.0,
-                                      child: TextField(
-                                        controller: _otpVerifyCtrl,
-                                        focusNode: _homeOtpFocusNode,
-                                        autofocus: false,
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
-                                          LengthLimitingTextInputFormatter(4),
-                                        ],
-                                        maxLength: 4,
-                                        onChanged: (_) => setState(() {}),
-                                        decoration: const InputDecoration(
-                                          counterText: '',
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // ONLY SHOW START RIDE BUTTON AFTER 4 DIGITS ARE ENTERED!
-                            if (isOtpComplete) ...[
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF059669),
-                                    foregroundColor: Colors.white,
-                                    elevation: 3,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: () => _verifyOtpAndStartTrip(booking),
-                                  icon: const Icon(Icons.directions_car_rounded, size: 22),
-                                  label: const Text(
-                                    'START RIDE 🚗',
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                                  ),
-                                ),
-                              ),
-                            ] else ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.lock_clock_outlined, size: 16, color: Color(0xFF059669)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      enteredOtp.isEmpty
-                                          ? 'Tap boxes above & enter customer OTP to unlock Start Ride'
-                                          : 'Enter all 4 digits (${enteredOtp.length}/4 entered)',
-                                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    },
+                  _ZomatoOtpVerificationBox(
+                    key: ValueKey('zomato_otp_${booking.id}'),
+                    booking: booking,
+                    onVerifyAndStart: (enteredOtp) => _verifyOtpAndStartTrip(booking, enteredOtp),
+                    onCantReachInTime: () => _handleCantReachCustomerInTime(booking),
                   ),
                 ] else if (isStarted) ...[
                   SizedBox(
@@ -3737,3 +3644,230 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 }
+
+
+/// Isolated, flicker-free, non-refreshing 4-digit PIN OTP Box Widget
+class _ZomatoOtpVerificationBox extends StatefulWidget {
+  final BookingModel booking;
+  final Function(String otp) onVerifyAndStart;
+  final VoidCallback onCantReachInTime;
+
+  const _ZomatoOtpVerificationBox({
+    super.key,
+    required this.booking,
+    required this.onVerifyAndStart,
+    required this.onCantReachInTime,
+  });
+
+  @override
+  State<_ZomatoOtpVerificationBox> createState() => _ZomatoOtpVerificationBoxState();
+}
+
+class _ZomatoOtpVerificationBoxState extends State<_ZomatoOtpVerificationBox> {
+  final TextEditingController _otpCtrl = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isStarting = false;
+
+  @override
+  void dispose() {
+    _otpCtrl.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enteredOtp = _otpCtrl.text.trim();
+    final isOtpComplete = enteredOtp.length == 4;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.pin, color: Color(0xFF059669), size: 18),
+              SizedBox(width: 6),
+              Text(
+                'CUSTOMER RIDE OTP',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF065F46)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Ask the customer for their 4-digit Ride OTP to start trip.',
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+          ),
+          const SizedBox(height: 14),
+
+          // Interactive 4-Digit Display Boxes
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (!_focusNode.hasFocus) {
+                _focusNode.requestFocus();
+              }
+            },
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Visual 4-Digit Display Boxes
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(4, (index) {
+                    final hasDigit = index < enteredOtp.length;
+                    final digit = hasDigit ? enteredOtp[index] : '';
+                    final isCurrent = index == enteredOtp.length;
+                    return Container(
+                      width: 52,
+                      height: 56,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isCurrent
+                              ? const Color(0xFF059669)
+                              : (hasDigit ? const Color(0xFF10B981) : const Color(0xFFCBD5E1)),
+                          width: isCurrent ? 2.5 : 1.5,
+                        ),
+                        boxShadow: [
+                          if (isCurrent)
+                            BoxShadow(
+                              color: const Color(0xFF059669).withValues(alpha: 0.2),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        digit.isNotEmpty ? digit : '•',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: digit.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+
+                // Actual Underlying Input (Positioned over the boxes)
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.0,
+                    child: TextField(
+                      controller: _otpCtrl,
+                      focusNode: _focusNode,
+                      autofocus: false,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      maxLength: 4,
+                      onChanged: (_) {
+                        setState(() {});
+                      },
+                      decoration: const InputDecoration(
+                        counterText: '',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ONLY SHOW START RIDE BUTTON AFTER 4 DIGITS ARE ENTERED!
+          if (isOtpComplete) ...[
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _isStarting
+                    ? null
+                    : () async {
+                        setState(() => _isStarting = true);
+                        try {
+                          await widget.onVerifyAndStart(enteredOtp);
+                        } finally {
+                          if (mounted) setState(() => _isStarting = false);
+                        }
+                      },
+                icon: const Icon(Icons.directions_car_rounded, size: 22),
+                label: _isStarting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        'START RIDE 🚗',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock_clock_outlined, size: 16, color: Color(0xFF059669)),
+                  const SizedBox(width: 8),
+                  Text(
+                    enteredOtp.isEmpty
+                        ? 'Tap boxes above & enter customer OTP to unlock Start Ride'
+                        : 'Enter all 4 digits (${enteredOtp.length}/4 entered)',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFDC2626),
+              backgroundColor: const Color(0xFFFEF2F2),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: widget.onCantReachInTime,
+            icon: const Icon(Icons.cancel_outlined, size: 16),
+            label: const Text(
+              "Can't reach customer in time · Cancel Ride",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

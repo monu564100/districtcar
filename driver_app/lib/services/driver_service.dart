@@ -596,6 +596,21 @@ class DriverService {
         final currentDoc = await _firestore.collection('bookings').doc(bookingId).get();
         final cId = currentDoc.data()?['customerId'] as String? ?? '';
         final cOtp = currentDoc.data()?['rideOtp'] as String? ?? '';
+        String? cName = currentDoc.data()?['customerName'];
+        String? cPhone = currentDoc.data()?['customerPhone'];
+        if ((cName == null || cName.isEmpty || cName == 'District Customer') && cId.isNotEmpty) {
+          final uDoc = await _firestore.collection('users').doc(cId).get();
+          if (uDoc.exists && uDoc.data() != null) {
+            cName = (uDoc.data()?['name'] ?? uDoc.data()?['displayName'] ?? uDoc.data()?['fullName'])?.toString().trim();
+            cPhone = (uDoc.data()?['phone'] ?? uDoc.data()?['phoneNumber'] ?? uDoc.data()?['mobile'])?.toString().trim();
+            if (cName != null || cPhone != null) {
+              await _firestore.collection('bookings').doc(bookingId).set({
+                if (cName != null && cName.isNotEmpty) 'customerName': cName,
+                if (cPhone != null && cPhone.isNotEmpty) 'customerPhone': cPhone,
+              }, SetOptions(merge: true));
+            }
+          }
+        }
         if (cId.isNotEmpty) {
           await FCMNotificationService.sendBookingAcceptedNotificationToCustomer(
             bookingId: bookingId,
@@ -623,6 +638,20 @@ class DriverService {
         throw Exception('This ride was already accepted by another nearby driver.');
       }
 
+      String? cName = currentDoc.data()?['customerName'];
+      String? cPhone = currentDoc.data()?['customerPhone'];
+      final cId = currentDoc.data()?['customerId'] as String? ?? '';
+      if ((cName == null || cName.isEmpty || cName == 'District Customer') && cId.isNotEmpty) {
+        try {
+          final uDoc = await _firestore.collection('users').doc(cId).get();
+          if (uDoc.exists && uDoc.data() != null) {
+            final uData = uDoc.data()!;
+            cName = (uData['name'] ?? uData['displayName'] ?? uData['fullName'])?.toString().trim();
+            cPhone = (uData['phone'] ?? uData['phoneNumber'] ?? uData['mobile'])?.toString().trim();
+          }
+        } catch (_) {}
+      }
+
       await bookingRef.update({
         'status': 'driver_assigned',
         'driverId': uid,
@@ -631,6 +660,8 @@ class DriverService {
         'vehiclePlate': vehiclePlate,
         'vehicleModel': vehicleModel,
         'vehicleImage': vehicleImage,
+        if (cName != null && cName.isNotEmpty) 'customerName': cName,
+        if (cPhone != null && cPhone.isNotEmpty) 'customerPhone': cPhone,
         if (driverPhoto != null) 'driverPhoto': driverPhoto,
         'acceptedAt': FieldValue.serverTimestamp(),
       });
