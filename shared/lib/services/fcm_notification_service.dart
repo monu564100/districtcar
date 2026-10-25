@@ -730,4 +730,89 @@ class FCMNotificationService {
       ),
     );
   }
+
+  /// DISPATCH: When Driver can't reach customer in time -> Auto cancel with tag 'cancel_driver'
+  static Future<void> sendDriverCannotReachInTimeNotification({
+    required String bookingId,
+    required String customerId,
+    required String driverId,
+    required String driverName,
+    String? customerToken,
+  }) async {
+    final title = '⚠️ Ride Cancelled by Driver';
+    final body = 'Driver $driverName could not reach in time. The ride was cancelled (tag: cancel_driver).';
+
+    final dataPayload = {
+      'type': 'booking_cancelled_by_driver',
+      'cancelTag': 'cancel_driver',
+      'bookingId': bookingId,
+      'driverId': driverId,
+      'reason': "Driver cannot reach customer in time",
+    };
+
+    // 1. Audit log in notifications collection
+    try {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': title,
+        'body': body,
+        'targetAudience': 'customers',
+        'targetUserId': customerId,
+        'type': 'booking_cancelled_by_driver',
+        'cancelTag': 'cancel_driver',
+        'bookingId': bookingId,
+        'driverId': driverId,
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+
+    // 2. Add to Customer's inbox notifications
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(customerId)
+          .collection('inbox_notifications')
+          .add({
+        'title': title,
+        'body': body,
+        'bookingId': bookingId,
+        'type': 'cancelled_by_driver',
+        'cancelTag': 'cancel_driver',
+        'sentAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (_) {}
+
+    // 3. Add to Driver's inbox notifications
+    try {
+      await FirebaseFirestore.instance
+          .collection('drivers')
+          .doc(driverId)
+          .collection('inbox_notifications')
+          .add({
+        'title': 'Ride Cancelled (cancel_driver)',
+        'body': 'You marked that you could not reach the customer in time for booking #$bookingId.',
+        'bookingId': bookingId,
+        'type': 'driver_self_cancelled',
+        'cancelTag': 'cancel_driver',
+        'sentAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (_) {}
+
+    // 4. Send background push to customer
+    String? targetToken = customerToken;
+    if (targetToken == null || targetToken.isEmpty) {
+      try {
+        final custDoc = await FirebaseFirestore.instance.collection('users').doc(customerId).get();
+        targetToken = custDoc.data()?['fcmToken'] as String?;
+      } catch (_) {}
+    }
+
+    if (targetToken != null && targetToken.isNotEmpty) {
+      await _sendFCMHttp(target: targetToken, title: title, body: body, data: dataPayload);
+    } else {
+      await _sendFCMHttp(target: '/topics/customer_$customerId', title: title, body: body, data: dataPayload);
+    }
+  }
+
 }
