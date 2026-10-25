@@ -25,6 +25,14 @@ class _DriverActiveTripScreenState extends ConsumerState<DriverActiveTripScreen>
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _otpCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     _otpCtrl.dispose();
     _activeTripOtpFocusNode.dispose();
@@ -526,75 +534,169 @@ class _DriverActiveTripScreenState extends ConsumerState<DriverActiveTripScreen>
                     ),
                   ),
                 ] else if (status == BookingStatus.driverArrived) ...[
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF059669).withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.pin, color: Color(0xFF059669), size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'Ask customer for 4-digit Ride OTP',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF065F46)),
+                  Builder(
+                    builder: (context) {
+                      final enteredOtp = _otpCtrl.text.trim();
+                      final isOtpComplete = enteredOtp.length == 4;
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF059669).withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _otpCtrl,
-                          focusNode: _activeTripOtpFocusNode,
-                          enabled: true,
-                          readOnly: false,
-                          autofocus: false,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.pin, color: Color(0xFF059669), size: 18),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Ask customer for 4-digit Ride OTP',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF065F46)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Interactive 4-Digit Display Boxes
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _activeTripOtpFocusNode.requestFocus(),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(4, (index) {
+                                      final hasDigit = index < enteredOtp.length;
+                                      final digit = hasDigit ? enteredOtp[index] : '';
+                                      final isCurrent = index == enteredOtp.length;
+                                      return Container(
+                                        width: 52,
+                                        height: 56,
+                                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isCurrent
+                                                ? const Color(0xFF059669)
+                                                : (hasDigit ? const Color(0xFF10B981) : const Color(0xFFCBD5E1)),
+                                            width: isCurrent ? 2.5 : 1.5,
+                                          ),
+                                          boxShadow: [
+                                            if (isCurrent)
+                                              BoxShadow(
+                                                color: const Color(0xFF059669).withValues(alpha: 0.2),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                          ],
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          digit.isNotEmpty ? digit : '•',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w900,
+                                            color: digit.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+
+                                  Positioned.fill(
+                                    child: Opacity(
+                                      opacity: 0.0,
+                                      child: TextField(
+                                        controller: _otpCtrl,
+                                        focusNode: _activeTripOtpFocusNode,
+                                        autofocus: false,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                          LengthLimitingTextInputFormatter(4),
+                                        ],
+                                        maxLength: 4,
+                                        onChanged: (_) => setState(() {}),
+                                        decoration: const InputDecoration(
+                                          counterText: '',
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // ONLY SHOW START RIDE BUTTON AFTER 4 DIGITS ARE ENTERED!
+                            if (isOtpComplete) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF059669),
+                                    foregroundColor: Colors.white,
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: _isLoading ? null : _onStartTrip,
+                                  icon: const Icon(Icons.directions_car_rounded, size: 22),
+                                  label: _isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : const Text(
+                                          'START RIDE 🚗',
+                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                        ),
+                                ),
+                              ),
+                            ] else ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.lock_clock_outlined, size: 16, color: Color(0xFF059669)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      enteredOtp.isEmpty
+                                          ? 'Tap boxes above & enter customer OTP to unlock Start Ride'
+                                          : 'Enter all 4 digits (${enteredOtp.length}/4 entered)',
+                                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
-                          maxLength: 4,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 26, letterSpacing: 12, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
-                          decoration: InputDecoration(
-                            hintText: '• • • •',
-                            counterText: '',
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF059669), width: 2)),
-                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: _isLoading ? null : _onStartTrip,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Verify OTP & Start Trip (सत्यापित करें)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    ),
+                      );
+                    },
                   ),
                 ] else if (status == BookingStatus.tripStarted) ...[
                   SizedBox(

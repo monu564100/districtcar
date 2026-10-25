@@ -58,6 +58,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   @override
   void initState() {
     super.initState();
+    _otpVerifyCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
     _radarPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -1151,134 +1154,205 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Direct Clickable & Editable OTP Text Field (No outer gesture interceptor)
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: const Color(0xFF059669), width: 2),
-                                  ),
-                                  child: TextField(
-                                    controller: modalOtpCtrl,
-                                    focusNode: modalOtpFocus,
-                                    enabled: true,
-                                    readOnly: false,
-                                    autofocus: false,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(4),
-                                    ],
-                                    maxLength: 4,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 14,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                    decoration: const InputDecoration(
-                                      counterText: '',
-                                      hintText: '• • • •',
-                                      hintStyle: TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 14,
-                                        color: Color(0xFFCBD5E1),
+                                // Interactive 4-Digit Display Boxes
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => modalOtpFocus.requestFocus(),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // Visual 4-Digit Display Boxes
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: List.generate(4, (index) {
+                                          final enteredOtp = modalOtpCtrl.text.trim();
+                                          final hasDigit = index < enteredOtp.length;
+                                          final digit = hasDigit ? enteredOtp[index] : '';
+                                          final isCurrent = index == enteredOtp.length;
+                                          return Container(
+                                            width: 52,
+                                            height: 56,
+                                            margin: const EdgeInsets.symmetric(horizontal: 6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: isCurrent
+                                                    ? const Color(0xFF059669)
+                                                    : (hasDigit ? const Color(0xFF10B981) : const Color(0xFFCBD5E1)),
+                                                width: isCurrent ? 2.5 : 1.5,
+                                              ),
+                                              boxShadow: [
+                                                if (isCurrent)
+                                                  BoxShadow(
+                                                    color: const Color(0xFF059669).withValues(alpha: 0.2),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                              ],
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              digit.isNotEmpty ? digit : '•',
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w900,
+                                                color: digit.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          );
+                                        }),
                                       ),
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 12),
-                                    ),
+
+                                      // Actual Underlying Input (Positioned over the boxes)
+                                      Positioned.fill(
+                                        child: Opacity(
+                                          opacity: 0.0,
+                                          child: TextField(
+                                            controller: modalOtpCtrl,
+                                            focusNode: modalOtpFocus,
+                                            autofocus: false,
+                                            keyboardType: TextInputType.number,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.digitsOnly,
+                                              LengthLimitingTextInputFormatter(4),
+                                            ],
+                                            maxLength: 4,
+                                            onChanged: (_) => setModalState(() {}),
+                                            decoration: const InputDecoration(
+                                              counterText: '',
+                                              border: InputBorder.none,
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 14),
 
-                                
-
-                                // Dedicated Full-Width Verify & Start Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 48,
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF059669),
-                                      foregroundColor: Colors.white,
-                                      elevation: 1,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    onPressed: isProcessing
-                                        ? null
-                                        : () async {
-                                            final enteredOtp = modalOtpCtrl.text.trim();
-                                            if (enteredOtp.isEmpty) {
-                                              ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Please enter the 4-digit OTP from customer.'),
-                                                  backgroundColor: Color(0xFFDC2626),
-                                                ),
-                                              );
-                                              return;
-                                            }
-                                            if (enteredOtp != currentBooking.rideOtp && enteredOtp != '1234') {
-                                              ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Incorrect OTP! Please check with customer.'),
-                                                  backgroundColor: Color(0xFFDC2626),
-                                                ),
-                                              );
-                                              return;
-                                            }
-                                            setModalState(() => isProcessing = true);
-                                            try {
-                                              await ref.read(driverServiceProvider).startTrip(
-                                                currentBooking.id,
-                                                enteredOtp.isNotEmpty ? enteredOtp : (currentBooking.rideOtp ?? '1234'),
-                                              );
-                                              final updated = currentBooking.copyWith(status: 'trip_started');
-                                              setModalState(() {
-                                                currentBooking = updated;
-                                                isProcessing = false;
-                                              });
-                                              if (mounted) {
-                                                setState(() {
-                                                  _activeBooking = updated;
-                                                });
-                                              }
-                                              HapticFeedback.mediumImpact();
-                                              if (modalCtx.mounted) {
+                                // ONLY SHOW START RIDE BUTTON AFTER 4 DIGITS ARE ENTERED!
+                                if (modalOtpCtrl.text.trim().length == 4) ...[
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF059669),
+                                        foregroundColor: Colors.white,
+                                        elevation: 3,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      onPressed: isProcessing
+                                          ? null
+                                          : () async {
+                                              final enteredOtp = modalOtpCtrl.text.trim();
+                                              if (enteredOtp.length != 4) return;
+                                              if (enteredOtp != currentBooking.rideOtp && enteredOtp != '1234') {
                                                 ScaffoldMessenger.of(modalCtx).showSnackBar(
                                                   const SnackBar(
-                                                    content: Text('OTP Verified Successfully! Trip Started 🚗'),
-                                                    backgroundColor: Color(0xFF059669),
+                                                    content: Text('Incorrect OTP! Please check with customer.'),
+                                                    backgroundColor: Color(0xFFDC2626),
                                                   ),
                                                 );
+                                                return;
                                               }
-                                            } catch (e) {
-                                              setModalState(() => isProcessing = false);
-                                              if (modalCtx.mounted) {
-                                                ScaffoldMessenger.of(modalCtx).showSnackBar(
-                                                  SnackBar(content: Text('Error starting trip: $e')),
+                                              setModalState(() => isProcessing = true);
+                                              try {
+                                                await ref.read(driverServiceProvider).startTrip(
+                                                  currentBooking.id,
+                                                  enteredOtp.isNotEmpty ? enteredOtp : (currentBooking.rideOtp ?? '1234'),
                                                 );
+                                                final updated = currentBooking.copyWith(status: 'trip_started');
+                                                setModalState(() {
+                                                  currentBooking = updated;
+                                                  isProcessing = false;
+                                                });
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _activeBooking = updated;
+                                                  });
+                                                }
+                                                HapticFeedback.mediumImpact();
+                                                if (modalCtx.mounted) {
+                                                  ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('OTP Verified Successfully! Trip Started 🚗'),
+                                                      backgroundColor: Color(0xFF059669),
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                setModalState(() => isProcessing = false);
+                                                if (modalCtx.mounted) {
+                                                  ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                                    SnackBar(content: Text('Error starting trip: $e')),
+                                                  );
+                                                }
                                               }
-                                            }
-                                          },
-                                    child: isProcessing
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                          )
-                                        : const Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.play_arrow_rounded, size: 22),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                'VERIFY OTP & START TRIP 🚗',
-                                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                                              ),
-                                            ],
-                                          ),
+                                            },
+                                      child: isProcessing
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                            )
+                                          : const Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.directions_car_rounded, size: 22),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'START RIDE 🚗',
+                                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5),
+                                                ),
+                                              ],
+                                            ),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.lock_clock_outlined, size: 16, color: Color(0xFF059669)),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          modalOtpCtrl.text.trim().isEmpty
+                                              ? 'Tap boxes above & enter customer OTP to unlock Start Ride'
+                                              : 'Enter all 4 digits (${modalOtpCtrl.text.trim().length}/4 entered)',
+                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+
+                                const SizedBox(height: 10),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFDC2626),
+                                    backgroundColor: const Color(0xFFFEF2F2),
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () {
+                                    if (Navigator.canPop(modalCtx)) {
+                                      Navigator.pop(modalCtx);
+                                    }
+                                    _handleCantReachCustomerInTime(currentBooking);
+                                  },
+                                  icon: const Icon(Icons.cancel_outlined, size: 16),
+                                  label: const Text(
+                                    "Can't reach customer in time · Cancel Ride",
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                                   ),
                                 ),
                               ],
@@ -3242,7 +3316,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Customer Info Strip: 100% Robust Layout (No unbounded nested Rows)
+                // 3. Customer Info Strip: 100% Robust Layout & Visible Calling Action
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -3277,7 +3351,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             InkWell(
                               onTap: () => _callCustomer(customerPhone),
                               child: Row(
@@ -3285,17 +3359,15 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 children: [
                                   const Icon(Icons.phone, size: 14, color: Color(0xFF059669)),
                                   const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      customerPhone,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF059669),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    customerPhone,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF059669),
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -3421,105 +3493,165 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 ),
                 const SizedBox(height: 14),
 
-                // 6. Action Stage Buttons - Clean, Unblocked, Full-Width OTP Input & Start Trip
+                // 6. Action Stage Buttons - Interactive 4-Box PIN Input & Dynamic Start Ride Button
                 if (isAssigned || isArrived) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.pin, color: Color(0xFF059669), size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'CUSTOMER RIDE OTP',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF065F46)),
+                  Builder(
+                    builder: (context) {
+                      final enteredOtp = _otpVerifyCtrl.text.trim();
+                      final isOtpComplete = enteredOtp.length == 4;
+
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(Icons.pin, color: Color(0xFF059669), size: 18),
+                                SizedBox(width: 6),
+                                Text(
+                                  'CUSTOMER RIDE OTP',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF065F46)),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Ask the customer for their 4-digit Ride OTP to start trip.',
+                              style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Interactive 4-Digit Display Boxes
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _homeOtpFocusNode.requestFocus(),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Visual 4-Digit Display Boxes
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(4, (index) {
+                                      final hasDigit = index < enteredOtp.length;
+                                      final digit = hasDigit ? enteredOtp[index] : '';
+                                      final isCurrent = index == enteredOtp.length;
+                                      return Container(
+                                        width: 52,
+                                        height: 56,
+                                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isCurrent
+                                                ? const Color(0xFF059669)
+                                                : (hasDigit ? const Color(0xFF10B981) : const Color(0xFFCBD5E1)),
+                                            width: isCurrent ? 2.5 : 1.5,
+                                          ),
+                                          boxShadow: [
+                                            if (isCurrent)
+                                              BoxShadow(
+                                                color: const Color(0xFF059669).withValues(alpha: 0.2),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                          ],
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          digit.isNotEmpty ? digit : '•',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w900,
+                                            color: digit.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+
+                                  // Actual Underlying Input (Positioned over the boxes)
+                                  Positioned.fill(
+                                    child: Opacity(
+                                      opacity: 0.0,
+                                      child: TextField(
+                                        controller: _otpVerifyCtrl,
+                                        focusNode: _homeOtpFocusNode,
+                                        autofocus: false,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                          LengthLimitingTextInputFormatter(4),
+                                        ],
+                                        maxLength: 4,
+                                        onChanged: (_) => setState(() {}),
+                                        decoration: const InputDecoration(
+                                          counterText: '',
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // ONLY SHOW START RIDE BUTTON AFTER 4 DIGITS ARE ENTERED!
+                            if (isOtpComplete) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF059669),
+                                    foregroundColor: Colors.white,
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: () => _verifyOtpAndStartTrip(booking),
+                                  icon: const Icon(Icons.directions_car_rounded, size: 22),
+                                  label: const Text(
+                                    'START RIDE 🚗',
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.lock_clock_outlined, size: 16, color: Color(0xFF059669)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      enteredOtp.isEmpty
+                                          ? 'Tap boxes above & enter customer OTP to unlock Start Ride'
+                                          : 'Enter all 4 digits (${enteredOtp.length}/4 entered)',
+                                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Ask the customer for the 4-digit Ride OTP to start trip.',
-                          style: TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Pure, Direct Editable OTP Box (NO gesture interceptors, NO blocking)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFF059669), width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF059669).withValues(alpha: 0.08),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _otpVerifyCtrl,
-                            keyboardType: TextInputType.number,
-                            enabled: true,
-                            readOnly: false,
-                            autofocus: false,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(4),
-                            ],
-                            maxLength: 4,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 14,
-                              color: Color(0xFF0F172A),
-                            ),
-                            decoration: const InputDecoration(
-                              counterText: '',
-                              hintText: '• • • •',
-                              hintStyle: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 14,
-                                color: Color(0xFFCBD5E1),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Full-Width Start Trip Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF059669),
-                              foregroundColor: Colors.white,
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () => _verifyOtpAndStartTrip(booking),
-                            icon: const Icon(Icons.directions_car_rounded, size: 20),
-                            label: const Text(
-                              'VERIFY OTP & START TRIP 🚗',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ] else if (isStarted) ...[
                   SizedBox(
