@@ -79,7 +79,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         RemoteUpdateChecker.checkAndShowUpdateDialog(
           context: context,
           appKey: 'driver_app',
-          currentBuildNumber: 25,
+          currentBuildNumber: 26,
         );
       }
 
@@ -1710,7 +1710,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final raw = doc.data();
             final m = (raw is Map) ? Map<String, dynamic>.from(raw) : null;
             final st = m?['status']?.toString();
-            if (st == 'trip_completed') {
+            if (st == 'trip_completed' || st == 'completed') {
               final fareVal = (m?['finalFare'] as num?)?.toDouble() ??
                   (m?['estimatedFare'] as num?)?.toDouble() ??
                   0.0;
