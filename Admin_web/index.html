@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>District Car Admin — Fleet & Revenue Management System</title>
+  <meta name="description" content="Official Enterprise Operations & Commission Management System for District Car. Manage Jharkhand drivers, riders, real-time rides, 10% platform commission, and wallet settlements.">
+  <link rel="icon" type="image/jpeg" href="assets/app_logo.jpg">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Core App Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/app_logo.jpg" alt="District Car" class="brand-logo">
+        <div class="brand-text">
+          <h1>District Car</h1>
+          <span class="brand-badge">HQ Admin</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Overview</div>
+        <a class="nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-title">Fleet & Users</div>
+        <a class="nav-item" data-view="drivers">
+          <i class="fa-solid fa-id-card"></i>
+          <span>Drivers & KYC</span>
+          <span class="nav-badge" id="badgePendingDrivers" style="display:none; background:#EF4444;">0</span>
+        </a>
+        <a class="nav-item" data-view="users">
+          <i class="fa-solid fa-users"></i>
+          <span>Customers</span>
+        </a>
+
+        <div class="nav-section-title">Operations & Finance</div>
+        <a class="nav-item" data-view="bookings">
+          <i class="fa-solid fa-route"></i>
+          <span>All Rides & 10% Comm</span>
+        </a>
+        <a class="nav-item" data-view="payouts">
+          <i class="fa-solid fa-wallet"></i>
+          <span>Driver Payouts</span>
+          <span class="nav-badge" id="badgePendingPayouts" style="display:none; background:#F59E0B;">0</span>
+        </a>
+
+        <div class="nav-section-title">System & App Control</div>
+        <a class="nav-item" data-view="updates">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Remote App Version</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="live-indicator">
+          <span class="pulse-dot"></span>
+          <span id="liveSyncText">Connecting...</span>
+        </div>
+        <span style="font-weight:700; font-size:11px;">v2.6.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Navigation">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="topbar-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="globalSearchInput" placeholder="Quick search (#DC, driver, phone)...">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="clock-badge" id="liveClock">Loading clock...</div>
+          <button class="quick-btn" onclick="exportBookingsCSV()">
+            <i class="fa-solid fa-file-excel"></i> Export CSV
+          </button>
+          <div class="admin-profile" title="Signed in as Master District Car Admin">
+            <div class="admin-avatar">DC</div>
+            <div>
+              <div style="font-size:13px; font-weight:800; color:#0F172A;">Admin HQ</div>
+              <div style="font-size:11px; color:#64748B;">Jharkhand Ops</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="content-body">
+
+        <!-- VIEW 1: DASHBOARD -->
+        <section id="view-dashboard" class="view-section active">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Executive Dashboard</h2>
+              <p>Real-time performance, gross volume, 10% platform share & active fleet metrics across Jharkhand.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" onclick="renderAllViews()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Data
+              </button>
+            </div>
+          </div>
+
+          <!-- Key Performance Cards Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card accent-emerald">
+              <div class="metric-top">
+                <span class="metric-label">Gross Bookings</span>
+                <div class="metric-icon" style="background:#ECFDF5; color:#059669;">
+                  <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricTotalRevenue">₹0</div>
+              <div class="metric-sub positive">
+                <i class="fa-solid fa-arrow-trend-up"></i> Total ride value generated
+              </div>
+            </div>
+
+            <div class="metric-card accent-blue">
+              <div class="metric-top">
+                <span class="metric-label">Platform Comm (10%)</span>
+                <div class="metric-icon" style="background:#EFF6FF; color:#2563EB;">
+                  <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricCommission" style="color:#2563EB;">₹0</div>
+              <div class="metric-sub">
+                <i class="fa-solid fa-shield-halved"></i> District Car net platform share
+              </div>
+            </div>
+
+            <div class="metric-card accent-emerald">
+              <div class="metric-top">
+                <span class="metric-label">Driver Earnings (90%)</span>
+                <div class="metric-icon" style="background:#ECFDF5; color:#065F46;">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricDriverShare" style="color:#065F46;">₹0</div>
+              <div class="metric-sub positive">
+                <i class="fa-solid fa-users"></i> Distributed to driver partners
+              </div>
+            </div>
+
+            <div class="metric-card accent-amber">
+              <div class="metric-top">
+                <span class="metric-label">Completed Rides</span>
+                <div class="metric-icon" style="background:#FFFBEB; color:#D97706;">
+                  <i class="fa-solid fa-car-side"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricTotalRides">0</div>
+              <div class="metric-sub">
+                <i class="fa-solid fa-check-double"></i> Verified successful trips
+              </div>
+            </div>
+
+            <div class="metric-card accent-emerald">
+              <div class="metric-top">
+                <span class="metric-label">Active / Total Drivers</span>
+                <div class="metric-icon" style="background:#ECFDF5; color:#059669;">
+                  <i class="fa-solid fa-signal"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricActiveDrivers">0 / 0</div>
+              <div class="metric-sub positive">
+                <i class="fa-solid fa-circle-dot"></i> Online & approved fleet
+              </div>
+            </div>
+
+            <div class="metric-card accent-rose">
+              <div class="metric-top">
+                <span class="metric-label">Registered Customers</span>
+                <div class="metric-icon" style="background:#FEF2F2; color:#DC2626;">
+                  <i class="fa-solid fa-user-group"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="metricTotalUsers">0</div>
+              <div class="metric-sub">
+                <i class="fa-solid fa-mobile-screen-button"></i> Customer app accounts
+              </div>
+            </div>
+          </div>
+
+          <!-- Revenue Analytics Graph & Quick Rules Overview -->
+          <div class="dashboard-grid">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-chart-column" style="color:#059669; margin-right:8px;"></i> Revenue & 10% Commission Trend (Past 7 Days)</span>
+                <span style="font-size:12px; color:#64748B; font-weight:700;">Daily Aggregates</span>
+              </div>
+              <div class="card-body" style="height:320px;">
+                <canvas id="revenueChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-circle-info" style="color:#3B82F6; margin-right:8px;"></i> District Car Platform Rules</span>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:16px;">
+                <div style="background:#F8FAFC; padding:14px; border-radius:10px; border-left:4px solid #059669;">
+                  <strong style="display:block; font-size:13.5px; color:#0F172A; margin-bottom:4px;">10% Commission Model</strong>
+                  <p style="font-size:12.5px; color:#475569; line-height:1.4;">Drivers keep 90% of every ride. 10% platform maintenance fee is automatically logged to Driver Commission Wallet.</p>
+                </div>
+                <div style="background:#F8FAFC; padding:14px; border-radius:10px; border-left:4px solid #EF4444;">
+                  <strong style="display:block; font-size:13.5px; color:#0F172A; margin-bottom:4px;">3-Trip Cash Lock Rule</strong>
+                  <p style="font-size:12.5px; color:#475569; line-height:1.4;">When a driver accumulates 3 unpaid cash rides without clearing platform dues, driver app auto-locks new bookings until settled.</p>
+                </div>
+                <div style="background:#F8FAFC; padding:14px; border-radius:10px; border-left:4px solid #3B82F6;">
+                  <strong style="display:block; font-size:13.5px; color:#0F172A; margin-bottom:4px;">Instant UPI Settlement</strong>
+                  <p style="font-size:12.5px; color:#475569; line-height:1.4;">Driver online trip payouts can be released via direct UPI reference numbers in the Payouts module.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: DRIVERS & FLEET MANAGEMENT -->
+        <section id="view-drivers" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Driver Partners & KYC Verification</h2>
+              <p>Manage all registered drivers, check DL/RC documents, monitor wallet & 10% platform commission dues.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" onclick="renderDriversTable()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <select id="driverStatusFilter" class="filter-select" onchange="renderDriversTable()">
+                <option value="all">All Drivers (All Status)</option>
+                <option value="online">Online Now</option>
+                <option value="pending">Pending KYC Review</option>
+                <option value="approved">Approved & Active</option>
+                <option value="unpaid_lock">Locked (3-Trip Rule)</option>
+              </select>
+            </div>
+            <div class="topbar-search" style="width:280px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="driverSearchInput" placeholder="Search driver name, phone, plate...">
+            </div>
+          </div>
+
+          <!-- Drivers Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Driver Name & ID</th>
+                  <th>Contact Number</th>
+                  <th>Vehicle Category & Plate</th>
+                  <th>Live Status</th>
+                  <th>KYC Verification</th>
+                  <th>Total Trips</th>
+                  <th>Driver Balance</th>
+                  <th>Platform Fee Due</th>
+                  <th>Cash Lock Counter</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="driversTableBody">
+                <!-- Dynamically populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- VIEW 3: CUSTOMERS & USERS -->
+        <section id="view-users" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Registered Customers</h2>
+              <p>View customer profiles, trip history, spending metrics, and account security controls.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" onclick="renderUsersTable()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div></div>
+            <div class="topbar-search" style="width:280px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="userSearchInput" placeholder="Search customer name, phone, email...">
+            </div>
+          </div>
+
+          <!-- Users Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Customer Profile</th>
+                  <th>Phone Number</th>
+                  <th>Account Status</th>
+                  <th>Total Rides</th>
+                  <th>Total Spent</th>
+                  <th>Joined On</th>
+                  <th style="text-align:right;">Account Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Dynamically populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- VIEW 4: ALL RIDES & COMMISSION AUDIT -->
+        <section id="view-bookings" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>All Rides & 10% Commission Per Rider</h2>
+              <p>Transparent ledger showing Gross Fare, 10% Platform Commission, and 90% Driver Share for every booking.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-primary btn-sm" onclick="exportBookingsCSV()">
+                <i class="fa-solid fa-download"></i> Export CSV Report
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="renderBookingsTable()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <select id="bookingStatusFilter" class="filter-select" onchange="renderBookingsTable()">
+                <option value="all">All Booking Statuses</option>
+                <option value="completed">Completed Rides</option>
+                <option value="in_progress">In-Progress / En Route</option>
+                <option value="searching">Searching Driver</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="topbar-search" style="width:300px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="bookingSearchInput" placeholder="Search by #DC ID, customer, driver...">
+            </div>
+          </div>
+
+          <!-- Bookings Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Booking ID & OTP</th>
+                  <th>Customer</th>
+                  <th>Assigned Driver</th>
+                  <th>Vehicle Category</th>
+                  <th>Route (Pickup & Destination)</th>
+                  <th>Status</th>
+                  <th>Gross Fare</th>
+                  <th>10% Platform Fee</th>
+                  <th>90% Driver Share</th>
+                  <th style="text-align:right;">Audit</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsTableBody">
+                <!-- Dynamically populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- VIEW 5: DRIVER PAYOUT REQUESTS -->
+        <section id="view-payouts" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Driver Payout Requests</h2>
+              <p>Review and disburse instant wallet withdrawals requested by drivers via UPI.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary btn-sm" onclick="renderPayoutsTable()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Payouts Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Request Reference</th>
+                  <th>Driver Details</th>
+                  <th>Withdrawal Amount</th>
+                  <th>Driver UPI ID</th>
+                  <th>Requested Timestamp</th>
+                  <th>Status</th>
+                  <th style="text-align:right;">Payout Action</th>
+                </tr>
+              </thead>
+              <tbody id="payoutsTableBody">
+                <!-- Dynamically populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- VIEW 6: REMOTE APP UPDATE CONTROLS -->
+        <section id="view-updates" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Remote App Version & Force Updates</h2>
+              <p>Control live build versions for District Car Driver and Customer mobile applications in Firestore (<code>remote_configs/app_updates</code>).</p>
+            </div>
+          </div>
+
+          <div style="max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:28px; box-shadow:var(--shadow-sm);">
+            <form id="remoteConfigForm" onsubmit="saveRemoteConfigForm(event)">
+              <div class="form-group">
+                <label class="form-label" for="cfgDriverBuild">Driver App Current Build Number</label>
+                <input type="number" id="cfgDriverBuild" class="form-control" required min="1" placeholder="e.g. 26">
+                <span style="font-size:12px; color:#64748B;">Any driver app with a build number below this will trigger update warnings.</span>
+              </div>
+
+              <div class="form-group" style="margin-top:20px;">
+                <label class="form-label" for="cfgCustomerBuild">Customer App Current Build Number</label>
+                <input type="number" id="cfgCustomerBuild" class="form-control" required min="1" placeholder="e.g. 26">
+                <span style="font-size:12px; color:#64748B;">Customer apps below this build number will prompt the user to update.</span>
+              </div>
+
+              <div class="form-group" style="margin-top:20px;">
+                <label class="form-label" for="cfgDriverApkUrl">Driver Release APK Direct Download URL</label>
+                <input type="url" id="cfgDriverApkUrl" class="form-control" required placeholder="https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk">
+              </div>
+
+              <div class="form-group" style="margin-top:20px; display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" id="cfgForceUpdate" style="width:18px; height:18px; cursor:pointer;">
+                <label for="cfgForceUpdate" style="font-size:13.5px; font-weight:700; color:#0F172A; cursor:pointer;">
+                  Enable Force Update (Blocks outdated driver app versions until upgraded)
+                </label>
+              </div>
+
+              <div style="margin-top:28px;">
+                <button type="submit" class="btn btn-primary" style="padding:12px 24px; font-size:14px;">
+                  <i class="fa-solid fa-floppy-disk"></i> Save & Broadcast to Mobile Apps
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: DRIVER FULL PROFILE & KYC AUDIT -->
+  <div class="modal-backdrop" id="driverDetailModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="modalDriverName">Driver KYC Review</h3>
+          <span style="font-size:12px; color:#64748B;">Driver Identification & Document Verification</span>
+        </div>
+        <button class="modal-close" onclick="closeModal('driverDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Phone Number</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="modalDriverPhone">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Vehicle Plate</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="modalDriverPlate">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Vehicle Class</div>
+            <div style="font-size:14px; font-weight:800; color:#059669;" id="modalDriverCategory">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Driving License #</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="modalDriverDL">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Wallet Balance</div>
+            <div style="font-size:14px; font-weight:800; color:#059669;" id="modalDriverWallet">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Pending 10% Fee</div>
+            <div style="font-size:14px; font-weight:800; color:#B91C1C;" id="modalDriverCommission">-</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h4 style="font-size:13.5px; font-weight:800; margin-bottom:12px; color:#0F172A;">KYC Verification Documents</h4>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <span style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Driving License (DL)</span>
+              <img id="modalDriverDlImg" src="" alt="Driving License" style="width:100%; height:150px; object-fit:cover; border-radius:8px; border:1px solid #E2E8F0; background:#F1F5F9;">
+            </div>
+            <div>
+              <span style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Vehicle RC (Registration)</span>
+              <img id="modalDriverRcImg" src="" alt="Vehicle RC" style="width:100%; height:150px; object-fit:cover; border-radius:8px; border:1px solid #E2E8F0; background:#F1F5F9;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('driverDetailModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BOOKING ROUTE & FARE AUDIT -->
+  <div class="modal-backdrop" id="bookingAuditModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Ride Breakdown & Commission Audit</h3>
+          <span style="font-size:12px; color:#64748B;" id="auditBookingId">-</span>
+        </div>
+        <button class="modal-close" onclick="closeModal('bookingAuditModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Customer</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="auditCustomer">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Assigned Driver Partner</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="auditDriver">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Ride Start Verification (OTP)</div>
+            <div style="font-size:15px; font-weight:900; color:#059669;" id="auditOTP">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Pickup Point</div>
+            <div style="font-size:13.5px; color:#0F172A; margin-top:2px;" id="auditPickup">-</div>
+          </div>
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+            <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Destination</div>
+            <div style="font-size:13.5px; color:#0F172A; margin-top:2px;" id="auditDestination">-</div>
+          </div>
+
+          <div style="margin-top:10px; border-top:1px dashed #CBD5E1; padding-top:16px;">
+            <h4 style="font-size:13px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:10px;">Fare & Commission Split</h4>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+              <span>Total Gross Customer Fare:</span>
+              <strong id="auditGrossFare" style="color:#0F172A;">₹0</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; color:#B91C1C;">
+              <span>District Car Platform Fee (10%):</span>
+              <strong id="auditCommission">₹0</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:15px; color:#059669; border-top:1px solid #E2E8F0; padding-top:8px;">
+              <span>Driver Net Payout (90%):</span>
+              <strong id="auditDriverNet">₹0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('bookingAuditModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase 10.8.0 Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- District Car Admin Engine Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
