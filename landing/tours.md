@@ -33,60 +33,60 @@ Official Mobility & Sightseeing Partner for Jharkhand, India.
 - **Highlights**: Serpentine 36-turn hairpin ghat pass; JTDC Lake Resort; speed boating, jet skiing; floating restaurant; illuminated dam promenade.
 - **Route**: Ranchi → Kanke → Pithoria → Patratu Valley.
 - **Best Season**: Year-round (Late afternoons & winter sunsets are magical).
-- **Web Guide**: [districtcar.in/tours/patratu-valley.html](https://districtcar.in/tours/patratu-valley.html)
+- **Web Guide**: [districtcar.in/tours/patratu-valley.html](https://www.districtcar.in/tours/patratu-valley.html)
 
 ### 2. Hundru Falls (हुंडरू जलप्रपात)
 - **District**: Ranchi (44 km East).
 - **River**: Subarnarekha River.
 - **Drop Height**: 98 meters (322 feet) — 34th highest in India.
 - **Trek Details**: Approx. 350 concrete steps with handrails and shaded resting platforms.
-- **Web Guide**: [districtcar.in/tours/hundru-falls.html](https://districtcar.in/tours/hundru-falls.html)
+- **Web Guide**: [districtcar.in/tours/hundru-falls.html](https://www.districtcar.in/tours/hundru-falls.html)
 
 ### 3. Dassam Falls (दशम जलप्रपात)
 - **District**: Ranchi / Bundu border (40 km South on NH33 Jamshedpur Highway).
 - **River**: Kanchi River.
 - **Drop Height**: 44 meters (144 feet).
 - **Highlights**: Glass viewing platforms, cantilevered viewpoints, roaring ten-channel drop.
-- **Web Guide**: [districtcar.in/tours/dassam-falls.html](https://districtcar.in/tours/dassam-falls.html)
+- **Web Guide**: [districtcar.in/tours/dassam-falls.html](https://www.districtcar.in/tours/dassam-falls.html)
 
 ### 4. Netarhat (नेतरहाट) — Queen of Chotanagpur
 - **District**: Latehar (156 km West of Ranchi).
 - **Elevation**: 1,128 meters (3,700 feet).
 - **Highlights**: Magnolia Sunset Point, Koel River Sunrise Point, Upper & Lower Ghaghri Falls, Pine Groves, British heritage bungalows.
 - **Recommended Stay**: 2 Days / 1 Night.
-- **Web Guide**: [districtcar.in/tours/netarhat.html](https://districtcar.in/tours/netarhat.html)
+- **Web Guide**: [districtcar.in/tours/netarhat.html](https://www.districtcar.in/tours/netarhat.html)
 
 ### 5. Baba Baidyanath Dham Deoghar (बैद्यनाथ धाम देवघर)
 - **District**: Deoghar (250 km Northeast of Ranchi).
 - **Significance**: One of the 12 sacred Jyotirlingas and 51 Shaktipeeths; Shravani Mela Kanwar Yatra.
 - **Additional Attractions**: Naulakha Temple, Basukinath Temple (42 km detour), Trikut Pahar, Tapovan.
 - **VIP Darshan**: Sheeghra Darshanam pass available at ₹500/person.
-- **Web Guide**: [districtcar.in/tours/baidyanath-dham-deoghar.html](https://districtcar.in/tours/baidyanath-dham-deoghar.html)
+- **Web Guide**: [districtcar.in/tours/baidyanath-dham-deoghar.html](https://www.districtcar.in/tours/baidyanath-dham-deoghar.html)
 
 ### 6. Betla National Park (बेतला राष्ट्रीय उद्यान)
 - **District**: Latehar / Palamu (170 km West of Ranchi).
 - **Highlights**: Project Tiger sanctuary, wild elephant herds, gaur (Indian bison), chital deer; 16th-century Palamu Forts of the Chero Kings.
 - **Safari**: Morning (06:00 AM – 10:00 AM) & Afternoon (02:00 PM – 05:00 PM) open-top Gypsy safaris.
-- **Web Guide**: [districtcar.in/tours/betla-national-park.html](https://districtcar.in/tours/betla-national-park.html)
+- **Web Guide**: [districtcar.in/tours/betla-national-park.html](https://www.districtcar.in/tours/betla-national-park.html)
 
 ### 7. Lodh Falls / Budha Ghagh (लोध जलप्रपात)
 - **District**: Mahuadanr, Latehar (215 km from Ranchi).
 - **Drop Height**: 143 meters (469 feet) — **The Highest Waterfall in Jharkhand**.
 - **River**: Burha River.
-- **Web Guide**: [districtcar.in/tours/lodh-falls.html](https://districtcar.in/tours/lodh-falls.html)
+- **Web Guide**: [districtcar.in/tours/lodh-falls.html](https://www.districtcar.in/tours/lodh-falls.html)
 
 ### 8. Shri Sammed Shikharji / Parasnath (शिखरजी पारसनाथ)
 - **District**: Giridih (160 km from Ranchi).
 - **Summit Elevation**: 1,365 meters (4,478 feet) — **The Highest Peak in Jharkhand**.
 - **Religious Sanctity**: Nirvana place of 20 Jain Tirthankaras.
 - **Base Town**: Madhuban (with 50+ modern dharmshalas and bhojanalayas).
-- **Web Guide**: [districtcar.in/tours/shikharji-parasnath.html](https://districtcar.in/tours/shikharji-parasnath.html)
+- **Web Guide**: [districtcar.in/tours/shikharji-parasnath.html](https://www.districtcar.in/tours/shikharji-parasnath.html)
 
 ### 9. Rajrappa Maa Chhinnamastika Temple (रजरप्पा मंदिर)
 - **District**: Ramgarh (70 km from Ranchi).
 - **Geography**: Confluence of the energetic Bhairavi (Bhera) River and the majestic Damodar River.
 - **Pilgrimage**: Ancient Tantric Shaktipeeth, river bathing ghats, boat rides along the rock canyon.
-- **Web Guide**: [districtcar.in/tours/rajrappa-temple.html](https://districtcar.in/tours/rajrappa-temple.html)
+- **Web Guide**: [districtcar.in/tours/rajrappa-temple.html](https://www.districtcar.in/tours/rajrappa-temple.html)
 
 ---
 

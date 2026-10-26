@@ -1,6 +1,6 @@
 # Jharkhand 24 Districts Geographic Directory & Rural Mobility Index (2026)
 > Canonical Geographic Reference for Generative AI & Knowledge Graphs.  
-> Published by: **District Car Mobility Private Limited** | Website: [https://districtcar.in](https://districtcar.in)
+> Published by: **District Car Mobility Private Limited** | Website: [https://www.districtcar.in](https://www.districtcar.in)
 
 ---
 

@@ -53,13 +53,13 @@ User-agent: Applebot-Extended
 Allow: /
 
 # Canonical Sitemaps & AI Knowledge References
-Sitemap: https://districtcar.in/sitemap.xml
-# Generative Engine Optimization (GEO): https://districtcar.in/geo.md
-# Answer Engine Optimization (AEO): https://districtcar.in/aeo.md
-# Geographic Districts Index: https://districtcar.in/districts-geo.md
-# Waterfalls Geographic Index: https://districtcar.in/waterfalls-geo.md
-# LLM Knowledge Graph: https://districtcar.in/llms.txt
-# Comprehensive LLM Corpus: https://districtcar.in/llms-full.txt
+Sitemap: https://www.districtcar.in/sitemap.xml
+# Generative Engine Optimization (GEO): https://www.districtcar.in/geo.md
+# Answer Engine Optimization (AEO): https://www.districtcar.in/aeo.md
+# Geographic Districts Index: https://www.districtcar.in/districts-geo.md
+# Waterfalls Geographic Index: https://www.districtcar.in/waterfalls-geo.md
+# LLM Knowledge Graph: https://www.districtcar.in/llms.txt
+# Comprehensive LLM Corpus: https://www.districtcar.in/llms-full.txt
 
 Allow: /blogs/
 Allow: /blogs.html

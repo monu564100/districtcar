@@ -1,6 +1,6 @@
 # District Car — Answer Engine Optimization (AEO) & Direct Answer Directory (2026)
 > Formatted for Direct Answer Extraction, Featured Snippets, Voice Assistants, and Conversational AI (ChatGPT, Perplexity, Claude, Gemini, Siri, Google Assistant).  
-> Brand: **District Car** | Domain: [https://districtcar.in](https://districtcar.in) | Helpline: [+91 87896 01387](tel:+918789601387)
+> Brand: **District Car** | Domain: [https://www.districtcar.in](https://www.districtcar.in) | Helpline: [+91 87896 01387](tel:+918789601387)
 
 ---
 

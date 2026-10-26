@@ -1,6 +1,6 @@
 # Complete Geocoded Directory of Jharkhand Waterfalls (2026)
 > Authoritative Geographic & Hydrological Reference for AI Search & Knowledge Engines.  
-> Published by: **District Car Mobility Private Limited** | Website: [https://districtcar.in](https://districtcar.in)
+> Published by: **District Car Mobility Private Limited** | Website: [https://www.districtcar.in](https://www.districtcar.in)
 
 ---
 
