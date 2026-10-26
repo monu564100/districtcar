@@ -1,5 +1,6 @@
 /**
  * District Car Admin Web — Core Application & UI Controller
+ * Includes Driver Commissions & Settlements, KYC Verification, and Ride Accounting
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,6 +24,42 @@ let currentView = 'dashboard';
 let revenueChart = null;
 
 /**
+ * Universal Driver Name Getter
+ * Ensures driver name is ALWAYS properly resolved from any Firestore schema
+ */
+function getDriverName(d) {
+  if (!d) return 'Driver Partner';
+  if (typeof d === 'string') return d;
+
+  const candidate = d.name || d.fullName || d.driverName || d.displayName || 
+                    d.personalDetails?.fullName || d.personalDetails?.name ||
+                    d.profile?.name || d.profile?.fullName;
+
+  if (candidate && candidate.trim().length > 0 && candidate.trim().toLowerCase() !== 'unnamed driver') {
+    return candidate.trim();
+  }
+
+  // If phone exists
+  const phone = d.phoneNumber || d.driverPhone || d.phone;
+  if (phone && phone.trim().length > 0) {
+    const cleanPhone = phone.trim();
+    return `Driver (${cleanPhone.length > 5 ? cleanPhone.slice(-5) : cleanPhone})`;
+  }
+
+  // If email exists
+  if (d.email && d.email.trim().length > 0) {
+    const prefix = d.email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
+
+  if (d.id) {
+    return `Partner #${d.id.substring(0, 6).toUpperCase()}`;
+  }
+
+  return 'Driver Partner';
+}
+
+/**
  * 1. Navigation Controller
  */
 function setupNavigation() {
@@ -34,7 +71,8 @@ function setupNavigation() {
       switchView(target);
 
       // Close mobile sidebar if open
-      document.querySelector('.sidebar').classList.remove('open');
+      const sb = document.querySelector('.sidebar');
+      if (sb) sb.classList.remove('open');
     });
   });
 
@@ -42,7 +80,8 @@ function setupNavigation() {
   const mobileToggle = document.getElementById('mobileToggle');
   if (mobileToggle) {
     mobileToggle.addEventListener('click', () => {
-      document.querySelector('.sidebar').classList.toggle('open');
+      const sb = document.querySelector('.sidebar');
+      if (sb) sb.classList.toggle('open');
     });
   }
 }
@@ -103,6 +142,7 @@ function renderAllViews() {
   renderDriversTable();
   renderUsersTable();
   renderBookingsTable();
+  renderCommissionView();
   renderPayoutsTable();
   renderRemoteConfigView();
   updateNavBadges();
@@ -118,6 +158,8 @@ function renderCurrentView() {
     renderUsersTable();
   } else if (currentView === 'bookings') {
     renderBookingsTable();
+  } else if (currentView === 'commissions') {
+    renderCommissionView();
   } else if (currentView === 'payouts') {
     renderPayoutsTable();
   } else if (currentView === 'updates') {
@@ -126,7 +168,7 @@ function renderCurrentView() {
 }
 
 function updateNavBadges() {
-  // Pending Drivers Badge
+  // Pending Drivers KYC Badge
   const pendingDrivers = AdminStore.drivers.filter(d => d.verificationStatus === 'pending').length;
   const badgeDrivers = document.getElementById('badgePendingDrivers');
   if (badgeDrivers) {
@@ -140,6 +182,14 @@ function updateNavBadges() {
   if (badgePayouts) {
     badgePayouts.innerText = pendingPayouts > 0 ? pendingPayouts : '';
     badgePayouts.style.display = pendingPayouts > 0 ? 'inline-block' : 'none';
+  }
+
+  // Outstanding Commission / 3-Trip Locked Badge
+  const lockedDrivers = AdminStore.drivers.filter(d => (parseInt(d.unpaidTripsCount, 10) || 0) >= 3).length;
+  const badgeComm = document.getElementById('badgePendingCommissions');
+  if (badgeComm) {
+    badgeComm.innerText = lockedDrivers > 0 ? `${lockedDrivers} Locked` : '';
+    badgeComm.style.display = lockedDrivers > 0 ? 'inline-block' : 'none';
   }
 }
 
@@ -195,7 +245,6 @@ function renderRevenueChart() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // Calculate past 7 days breakdown
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const revenueData = [12400, 15800, 18900, 14200, 22400, 28900, 24500];
   const commissionData = revenueData.map(v => Math.round(v * 0.10));
@@ -267,11 +316,11 @@ function renderDriversTable() {
     if (filterStatus === 'online' && !d.isOnline) return false;
     if (filterStatus === 'pending' && d.verificationStatus !== 'pending') return false;
     if (filterStatus === 'approved' && d.verificationStatus !== 'approved') return false;
-    if (filterStatus === 'unpaid_lock' && (d.unpaidTripsCount || 0) < 3) return false;
+    if (filterStatus === 'unpaid_lock' && (parseInt(d.unpaidTripsCount, 10) || 0) < 3) return false;
 
     // Search term
     if (searchTerm) {
-      const name = (d.fullName || '').toLowerCase();
+      const name = getDriverName(d).toLowerCase();
       const phone = (d.phoneNumber || '').toLowerCase();
       const plate = (d.vehiclePlateNumber || '').toLowerCase();
       if (!name.includes(searchTerm) && !phone.includes(searchTerm) && !plate.includes(searchTerm)) {
@@ -291,6 +340,7 @@ function renderDriversTable() {
 
   let html = '';
   list.forEach((d) => {
+    const driverName = getDriverName(d);
     const isOnline = d.isOnline === true;
     const isBusy = d.driverStatus === 'busy';
     const statusChip = isBusy 
@@ -303,7 +353,7 @@ function renderDriversTable() {
 
     const unpaidCount = parseInt(d.unpaidTripsCount || 0, 10);
     const unpaidBadge = unpaidCount >= 3
-      ? `<span class="badge badge-danger" title="Locked by 3-Trip Rule">${unpaidCount} / 3 (Locked)</span>`
+      ? `<span class="badge badge-danger" title="Locked by 3-Trip Rule"><i class="fa-solid fa-lock"></i> ${unpaidCount} / 3 (Locked)</span>`
       : `<span class="badge badge-neutral">${unpaidCount} / 3</span>`;
 
     const wallet = parseFloat(d.walletBalance || 0);
@@ -313,11 +363,11 @@ function renderDriversTable() {
       <tr>
         <td>
           <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:36px; height:36px; border-radius:50%; background:#064E3B; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
-              ${(d.fullName || 'D')[0].toUpperCase()}
+            <div style="width:38px; height:38px; border-radius:50%; background:#064E3B; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0;">
+              ${(driverName[0] || 'D').toUpperCase()}
             </div>
             <div>
-              <strong style="display:block; font-size:14px; color:#0F172A;">${d.fullName || 'Unnamed Driver'}</strong>
+              <strong style="display:block; font-size:14px; color:#0F172A;">${driverName}</strong>
               <span style="font-size:12px; color:#64748B;">ID: ${d.id.substring(0, 10)}</span>
             </div>
           </div>
@@ -351,11 +401,9 @@ function renderDriversTable() {
                 <i class="fa-solid fa-xmark"></i>
               </button>
             ` : ''}
-            ${comm > 0 ? `
-              <button class="btn btn-primary btn-sm" onclick="settleDriverComm('${d.id}', ${comm})" title="Settle 10% Fee">
-                <i class="fa-solid fa-hand-holding-dollar"></i> Settle
-              </button>
-            ` : ''}
+            <button class="btn btn-primary btn-sm" onclick="openSettlePaymentModal('${d.id}')" title="Settle 10% Platform Fee">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Settle
+            </button>
           </div>
         </td>
       </tr>
@@ -398,15 +446,17 @@ function renderUsersTable() {
       ? '<span class="badge badge-danger">Blocked</span>'
       : '<span class="badge badge-success">Active</span>';
 
+    const userName = u.displayName || u.name || 'District Customer';
+
     html += `
       <tr>
         <td>
           <div style="display:flex; align-items:center; gap:10px;">
             <div style="width:34px; height:34px; border-radius:50%; background:#1E293B; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px;">
-              ${(u.displayName || u.name || 'U')[0].toUpperCase()}
+              ${(userName[0] || 'U').toUpperCase()}
             </div>
             <div>
-              <strong style="display:block; color:#0F172A;">${u.displayName || u.name || 'District Customer'}</strong>
+              <strong style="display:block; color:#0F172A;">${userName}</strong>
               <span style="font-size:12px; color:#64748B;">${u.email || 'No Email'}</span>
             </div>
           </div>
@@ -490,6 +540,7 @@ function renderBookingsTable() {
 
     const pickupStr = b.pickup?.address || 'Pickup Point';
     const destStr = b.destination?.address || 'Destination';
+    const dName = b.driverName ? b.driverName : (b.driverId ? `Driver #${b.driverId.substring(0, 6)}` : null);
 
     html += `
       <tr>
@@ -504,8 +555,8 @@ function renderBookingsTable() {
           </a>
         </td>
         <td>
-          ${b.driverName ? `
-            <strong style="display:block; color:#0F172A;">${b.driverName}</strong>
+          ${dName ? `
+            <strong style="display:block; color:#0F172A;">${dName}</strong>
             <a href="tel:${b.driverPhone}" style="color:#64748B; font-size:12px; text-decoration:none;">
               <i class="fa-solid fa-phone" style="color:#059669;"></i> ${b.driverPhone || ''}
             </a>
@@ -540,7 +591,157 @@ function renderBookingsTable() {
 }
 
 /**
- * 9. Payout Requests Table Controller
+ * 9. Driver Commission & Settlements Category Controller
+ */
+function renderCommissionView() {
+  const drivers = AdminStore.drivers;
+  const bookings = AdminStore.bookings;
+  const settlements = AdminStore.settlements;
+
+  // 1. Calculate Summary Cards
+  const completedBookings = bookings.filter(b => b.status === 'completed' || b.status === 'trip_completed');
+  const totalGross = completedBookings.reduce((sum, b) => {
+    const f = parseFloat(b.finalFare || b.estimatedFare || 0);
+    return sum + (isNaN(f) ? 0 : f);
+  }, 0);
+
+  const totalCommAccrued = totalGross * 0.10;
+  const totalCommDue = drivers.reduce((sum, d) => sum + (parseFloat(d.pendingCommission) || 0), 0);
+  const totalSettledFromDrivers = drivers.reduce((sum, d) => sum + (parseFloat(d.totalCommissionSettled) || 0), 0);
+  const totalSettledFromAudit = settlements.reduce((sum, s) => sum + (parseFloat(s.amountSettled) || 0), 0);
+  const totalSettled = Math.max(totalSettledFromDrivers, totalSettledFromAudit);
+
+  const lockedDriversCount = drivers.filter(d => (parseInt(d.unpaidTripsCount, 10) || 0) >= 3).length;
+
+  safeSetText('commTotalAccrued', `₹${Math.round(totalCommAccrued).toLocaleString('en-IN')}`);
+  safeSetText('commTotalDue', `₹${Math.round(totalCommDue).toLocaleString('en-IN')}`);
+  safeSetText('commTotalSettled', `₹${Math.round(totalSettled).toLocaleString('en-IN')}`);
+  safeSetText('commLockedDrivers', `${lockedDriversCount} Drivers Locked`);
+
+  // 2. Render Driver Commission Ledger Table
+  const tbodyLedger = document.getElementById('commissionTableBody');
+  if (tbodyLedger) {
+    const filter = document.getElementById('commStatusFilter')?.value || 'all';
+    const search = (document.getElementById('commSearchInput')?.value || '').toLowerCase();
+
+    let list = drivers.filter((d) => {
+      const pending = parseFloat(d.pendingCommission) || 0;
+      const unpaid = parseInt(d.unpaidTripsCount, 10) || 0;
+
+      if (filter === 'due' && pending <= 0) return false;
+      if (filter === 'locked' && unpaid < 3) return false;
+      if (filter === 'settled' && pending > 0) return false;
+
+      if (search) {
+        const dName = getDriverName(d).toLowerCase();
+        const dPhone = (d.phoneNumber || '').toLowerCase();
+        const dPlate = (d.vehiclePlateNumber || '').toLowerCase();
+        if (!dName.includes(search) && !dPhone.includes(search) && !dPlate.includes(search)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (list.length === 0) {
+      tbodyLedger.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:36px; color:#64748B;">No driver commission records match filter.</td></tr>`;
+    } else {
+      let html = '';
+      list.forEach((d) => {
+        const dName = getDriverName(d);
+        const trips = parseInt(d.totalTrips || 0, 10);
+        const pending = parseFloat(d.pendingCommission || 0);
+        const settled = parseFloat(d.totalCommissionSettled || 0);
+        const unpaid = parseInt(d.unpaidTripsCount || 0, 10);
+
+        // Approximate Gross from completed bookings or trip formula
+        const driverCompletedRides = bookings.filter(b => b.driverId === d.id && (b.status === 'completed' || b.status === 'trip_completed'));
+        const grossFromRides = driverCompletedRides.reduce((acc, b) => acc + (parseFloat(b.finalFare || b.estimatedFare) || 0), 0);
+        const estimatedGross = grossFromRides > 0 ? grossFromRides : (trips * 450);
+        const driverShare90 = estimatedGross * 0.90;
+
+        const isLocked = unpaid >= 3;
+        const lockBadge = isLocked
+          ? `<span class="badge badge-danger"><i class="fa-solid fa-lock"></i> ${unpaid} / 3 LOCKED</span>`
+          : (unpaid === 2 ? `<span class="badge badge-warning">${unpaid} / 3 Warning</span>` : `<span class="badge badge-neutral">${unpaid} / 3 OK</span>`);
+
+        const dueClass = pending > 0 ? 'color:#DC2626; font-size:15px;' : 'color:#059669; font-size:15px;';
+
+        html += `
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#0F172A; color:#FEF08A; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;">
+                  ${(dName[0] || 'D').toUpperCase()}
+                </div>
+                <div>
+                  <strong style="display:block; font-size:14px; color:#0F172A;">${dName}</strong>
+                  <span style="font-size:12px; color:#64748B;">ID: ${d.id.substring(0, 10)}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <a href="tel:${d.phoneNumber}" style="color:#059669; font-weight:700; text-decoration:none;">
+                <i class="fa-solid fa-phone"></i> ${d.phoneNumber || 'N/A'}
+              </a>
+            </td>
+            <td>
+              <span class="badge-category">${(d.vehicleCategoryId || 'CAB').toUpperCase()}</span>
+              <span style="display:block; font-size:12px; color:#475569; margin-top:2px;">${d.vehicleModel || ''}</span>
+              <strong style="font-size:12px; color:#0F172A;">${d.vehiclePlateNumber || 'No Plate'}</strong>
+            </td>
+            <td><strong style="font-size:14px; color:#0F172A;">${trips}</strong></td>
+            <td><strong style="font-size:14px; color:#0F172A;">₹${Math.round(estimatedGross).toLocaleString('en-IN')}</strong></td>
+            <td><strong style="${dueClass}">₹${Math.round(pending).toLocaleString('en-IN')}</strong></td>
+            <td><strong style="color:#059669; font-size:14px;">₹${Math.round(settled).toLocaleString('en-IN')}</strong></td>
+            <td>${lockBadge}</td>
+            <td style="text-align:right;">
+              <button class="btn btn-primary btn-sm" onclick="openSettlePaymentModal('${d.id}')" title="Record settled payment">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Settle Payment
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      tbodyLedger.innerHTML = html;
+    }
+  }
+
+  // 3. Render Settlement History Table
+  const tbodyHistory = document.getElementById('settlementsHistoryTableBody');
+  if (tbodyHistory) {
+    if (settlements.length === 0) {
+      tbodyHistory.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748B;">No settlement records found yet. Use "Settle Payment" above to record cash or UPI collections.</td></tr>`;
+    } else {
+      let hHtml = '';
+      settlements.forEach((s) => {
+        const dateStr = s.settledAt ? (s.settledAt.seconds ? new Date(s.settledAt.seconds * 1000).toLocaleString('en-IN') : new Date(s.settledAt).toLocaleString('en-IN')) : 'N/A';
+        const modeBadge = (s.paymentMode === 'cash')
+          ? '<span class="badge badge-neutral"><i class="fa-solid fa-money-bill"></i> Cash</span>'
+          : (s.paymentMode === 'upi' ? '<span class="badge badge-info"><i class="fa-solid fa-qrcode"></i> UPI</span>' : '<span class="badge badge-success"><i class="fa-solid fa-building-columns"></i> Bank/Wallet</span>');
+
+        hHtml += `
+          <tr>
+            <td><strong style="font-family:monospace; color:#059669;">${s.transactionRef || s.id.substring(0, 10)}</strong></td>
+            <td>${dateStr}</td>
+            <td>
+              <strong style="display:block;">${s.driverName || 'Driver Partner'}</strong>
+              <span style="font-size:12px; color:#64748B;">${s.driverPhone || ''}</span>
+            </td>
+            <td><strong style="font-size:15px; color:#059669;">₹${parseFloat(s.amountSettled || 0).toLocaleString('en-IN')}</strong></td>
+            <td>${modeBadge}</td>
+            <td style="font-size:12.5px; color:#475569;">${s.notes || 'Settled'}</td>
+            <td><span class="badge badge-success"><i class="fa-solid fa-shield-check"></i> ${s.settledBy || 'Admin HQ'}</span></td>
+          </tr>
+        `;
+      });
+      tbodyHistory.innerHTML = hHtml;
+    }
+  }
+}
+
+/**
+ * 10. Payout Requests Table Controller
  */
 function renderPayoutsTable() {
   const tbody = document.getElementById('payoutsTableBody');
@@ -559,11 +760,13 @@ function renderPayoutsTable() {
       ? '<span class="badge badge-warning">Pending Disbursal</span>'
       : (p.status === 'approved' ? '<span class="badge badge-success">Approved / Paid</span>' : '<span class="badge badge-danger">Rejected</span>');
 
+    const dName = p.driverName || 'Driver Partner';
+
     html += `
       <tr>
         <td><strong>#PAY-${p.id.substring(0, 6).toUpperCase()}</strong></td>
         <td>
-          <strong style="display:block;">${p.driverName || 'Driver'}</strong>
+          <strong style="display:block;">${dName}</strong>
           <span style="font-size:12px; color:#64748B;">${p.driverPhone || ''}</span>
         </td>
         <td><strong style="font-size:16px; color:#059669;">₹${parseFloat(p.amount || 0).toLocaleString('en-IN')}</strong></td>
@@ -590,7 +793,7 @@ function renderPayoutsTable() {
 }
 
 /**
- * 10. Remote App Updates View Controller
+ * 11. Remote App Updates View Controller
  */
 function renderRemoteConfigView() {
   const cfg = AdminStore.remoteConfig;
@@ -608,13 +811,14 @@ function renderRemoteConfigView() {
 }
 
 /**
- * 11. Modal Interactions & Actions
+ * 12. Modal Handlers
  */
 function openDriverModal(driverId) {
   const d = AdminStore.drivers.find(x => x.id === driverId);
   if (!d) return;
 
-  safeSetText('modalDriverName', d.fullName || 'Driver Details');
+  const dName = getDriverName(d);
+  safeSetText('modalDriverName', dName);
   safeSetText('modalDriverPhone', d.phoneNumber || 'N/A');
   safeSetText('modalDriverPlate', d.vehiclePlateNumber || 'N/A');
   safeSetText('modalDriverCategory', (d.vehicleCategoryId || 'CAB').toUpperCase());
@@ -636,9 +840,11 @@ function openBookingAuditModal(bookingId) {
   const b = AdminStore.bookings.find(x => x.id === bookingId);
   if (!b) return;
 
+  const dName = b.driverName ? b.driverName : (b.driverId ? `Driver #${b.driverId.substring(0, 6)}` : 'Unassigned');
+
   safeSetText('auditBookingId', b.readableId || b.id);
   safeSetText('auditCustomer', `${b.customerName || 'Customer'} (${b.customerPhone || 'N/A'})`);
-  safeSetText('auditDriver', b.driverName ? `${b.driverName} (${b.driverPhone})` : 'Unassigned');
+  safeSetText('auditDriver', `${dName} (${b.driverPhone || 'N/A'})`);
   safeSetText('auditPickup', b.pickup?.address || 'N/A');
   safeSetText('auditDestination', b.destination?.address || 'N/A');
   safeSetText('auditOTP', b.rideOtp || 'N/A');
@@ -649,6 +855,66 @@ function openBookingAuditModal(bookingId) {
   safeSetText('auditDriverNet', `₹${(gross * 0.90).toFixed(0)} (90%)`);
 
   openModal('bookingAuditModal');
+}
+
+/**
+ * Settle Payment Modal Controller
+ */
+function openSettlePaymentModal(driverId) {
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  if (!d) return;
+
+  const dName = getDriverName(d);
+  const pending = parseFloat(d.pendingCommission || 0);
+
+  document.getElementById('settleDriverId').value = d.id;
+  safeSetText('settleModalDriverName', dName);
+  safeSetText('settleModalDriverPhone', d.phoneNumber || 'N/A');
+  safeSetText('settleModalDriverPlate', `${(d.vehicleCategoryId || 'CAB').toUpperCase()} • ${d.vehiclePlateNumber || 'No Plate'}`);
+  safeSetText('settleModalCurrentDue', `₹${pending.toLocaleString('en-IN')}`);
+
+  const amountInput = document.getElementById('settleAmountInput');
+  if (amountInput) {
+    amountInput.value = pending > 0 ? pending : 0;
+    amountInput.max = pending > 0 ? pending * 2 : 5000;
+  }
+
+  const refInput = document.getElementById('settleRefInput');
+  if (refInput) {
+    refInput.value = `CASH-REC-${Math.floor(Math.random() * 8999 + 1000)}`;
+  }
+
+  const notesInput = document.getElementById('settleNotesInput');
+  if (notesInput) {
+    notesInput.value = `Platform 10% fee settlement. Unpaid cash trips reset to 0.`;
+  }
+
+  openModal('settlePaymentModal');
+}
+
+async function handleConfirmSettlement(e) {
+  e.preventDefault();
+  const driverId = document.getElementById('settleDriverId').value;
+  const amount = parseFloat(document.getElementById('settleAmountInput').value);
+  const paymentMode = document.getElementById('settleModeSelect').value;
+  const refNo = document.getElementById('settleRefInput').value;
+  const notes = document.getElementById('settleNotesInput').value;
+
+  if (isNaN(amount) || amount <= 0) {
+    return alert('Please enter a valid amount greater than ₹0.');
+  }
+
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  const dName = d ? getDriverName(d) : 'Driver Partner';
+
+  try {
+    await apiSettleDriverCommissionFull(driverId, amount, paymentMode, refNo, notes);
+    showToast(`₹${amount} Commission settled for ${dName}! 3-Trip lock cleared.`);
+    closeModal('settlePaymentModal');
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to settle commission: ' + err.message);
+  }
 }
 
 function openModal(modalId) {
@@ -665,11 +931,15 @@ function closeModal(modalId) {
  * Action Handlers
  */
 async function approveDriverKYC(driverId) {
-  if (!confirm('Are you sure you want to approve this driver partner?')) return;
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  const dName = d ? getDriverName(d) : 'Driver';
+  if (!confirm(`Are you sure you want to approve driver partner ${dName}?`)) return;
+
   try {
     await apiUpdateDriverVerification(driverId, 'approved');
-    showToast('Driver partner approved successfully!');
+    showToast(`Driver ${dName} approved successfully!`);
     closeModal('driverDetailModal');
+    renderAllViews();
   } catch (e) {
     alert('Failed to approve driver: ' + e.message);
   }
@@ -682,18 +952,9 @@ async function rejectDriverKYC(driverId) {
     await apiUpdateDriverVerification(driverId, 'rejected', reason);
     showToast('Driver KYC marked as rejected.');
     closeModal('driverDetailModal');
+    renderAllViews();
   } catch (e) {
     alert('Failed to reject driver: ' + e.message);
-  }
-}
-
-async function settleDriverComm(driverId, amount) {
-  if (!confirm(`Confirm collection & settlement of ₹${amount} platform fee for this driver? This resets unpaid trips to 0.`)) return;
-  try {
-    await apiSettleDriverCommission(driverId, amount);
-    showToast(`₹${amount} Platform fee settled successfully!`);
-  } catch (e) {
-    alert('Failed to settle fee: ' + e.message);
   }
 }
 
@@ -703,6 +964,7 @@ async function toggleUserBlock(userId, currentBlocked) {
   try {
     await apiToggleUserBlock(userId, currentBlocked);
     showToast(`User successfully ${actionStr}ed.`);
+    renderUsersTable();
   } catch (e) {
     alert('Failed to update user: ' + e.message);
   }
@@ -715,6 +977,7 @@ async function promptApprovePayout(payoutId, amount, upiId) {
   try {
     await apiProcessPayout(payoutId, 'approved', utr);
     showToast(`Payout of ₹${amount} marked as paid (UTR: ${utr})!`);
+    renderPayoutsTable();
   } catch (e) {
     alert('Failed to process payout: ' + e.message);
   }
@@ -725,6 +988,7 @@ async function rejectPayout(payoutId) {
   try {
     await apiProcessPayout(payoutId, 'rejected', 'Rejected by admin');
     showToast('Payout request rejected.');
+    renderPayoutsTable();
   } catch (e) {
     alert('Failed to reject payout: ' + e.message);
   }
@@ -746,7 +1010,7 @@ async function saveRemoteConfigForm(e) {
 }
 
 /**
- * 12. Search & Filter Handlers
+ * 13. Search & Filter Handlers
  */
 function setupSearch() {
   const bindSearch = (inputId, renderFn) => {
@@ -759,6 +1023,7 @@ function setupSearch() {
   bindSearch('driverSearchInput', renderDriversTable);
   bindSearch('userSearchInput', renderUsersTable);
   bindSearch('bookingSearchInput', renderBookingsTable);
+  bindSearch('commSearchInput', renderCommissionView);
 
   const globalSearch = document.getElementById('globalSearchInput');
   if (globalSearch) {
@@ -766,14 +1031,15 @@ function setupSearch() {
       const term = e.target.value.toLowerCase();
       if (!term) return;
 
-      // Switch to bookings if starts with DC, else drivers
       if (term.includes('dc-') || term.includes('#')) {
         switchView('bookings');
-        document.getElementById('bookingSearchInput').value = term;
+        const bInput = document.getElementById('bookingSearchInput');
+        if (bInput) bInput.value = term;
         renderBookingsTable();
       } else {
         switchView('drivers');
-        document.getElementById('driverSearchInput').value = term;
+        const dInput = document.getElementById('driverSearchInput');
+        if (dInput) dInput.value = term;
         renderDriversTable();
       }
     });
@@ -781,7 +1047,7 @@ function setupSearch() {
 }
 
 /**
- * 13. CSV Export
+ * 14. CSV Exports
  */
 function exportBookingsCSV() {
   const list = AdminStore.bookings;
@@ -794,10 +1060,28 @@ function exportBookingsCSV() {
     csv += `"${b.readableId || b.id}","${dateStr}","${b.customerName || ''}","${b.customerPhone || ''}","${b.driverName || ''}","${b.vehicleCategoryId || ''}","${b.status}","${gross}","${(gross*0.1).toFixed(0)}","${(gross*0.9).toFixed(0)}","${b.paymentMethod || 'cash'}"\n`;
   });
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadCSV(csv, `DistrictCar_Bookings_Report_${new Date().toISOString().split('T')[0]}.csv`);
+}
+
+function exportCommissionCSV() {
+  const list = AdminStore.drivers;
+  if (list.length === 0) return alert('No driver data to export.');
+
+  let csv = 'DriverID,DriverName,PhoneNumber,VehiclePlate,Category,TotalTrips,CommissionDue,CommissionSettled,UnpaidTrips,3TripLocked\n';
+  list.forEach(d => {
+    const dName = getDriverName(d);
+    const unpaid = parseInt(d.unpaidTripsCount || 0, 10);
+    csv += `"${d.id}","${dName}","${d.phoneNumber || ''}","${d.vehiclePlateNumber || ''}","${d.vehicleCategoryId || ''}","${d.totalTrips || 0}","${d.pendingCommission || 0}","${d.totalCommissionSettled || 0}","${unpaid}","${unpaid >= 3 ? 'YES' : 'NO'}"\n`;
+  });
+
+  downloadCSV(csv, `DistrictCar_Driver_Commission_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+}
+
+function downloadCSV(csvContent, filename) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `DistrictCar_Bookings_Report_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = filename;
   link.click();
 }
 

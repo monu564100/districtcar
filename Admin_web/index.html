@@ -51,7 +51,12 @@
         <div class="nav-section-title">Operations & Finance</div>
         <a class="nav-item" data-view="bookings">
           <i class="fa-solid fa-route"></i>
-          <span>All Rides & 10% Comm</span>
+          <span>All Rides & Trips</span>
+        </a>
+        <a class="nav-item" data-view="commissions">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+          <span>Driver Commissions & Settlements</span>
+          <span class="nav-badge" id="badgePendingCommissions" style="display:none; background:#F59E0B;">0</span>
         </a>
         <a class="nav-item" data-view="payouts">
           <i class="fa-solid fa-wallet"></i>
@@ -92,7 +97,7 @@
         <div class="topbar-right">
           <div class="clock-badge" id="liveClock">Loading clock...</div>
           <button class="quick-btn" onclick="exportBookingsCSV()">
-            <i class="fa-solid fa-file-excel"></i> Export CSV
+            <i class="fa-solid fa-file-excel"></i> Export Rides
           </button>
           <div class="admin-profile" title="Signed in as Master District Car Admin">
             <div class="admin-avatar">DC</div>
@@ -335,11 +340,11 @@
           </div>
         </section>
 
-        <!-- VIEW 4: ALL RIDES & COMMISSION AUDIT -->
+        <!-- VIEW 4: ALL RIDES & TRIPS -->
         <section id="view-bookings" class="view-section">
           <div class="view-header">
             <div class="view-title">
-              <h2>All Rides & 10% Commission Per Rider</h2>
+              <h2>All Rides & Commission Per Rider</h2>
               <p>Transparent ledger showing Gross Fare, 10% Platform Commission, and 90% Driver Share for every booking.</p>
             </div>
             <div class="view-actions">
@@ -393,7 +398,147 @@
           </div>
         </section>
 
-        <!-- VIEW 5: DRIVER PAYOUT REQUESTS -->
+        <!-- VIEW 5: DRIVER COMMISSIONS & SETTLEMENTS (NEW CATEGORY) -->
+        <section id="view-commissions" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>Driver Commissions & Settlements Ledger</h2>
+              <p>Track 10% platform dues per driver, monitor 3-trip cash locks, and record cash/UPI settlements.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-primary btn-sm" onclick="exportCommissionCSV()">
+                <i class="fa-solid fa-file-csv"></i> Export Commission CSV
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="renderCommissionView()">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Commission Summary Metric Cards -->
+          <div class="metrics-grid">
+            <div class="metric-card accent-blue">
+              <div class="metric-top">
+                <span class="metric-label">Total Commission Generated</span>
+                <div class="metric-icon" style="background:#EFF6FF; color:#2563EB;">
+                  <i class="fa-solid fa-chart-pie"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="commTotalAccrued" style="color:#2563EB;">₹0</div>
+              <div class="metric-sub">
+                <i class="fa-solid fa-percent"></i> 10% platform share across all completed rides
+              </div>
+            </div>
+
+            <div class="metric-card accent-rose">
+              <div class="metric-top">
+                <span class="metric-label">Commission Due (To Be Paid)</span>
+                <div class="metric-icon" style="background:#FEF2F2; color:#DC2626;">
+                  <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="commTotalDue" style="color:#DC2626;">₹0</div>
+              <div class="metric-sub" style="color:#DC2626; font-weight:700;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Uncollected platform fee from drivers
+              </div>
+            </div>
+
+            <div class="metric-card accent-emerald">
+              <div class="metric-top">
+                <span class="metric-label">Commission Settled & Paid</span>
+                <div class="metric-icon" style="background:#ECFDF5; color:#059669;">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="commTotalSettled" style="color:#059669;">₹0</div>
+              <div class="metric-sub positive">
+                <i class="fa-solid fa-building-columns"></i> Total fees collected & recorded by Admin
+              </div>
+            </div>
+
+            <div class="metric-card accent-amber">
+              <div class="metric-top">
+                <span class="metric-label">3-Trip Cash Lock Status</span>
+                <div class="metric-icon" style="background:#FFFBEB; color:#D97706;">
+                  <i class="fa-solid fa-lock"></i>
+                </div>
+              </div>
+              <div class="metric-value" id="commLockedDrivers" style="font-size:22px; color:#D97706;">0 Drivers</div>
+              <div class="metric-sub">
+                <i class="fa-solid fa-shield"></i> Drivers locked from accepting new rides
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <select id="commStatusFilter" class="filter-select" onchange="renderCommissionView()">
+                <option value="all">All Drivers (All Status)</option>
+                <option value="due">Drivers With Commission Due (&gt; ₹0)</option>
+                <option value="locked">Locked Drivers (3-Trip Rule)</option>
+                <option value="settled">Fully Settled Drivers (₹0 Due)</option>
+              </select>
+            </div>
+            <div class="topbar-search" style="width:300px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="commSearchInput" placeholder="Search driver name, phone, plate...">
+            </div>
+          </div>
+
+          <!-- Driver Commission Ledger Table -->
+          <div class="table-container" style="margin-bottom:32px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Driver Partner & ID</th>
+                  <th>Contact Number</th>
+                  <th>Vehicle & Category</th>
+                  <th>Total Rides</th>
+                  <th>Gross Fare Generated</th>
+                  <th>10% Commission Due (To Pay)</th>
+                  <th>Total Settled to Date</th>
+                  <th>3-Trip Rule Status</th>
+                  <th style="text-align:right;">Admin Settlement Action</th>
+                </tr>
+              </thead>
+              <tbody id="commissionTableBody">
+                <!-- Dynamically populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Recent Settlement Receipts History Section -->
+          <div class="card" style="margin-top:20px;">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fa-solid fa-clock-rotate-left" style="color:#059669; margin-right:8px;"></i>
+                Recent Commission Settlement Receipts & Audit Trail
+              </span>
+              <span style="font-size:12px; color:#64748B; font-weight:700;">Recorded in Firestore (<code>commission_settlements</code>)</span>
+            </div>
+            <div class="table-container" style="border:none; box-shadow:none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Settlement Ref</th>
+                    <th>Date & Time</th>
+                    <th>Driver Partner</th>
+                    <th>Settled Amount</th>
+                    <th>Payment Mode</th>
+                    <th>Receipt / Reference Notes</th>
+                    <th>Settled By</th>
+                  </tr>
+                </thead>
+                <tbody id="settlementsHistoryTableBody">
+                  <!-- Dynamically populated by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 6: DRIVER PAYOUT REQUESTS -->
         <section id="view-payouts" class="view-section">
           <div class="view-header">
             <div class="view-title">
@@ -428,7 +573,7 @@
           </div>
         </section>
 
-        <!-- VIEW 6: REMOTE APP UPDATE CONTROLS -->
+        <!-- VIEW 7: REMOTE APP UPDATE CONTROLS -->
         <section id="view-updates" class="view-section">
           <div class="view-header">
             <div class="view-title">
@@ -473,6 +618,79 @@
         </section>
 
       </main>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTLE DRIVER COMMISSION PAYMENT -->
+  <div class="modal-backdrop" id="settlePaymentModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Settle Driver Platform Commission</h3>
+          <span style="font-size:12px; color:#64748B;">Record Cash or UPI Fee Collection & Reset 3-Trip Rule Lock</span>
+        </div>
+        <button class="modal-close" onclick="closeModal('settlePaymentModal')">&times;</button>
+      </div>
+      <form id="settleCommissionForm" onsubmit="handleConfirmSettlement(event)">
+        <input type="hidden" id="settleDriverId" value="">
+        <div class="modal-body">
+          <!-- Driver Info Box -->
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:16px; color:#0F172A; display:block;" id="settleModalDriverName">Driver Name</strong>
+                <span style="font-size:12.5px; color:#64748B;" id="settleModalDriverPhone">+91 XXXXX XXXXX</span>
+                <span style="display:block; font-size:12px; color:#059669; font-weight:700; margin-top:2px;" id="settleModalDriverPlate">CAB • PLATE</span>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; display:block;">Current Due</span>
+                <span style="font-size:20px; font-weight:900; color:#DC2626;" id="settleModalCurrentDue">₹0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settle Amount Input -->
+          <div class="form-group">
+            <label class="form-label" for="settleAmountInput">Settlement Amount to Collect (₹) *</label>
+            <input type="number" id="settleAmountInput" class="form-control" required min="1" step="1" placeholder="Enter amount">
+            <span style="font-size:12px; color:#64748B;">Enter the exact amount collected from the driver.</span>
+          </div>
+
+          <!-- Payment Mode -->
+          <div class="form-group">
+            <label class="form-label" for="settleModeSelect">Collection / Payment Mode *</label>
+            <select id="settleModeSelect" class="form-control" required>
+              <option value="cash">Cash (Direct Collection at Hub / Handover)</option>
+              <option value="upi">UPI (PhonePe / Google Pay / Paytm QR)</option>
+              <option value="bank">Bank Transfer / IMPS / NEFT</option>
+              <option value="wallet">Deduct from Driver In-App Wallet</option>
+            </select>
+          </div>
+
+          <!-- Reference Number -->
+          <div class="form-group">
+            <label class="form-label" for="settleRefInput">Receipt / Reference Number *</label>
+            <input type="text" id="settleRefInput" class="form-control" required placeholder="e.g. CASH-REC-1049 or UPI-48201948">
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="form-label" for="settleNotesInput">Audit Notes & Reason</label>
+            <input type="text" id="settleNotesInput" class="form-control" placeholder="Optional settlement remark">
+          </div>
+
+          <div style="background:#ECFDF5; border-left:4px solid #059669; padding:12px; border-radius:6px; margin-top:14px; font-size:12.5px; color:#065F46;">
+            <i class="fa-solid fa-circle-check" style="margin-right:6px;"></i>
+            Confirming this will clear the driver's <strong>3-Trip Rule Lock counter</strong> and restore active ride acceptance.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('settlePaymentModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-check"></i> Confirm & Settle Payment
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

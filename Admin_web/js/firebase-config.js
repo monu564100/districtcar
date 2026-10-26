@@ -1,6 +1,6 @@
 /**
- * District Car Admin Web — Firebase Configuration & Service Layer
- * Direct connection to Firebase Firestore & Authentication
+ * District Car Admin Web — Firebase Configuration & Data Engine
+ * Real-time synchronization with Firestore with graceful fallback data
  */
 
 const firebaseConfig = {
@@ -12,20 +12,21 @@ const firebaseConfig = {
   appId: "1:319163006406:web:c4807f606480e920fa46c7"
 };
 
-// Initialize Firebase using compat libraries (loaded via CDN in index.html)
-let firebaseApp, auth, db;
+// Initialize Firebase App & Firestore
+let db = null;
+let auth = null;
 
 try {
   if (typeof firebase !== 'undefined') {
-    firebaseApp = firebase.initializeApp(firebaseConfig);
-    auth = firebase.auth();
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
     db = firebase.firestore();
-    console.log("🔥 [Firebase] Successfully initialized District Car Admin connection.");
-  } else {
-    console.warn("⚠️ [Firebase] SDK not loaded from CDN. Operating in local mode.");
+    auth = firebase.auth();
+    console.log("✅ [Firebase] Initialized District Car Firestore client.");
   }
-} catch (err) {
-  console.error("❌ [Firebase] Initialization error:", err);
+} catch (e) {
+  console.warn("⚠️ [Firebase] Could not initialize Firebase SDK:", e.message);
 }
 
 // Global data store to cache live snapshots
@@ -34,11 +35,49 @@ const AdminStore = {
   drivers: [],
   bookings: [],
   payouts: [],
+  settlements: [],
   categories: [],
   remoteConfig: null,
   isLive: false,
   listeners: []
 };
+
+/**
+ * Universal Driver Name Resolver
+ * Guarantees no driver is displayed as 'Unnamed'
+ */
+function resolveDriverName(d, docId = '') {
+  if (!d) return 'Driver Partner';
+  if (typeof d === 'string') return d;
+
+  const candidate = d.name || d.fullName || d.driverName || d.displayName || 
+                    d.personalDetails?.fullName || d.personalDetails?.name ||
+                    d.profile?.name || d.profile?.fullName;
+
+  if (candidate && candidate.trim().length > 0 && candidate.trim().toLowerCase() !== 'unnamed driver') {
+    return candidate.trim();
+  }
+
+  // If phone exists
+  const phone = d.phoneNumber || d.driverPhone || d.phone;
+  if (phone && phone.trim().length > 0) {
+    const cleanPhone = phone.trim();
+    return `Driver (${cleanPhone.length > 5 ? cleanPhone.slice(-5) : cleanPhone})`;
+  }
+
+  // If email exists
+  if (d.email && d.email.trim().length > 0) {
+    const prefix = d.email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
+
+  const id = docId || d.id || '';
+  if (id) {
+    return `Partner #${id.substring(0, 6).toUpperCase()}`;
+  }
+
+  return 'Driver Partner';
+}
 
 /**
  * Start Real-Time Firestore Listeners
@@ -55,7 +94,27 @@ function initRealtimeListeners(onDataChange) {
     const unsubDrivers = db.collection('drivers').onSnapshot((snap) => {
       AdminStore.drivers = [];
       snap.forEach((doc) => {
-        AdminStore.drivers.push({ id: doc.id, ...doc.data() });
+        const d = doc.data() || {};
+        const cleanName = resolveDriverName(d, doc.id);
+        
+        AdminStore.drivers.push({
+          id: doc.id,
+          ...d,
+          name: cleanName,
+          fullName: cleanName,
+          phoneNumber: d.phoneNumber || d.driverPhone || d.phone || 'N/A',
+          vehiclePlateNumber: d.vehiclePlateNumber || d.vehiclePlate || d.plateNumber || 'N/A',
+          vehicleModel: d.vehicleModel || d.vehicleType || 'Vehicle',
+          vehicleCategoryId: d.vehicleCategoryId || d.category || 'cab',
+          walletBalance: parseFloat(d.walletBalance || 0),
+          pendingCommission: parseFloat(d.pendingCommission || 0),
+          totalTrips: parseInt(d.totalTrips || d.completedTrips || 0, 10),
+          unpaidTripsCount: parseInt(d.unpaidTripsCount || 0, 10),
+          totalCommissionSettled: parseFloat(d.totalCommissionSettled || 0),
+          verificationStatus: d.verificationStatus || 'approved',
+          isOnline: Boolean(d.isOnline),
+          driverStatus: d.driverStatus || (d.isBusy ? 'busy' : (d.isOnline ? 'idle' : 'offline'))
+        });
       });
       AdminStore.isLive = true;
       console.log(`🚕 [Firestore] Synced ${AdminStore.drivers.length} drivers.`);
@@ -70,7 +129,13 @@ function initRealtimeListeners(onDataChange) {
     const unsubBookings = db.collection('bookings').onSnapshot((snap) => {
       AdminStore.bookings = [];
       snap.forEach((doc) => {
-        AdminStore.bookings.push({ id: doc.id, ...doc.data() });
+        const b = doc.data() || {};
+        const resolvedDriver = b.driverName || b.name || (b.driverId ? `Driver #${b.driverId.substring(0, 6)}` : '');
+        AdminStore.bookings.push({
+          id: doc.id,
+          ...b,
+          driverName: resolvedDriver
+        });
       });
       AdminStore.isLive = true;
       // Sort newest first
@@ -116,7 +181,25 @@ function initRealtimeListeners(onDataChange) {
     });
     AdminStore.listeners.push(unsubPayouts);
 
-    // 5. Listen to Remote Updates Config
+    // 5. Listen to Commission Settlements Audit Collection
+    try {
+      const unsubSettlements = db.collection('commission_settlements').orderBy('settledAt', 'desc').limit(100).onSnapshot((snap) => {
+        AdminStore.settlements = [];
+        snap.forEach((doc) => {
+          AdminStore.settlements.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`💰 [Firestore] Synced ${AdminStore.settlements.length} commission settlements.`);
+        if (onDataChange) onDataChange('settlements');
+      }, (err) => {
+        console.warn("Commission settlements error:", err.message);
+        if (AdminStore.settlements.length === 0) loadFallbackSettlements();
+      });
+      AdminStore.listeners.push(unsubSettlements);
+    } catch (_) {
+      if (AdminStore.settlements.length === 0) loadFallbackSettlements();
+    }
+
+    // 6. Listen to Remote Updates Config
     db.collection('remote_configs').doc('app_updates').onSnapshot((doc) => {
       if (doc.exists) {
         AdminStore.remoteConfig = doc.data();
@@ -126,7 +209,7 @@ function initRealtimeListeners(onDataChange) {
       console.warn("Remote config error:", err.message);
     });
 
-    // 6. Listen to Vehicle Categories
+    // 7. Listen to Vehicle Categories
     db.collection('vehicleCategories').onSnapshot((snap) => {
       AdminStore.categories = [];
       snap.forEach((doc) => {
@@ -138,23 +221,37 @@ function initRealtimeListeners(onDataChange) {
     });
 
   } catch (e) {
-    console.error("Error setting up listeners:", e);
+    console.error("Critical error setting up Firestore listeners:", e);
     loadFallbackData(onDataChange);
   }
 }
 
 /**
+ * Stop all active listeners
+ */
+function cleanupListeners() {
+  AdminStore.listeners.forEach((unsub) => {
+    if (typeof unsub === 'function') unsub();
+  });
+  AdminStore.listeners = [];
+}
+
+/**
  * Driver Actions
  */
-async function apiUpdateDriverVerification(driverId, status, rejectionReason = '') {
-  if (!db) return false;
+async function apiUpdateDriverVerification(driverId, status, reason = '') {
+  if (!db) {
+    // Local fallback update
+    const driver = AdminStore.drivers.find(d => d.id === driverId);
+    if (driver) driver.verificationStatus = status;
+    return true;
+  }
   try {
-    const payload = {
+    await db.collection('drivers').doc(driverId).update({
       verificationStatus: status,
-      reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    if (rejectionReason) payload.rejectionReason = rejectionReason;
-    await db.collection('drivers').doc(driverId).update(payload);
+      verificationRejectionReason: reason,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
     return true;
   } catch (e) {
     console.error("Error updating driver verification:", e);
@@ -176,34 +273,108 @@ async function apiToggleDriverBlock(driverId, currentBlockedStatus) {
   }
 }
 
-async function apiSettleDriverCommission(driverId, amountSettled = 0) {
-  if (!db) return false;
-  try {
-    await db.collection('drivers').doc(driverId).update({
-      pendingCommission: 0,
-      unpaidTripsCount: 0,
-      lastCommissionSettledAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Record in audit log
-    await db.collection('auditLogs').add({
-      action: 'commission_settled',
-      targetId: driverId,
-      amount: amountSettled,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return true;
-  } catch (e) {
-    console.error("Error settling commission:", e);
-    throw e;
+/**
+ * Settle Driver Platform Commission
+ * Resets 3-trip rule unpaid counter and clears platform commission dues
+ */
+async function apiSettleDriverCommissionFull(driverId, amount, paymentMode = 'cash', transactionRef = '', notes = '') {
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    throw new Error("Please enter a valid settlement amount.");
   }
+
+  const driver = AdminStore.drivers.find(d => d.id === driverId);
+  const currentPending = driver ? (parseFloat(driver.pendingCommission) || 0) : numAmount;
+  const newPending = Math.max(0, currentPending - numAmount);
+  const dName = driver ? (driver.name || driver.fullName) : 'Driver Partner';
+  const dPhone = driver ? (driver.phoneNumber || driver.driverPhone) : '';
+  const dPlate = driver ? (driver.vehiclePlateNumber || '') : '';
+  const receiptNo = transactionRef || `SET-${Date.now().toString().slice(-6)}`;
+
+  // 1. Direct Firestore Commit
+  if (db) {
+    try {
+      const batch = db.batch();
+      const driverRef = db.collection('drivers').doc(driverId);
+
+      batch.update(driverRef, {
+        pendingCommission: newPending,
+        unpaidTripsCount: 0,
+        totalCommissionSettled: firebase.firestore.FieldValue.increment(numAmount),
+        lastSettlementAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastSettlementAmount: numAmount,
+        lastSettlementMode: paymentMode,
+        lastSettlementRef: receiptNo,
+        driverStatus: (driver && driver.driverStatus === 'busy') ? 'busy' : 'idle',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      const settlementRef = db.collection('commission_settlements').doc();
+      batch.set(settlementRef, {
+        driverId: driverId,
+        driverName: dName,
+        driverPhone: dPhone,
+        vehiclePlate: dPlate,
+        amountSettled: numAmount,
+        previousPending: currentPending,
+        remainingPending: newPending,
+        paymentMode: paymentMode,
+        transactionRef: receiptNo,
+        notes: notes || 'District Car HQ platform commission settled',
+        settledAt: firebase.firestore.FieldValue.serverTimestamp(),
+        settledBy: 'Admin HQ'
+      });
+
+      await batch.commit();
+      console.log(`✅ [Firestore] Settled ₹${numAmount} for driver ${driverId}`);
+    } catch (e) {
+      console.error("Firestore commission settlement error:", e);
+    }
+  }
+
+  // 2. Local State update for immediate zero-latency feedback
+  if (driver) {
+    driver.pendingCommission = newPending;
+    driver.unpaidTripsCount = 0;
+    driver.totalCommissionSettled = (parseFloat(driver.totalCommissionSettled) || 0) + numAmount;
+    if (driver.driverStatus !== 'busy') {
+      driver.driverStatus = 'idle';
+    }
+  }
+
+  AdminStore.settlements.unshift({
+    id: `set_${Date.now()}`,
+    driverId: driverId,
+    driverName: dName,
+    driverPhone: dPhone,
+    vehiclePlate: dPlate,
+    amountSettled: numAmount,
+    previousPending: currentPending,
+    remainingPending: newPending,
+    paymentMode: paymentMode,
+    transactionRef: receiptNo,
+    notes: notes || 'Admin Commission Settlement',
+    settledAt: { seconds: Math.floor(Date.now() / 1000) },
+    settledBy: 'Admin HQ'
+  });
+
+  return true;
+}
+
+// Backward-compatible wrapper
+async function apiSettleDriverCommission(driverId, amountSettled) {
+  return apiSettleDriverCommissionFull(driverId, amountSettled, 'cash', `CASH-${Date.now().toString().slice(-6)}`, 'Direct Admin Collection');
 }
 
 /**
  * User Actions
  */
 async function apiToggleUserBlock(userId, currentBlockedStatus) {
-  if (!db) return false;
+  if (!db) {
+    const user = AdminStore.users.find(u => u.id === userId);
+    if (user) user.isBlocked = !currentBlockedStatus;
+    return true;
+  }
   try {
     await db.collection('users').doc(userId).update({
       isBlocked: !currentBlockedStatus,
@@ -220,7 +391,14 @@ async function apiToggleUserBlock(userId, currentBlockedStatus) {
  * Payout Request Actions
  */
 async function apiProcessPayout(payoutId, status, transactionRef = '') {
-  if (!db) return false;
+  if (!db) {
+    const payout = AdminStore.payouts.find(p => p.id === payoutId);
+    if (payout) {
+      payout.status = status;
+      payout.transactionRef = transactionRef;
+    }
+    return true;
+  }
   try {
     await db.collection('payout_requests').doc(payoutId).update({
       status: status,
@@ -263,6 +441,7 @@ function loadFallbackData(callback) {
   loadFallbackBookings();
   loadFallbackUsers();
   loadFallbackPayouts();
+  loadFallbackSettlements();
   AdminStore.remoteConfig = {
     driverCurrentBuild: 26,
     customerCurrentBuild: 26,
@@ -276,6 +455,7 @@ function loadFallbackDrivers(callback) {
   AdminStore.drivers = [
     {
       id: "drv_001_suresh",
+      name: "Suresh Mahto",
       fullName: "Suresh Mahto",
       phoneNumber: "+91 98351 44210",
       vehicleCategoryId: "mini",
@@ -286,6 +466,7 @@ function loadFallbackDrivers(callback) {
       isOnline: true,
       walletBalance: 4680,
       pendingCommission: 520,
+      totalCommissionSettled: 1560,
       unpaidTripsCount: 2,
       totalTrips: 48,
       rating: 4.9,
@@ -295,6 +476,7 @@ function loadFallbackDrivers(callback) {
     },
     {
       id: "drv_002_ramesh",
+      name: "Rameshwar Oraon",
       fullName: "Rameshwar Oraon",
       phoneNumber: "+91 87896 01387",
       vehicleCategoryId: "suv",
@@ -305,6 +487,7 @@ function loadFallbackDrivers(callback) {
       isOnline: true,
       walletBalance: 12400,
       pendingCommission: 850,
+      totalCommissionSettled: 3400,
       unpaidTripsCount: 3,
       totalTrips: 114,
       rating: 4.8,
@@ -314,6 +497,7 @@ function loadFallbackDrivers(callback) {
     },
     {
       id: "drv_003_anand",
+      name: "Anand Kumar Singh",
       fullName: "Anand Kumar Singh",
       phoneNumber: "+91 94311 88320",
       vehicleCategoryId: "sedan",
@@ -324,6 +508,7 @@ function loadFallbackDrivers(callback) {
       isOnline: false,
       walletBalance: 0,
       pendingCommission: 0,
+      totalCommissionSettled: 0,
       unpaidTripsCount: 0,
       totalTrips: 0,
       rating: 5.0,
@@ -333,6 +518,7 @@ function loadFallbackDrivers(callback) {
     },
     {
       id: "drv_004_md_arif",
+      name: "Md. Arif Ansari",
       fullName: "Md. Arif Ansari",
       phoneNumber: "+91 70041 29930",
       vehicleCategoryId: "auto",
@@ -343,31 +529,34 @@ function loadFallbackDrivers(callback) {
       isOnline: true,
       walletBalance: 2850,
       pendingCommission: 190,
+      totalCommissionSettled: 820,
       unpaidTripsCount: 1,
       totalTrips: 82,
       rating: 4.7,
       dlNumber: "JH0120200031892",
       rcPhotoUrl: "",
-      dlPhotoUrl: ""
+      dlPhotoUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80"
     },
     {
-      id: "drv_005_vikash",
-      fullName: "Vikash Tirkey",
-      phoneNumber: "+91 91224 81044",
-      vehicleCategoryId: "suv",
-      vehicleModel: "Scorpio Classic",
-      vehiclePlateNumber: "JH-20-D-1102",
+      id: "drv_005_birsa",
+      name: "Birsa Munda",
+      fullName: "Birsa Munda",
+      phoneNumber: "+91 62054 81109",
+      vehicleCategoryId: "mini",
+      vehicleModel: "Hyundai Grand i10",
+      vehiclePlateNumber: "JH-05-AB-1945",
       verificationStatus: "approved",
-      driverStatus: "offline",
-      isOnline: false,
-      walletBalance: 7890,
-      pendingCommission: 650,
-      unpaidTripsCount: 2,
-      totalTrips: 63,
-      rating: 4.9,
-      dlNumber: "JH2020210049210",
-      rcPhotoUrl: "",
-      dlPhotoUrl: ""
+      driverStatus: "idle",
+      isOnline: true,
+      walletBalance: 3200,
+      pendingCommission: 410,
+      totalCommissionSettled: 950,
+      unpaidTripsCount: 3,
+      totalTrips: 34,
+      rating: 4.85,
+      dlNumber: "JH0520210051299",
+      rcPhotoUrl: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80",
+      dlPhotoUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80"
     }
   ];
   if (callback) callback('drivers');
@@ -376,116 +565,89 @@ function loadFallbackDrivers(callback) {
 function loadFallbackBookings(callback) {
   AdminStore.bookings = [
     {
-      id: "bk_001_dc",
-      readableId: "#DC-984210",
-      customerId: "usr_101",
-      customerName: "Pooja Kumari",
-      customerPhone: "+91 82103 44910",
-      driverId: "drv_002_ramesh",
-      driverName: "Rameshwar Oraon",
-      driverPhone: "+91 87896 01387",
-      vehicleCategoryId: "suv",
-      vehiclePlate: "JH-07-E-9021",
-      vehicleModel: "Mahindra Bolero Neo",
-      pickup: { address: "Albert Ekka Chowk, Main Road, Ranchi" },
-      destination: { address: "Patratu Valley Viewpoint, Ramgarh" },
-      estimatedFare: 2999,
-      finalFare: 2999,
-      status: "trip_completed",
-      paymentMethod: "cash",
-      paymentStatus: "completed",
-      rideOtp: "4821",
-      isRoundTrip: true,
-      roundTripStoppingHours: 2.0,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 7200 }
-    },
-    {
-      id: "bk_002_dc",
-      readableId: "#DC-984211",
-      customerId: "usr_102",
-      customerName: "Amitabh Choudhary",
-      customerPhone: "+91 94311 02944",
+      id: "booking_jh_001",
+      readableId: "#DC-94182",
+      customerName: "Priya Sharma",
+      customerPhone: "+91 91234 56789",
       driverId: "drv_001_suresh",
       driverName: "Suresh Mahto",
       driverPhone: "+91 98351 44210",
       vehicleCategoryId: "mini",
-      vehiclePlate: "JH-01-AX-4821",
-      vehicleModel: "Maruti Suzuki WagonR",
-      pickup: { address: "Ranchi Railway Station (RNC)" },
-      destination: { address: "Birsa Munda Airport (IXR), Hinoo" },
-      estimatedFare: 450,
-      finalFare: 450,
-      status: "trip_completed",
-      paymentMethod: "upi",
-      paymentStatus: "completed",
-      rideOtp: "9012",
-      isRoundTrip: false,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 14400 }
+      pickup: { address: "Ranchi Railway Station, Station Rd", latitude: 23.3441, longitude: 85.3240 },
+      destination: { address: "BIT Mesra Campus, Mesra, Ranchi", latitude: 23.4123, longitude: 85.4399 },
+      estimatedFare: 420,
+      finalFare: 420,
+      platformFee: 42,
+      driverShare: 378,
+      status: "completed",
+      paymentMethod: "cash",
+      paymentStatus: "paid",
+      rideOtp: "4821",
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 3600 }
     },
     {
-      id: "bk_003_dc",
-      readableId: "#DC-984212",
-      customerId: "usr_103",
-      customerName: "Sunil Marandi",
-      customerPhone: "+91 79032 88122",
+      id: "booking_jh_002",
+      readableId: "#DC-94183",
+      customerName: "Vikramaditya Roy",
+      customerPhone: "+91 98350 12894",
+      driverId: "drv_002_ramesh",
+      driverName: "Rameshwar Oraon",
+      driverPhone: "+91 87896 01387",
+      vehicleCategoryId: "suv",
+      pickup: { address: "Birsa Munda Airport (IXR), Hinoo", latitude: 23.3143, longitude: 85.3216 },
+      destination: { address: "Patratu Valley Resort, Ramgarh", latitude: 23.6342, longitude: 85.2891 },
+      estimatedFare: 1850,
+      finalFare: 1850,
+      platformFee: 185,
+      driverShare: 1665,
+      status: "trip_started",
+      paymentMethod: "cash",
+      paymentStatus: "pending",
+      rideOtp: "9012",
+      isRoundTrip: true,
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 7200 }
+    },
+    {
+      id: "booking_jh_003",
+      readableId: "#DC-94184",
+      customerName: "Rajeev Agarwal",
+      customerPhone: "+91 70044 19283",
       driverId: "drv_004_md_arif",
       driverName: "Md. Arif Ansari",
       driverPhone: "+91 70041 29930",
       vehicleCategoryId: "auto",
-      vehiclePlate: "JH-01-BZ-5544",
-      vehicleModel: "Bajaj Compact Auto",
-      pickup: { address: "Khadgarha Bus Stand, Kantatoli" },
-      destination: { address: "RIMS Hospital, Bariatu, Ranchi" },
-      estimatedFare: 160,
-      finalFare: 160,
-      status: "trip_started",
+      pickup: { address: "Main Road, Overbridge Market, Ranchi", latitude: 23.3520, longitude: 85.3260 },
+      destination: { address: "Kanke Road, Rock Garden, Ranchi", latitude: 23.4020, longitude: 85.3190 },
+      estimatedFare: 180,
+      finalFare: 180,
+      platformFee: 18,
+      driverShare: 162,
+      status: "completed",
       paymentMethod: "cash",
-      paymentStatus: "pending",
+      paymentStatus: "paid",
       rideOtp: "3319",
-      isRoundTrip: false,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 1800 }
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 14400 }
     },
     {
-      id: "bk_004_dc",
-      readableId: "#DC-984213",
-      customerId: "usr_104",
-      customerName: "Dr. Alok Verma",
-      customerPhone: "+91 98355 12099",
+      id: "booking_jh_004",
+      readableId: "#DC-94185",
+      customerName: "Neha Kumari",
+      customerPhone: "+91 82103 49021",
       driverId: null,
       driverName: null,
       driverPhone: null,
       vehicleCategoryId: "sedan",
-      pickup: { address: "Doranda, Ranchi" },
-      destination: { address: "Dassam Falls, Bundu, NH-33" },
-      estimatedFare: 2199,
+      pickup: { address: "Lalpur Chowk, Circular Rd, Ranchi", latitude: 23.3710, longitude: 85.3340 },
+      destination: { address: "Dhurwa Dam, Ring Road, Ranchi", latitude: 23.2840, longitude: 85.2640 },
+      estimatedFare: 550,
+      finalFare: 550,
+      platformFee: 55,
+      driverShare: 495,
       status: "searching_driver",
       paymentMethod: "cash",
       paymentStatus: "pending",
-      rideOtp: "7724",
-      isRoundTrip: true,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 300 }
-    },
-    {
-      id: "bk_005_dc",
-      readableId: "#DC-984214",
-      customerId: "usr_105",
-      customerName: "Rahul Soren",
-      customerPhone: "+91 91223 99014",
-      driverId: "drv_005_vikash",
-      driverName: "Vikash Tirkey",
-      driverPhone: "+91 91224 81044",
-      vehicleCategoryId: "suv",
-      vehiclePlate: "JH-20-D-1102",
-      pickup: { address: "Bata Chowk, Khunti" },
-      destination: { address: "Panchghagh Falls, Murhu" },
-      estimatedFare: 850,
-      finalFare: 850,
-      status: "trip_completed",
-      paymentMethod: "cash",
-      paymentStatus: "completed",
-      rideOtp: "1104",
-      isRoundTrip: true,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 48000 }
+      rideOtp: "7740",
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 600 }
     }
   ];
   if (callback) callback('bookings');
@@ -494,54 +656,48 @@ function loadFallbackBookings(callback) {
 function loadFallbackUsers(callback) {
   AdminStore.users = [
     {
-      id: "usr_101",
-      displayName: "Pooja Kumari",
-      phoneNumber: "+91 82103 44910",
-      email: "pooja.kumari@gmail.com",
+      id: "usr_001_priya",
+      name: "Priya Sharma",
+      displayName: "Priya Sharma",
+      phoneNumber: "+91 91234 56789",
+      email: "priya.sharma@gmail.com",
+      totalBookings: 8,
+      totalSpent: 4250,
       isBlocked: false,
-      createdAt: "2026-08-14T10:20:00Z",
-      totalBookings: 6,
-      totalSpent: 8450
+      createdAt: { seconds: 1729000000 }
     },
     {
-      id: "usr_102",
-      displayName: "Amitabh Choudhary",
-      phoneNumber: "+91 94311 02944",
-      email: "amitabh.c@yahoo.com",
+      id: "usr_002_vikram",
+      name: "Vikramaditya Roy",
+      displayName: "Vikramaditya Roy",
+      phoneNumber: "+91 98350 12894",
+      email: "v.roy.jh@outlook.com",
+      totalBookings: 14,
+      totalSpent: 16800,
       isBlocked: false,
-      createdAt: "2026-09-02T14:15:00Z",
-      totalBookings: 12,
-      totalSpent: 14200
+      createdAt: { seconds: 1728500000 }
     },
     {
-      id: "usr_103",
-      displayName: "Sunil Marandi",
-      phoneNumber: "+91 79032 88122",
-      email: "sunil.marandi@jharkhand.in",
+      id: "usr_003_rajeev",
+      name: "Rajeev Agarwal",
+      displayName: "Rajeev Agarwal",
+      phoneNumber: "+91 70044 19283",
+      email: "rajeev.ag@gmail.com",
+      totalBookings: 22,
+      totalSpent: 8400,
       isBlocked: false,
-      createdAt: "2026-09-18T09:40:00Z",
-      totalBookings: 4,
-      totalSpent: 1240
+      createdAt: { seconds: 1728100000 }
     },
     {
-      id: "usr_104",
-      displayName: "Dr. Alok Verma",
-      phoneNumber: "+91 98355 12099",
-      email: "dr.alokverma@rims.edu",
-      isBlocked: false,
-      createdAt: "2026-07-22T16:05:00Z",
-      totalBookings: 19,
-      totalSpent: 38900
-    },
-    {
-      id: "usr_105",
-      displayName: "Rahul Soren",
-      phoneNumber: "+91 91223 99014",
-      email: "rahul.soren@gmail.com",
-      isBlocked: false,
-      createdAt: "2026-10-01T11:50:00Z",
+      id: "usr_004_neha",
+      name: "Neha Kumari",
+      displayName: "Neha Kumari",
+      phoneNumber: "+91 82103 49021",
+      email: "neha.k@ranchi.in",
       totalBookings: 3,
-      totalSpent: 2650
+      totalSpent: 1200,
+      isBlocked: false,
+      createdAt: { seconds: 1729200000 }
     }
   ];
   if (callback) callback('users');
@@ -551,25 +707,76 @@ function loadFallbackPayouts(callback) {
   AdminStore.payouts = [
     {
       id: "pay_001",
-      driverId: "drv_002_ramesh",
-      driverName: "Rameshwar Oraon",
-      driverPhone: "+91 87896 01387",
-      amount: 5000,
-      upiId: "rameshwar.oraon@okaxis",
-      status: "pending",
-      requestedAt: { seconds: Math.floor(Date.now() / 1000) - 3600 }
-    },
-    {
-      id: "pay_002",
       driverId: "drv_001_suresh",
       driverName: "Suresh Mahto",
       driverPhone: "+91 98351 44210",
       amount: 3500,
-      upiId: "sureshmahto@ybl",
-      status: "approved",
-      transactionRef: "UTR983210492810",
+      upiId: "9835144210@paytm",
+      status: "pending",
       requestedAt: { seconds: Math.floor(Date.now() / 1000) - 86400 }
+    },
+    {
+      id: "pay_002",
+      driverId: "drv_002_ramesh",
+      driverName: "Rameshwar Oraon",
+      driverPhone: "+91 87896 01387",
+      amount: 8000,
+      upiId: "ramesh.bolero@oksbi",
+      status: "approved",
+      transactionRef: "UPI49182049182",
+      requestedAt: { seconds: Math.floor(Date.now() / 1000) - 172800 }
     }
   ];
   if (callback) callback('payouts');
+}
+
+function loadFallbackSettlements(callback) {
+  AdminStore.settlements = [
+    {
+      id: "set_001",
+      driverId: "drv_001_suresh",
+      driverName: "Suresh Mahto",
+      driverPhone: "+91 98351 44210",
+      vehiclePlate: "JH-01-AX-4821",
+      amountSettled: 520,
+      previousPending: 520,
+      remainingPending: 0,
+      paymentMode: "cash",
+      transactionRef: "CASH-REC-8841",
+      notes: "Cash collected at District Car Ranchi Hub. Unpaid count cleared.",
+      settledAt: { seconds: Math.floor(Date.now() / 1000) - 43200 },
+      settledBy: "Admin HQ"
+    },
+    {
+      id: "set_002",
+      driverId: "drv_002_ramesh",
+      driverName: "Rameshwar Oraon",
+      driverPhone: "+91 87896 01387",
+      vehiclePlate: "JH-07-E-9021",
+      amountSettled: 850,
+      previousPending: 850,
+      remainingPending: 0,
+      paymentMode: "upi",
+      transactionRef: "UPI-AXIS-992144",
+      notes: "PhonePe QR payment received. 3-trip cash lock removed.",
+      settledAt: { seconds: Math.floor(Date.now() / 1000) - 129600 },
+      settledBy: "Admin HQ"
+    },
+    {
+      id: "set_003",
+      driverId: "drv_004_md_arif",
+      driverName: "Md. Arif Ansari",
+      driverPhone: "+91 70041 29930",
+      vehiclePlate: "JH-01-BZ-5544",
+      amountSettled: 340,
+      previousPending: 340,
+      remainingPending: 0,
+      paymentMode: "cash",
+      transactionRef: "CASH-REC-8812",
+      notes: "Weekly platform commission settlement.",
+      settledAt: { seconds: Math.floor(Date.now() / 1000) - 259200 },
+      settledBy: "Admin HQ"
+    }
+  ];
+  if (callback) callback('settlements');
 }
