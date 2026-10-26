@@ -549,11 +549,73 @@ function renderBookingsTable() {
     const destStr = b.destination?.address || 'Destination';
     const dName = b.driverName ? b.driverName : (b.driverId ? `Driver #${b.driverId.substring(0, 6)}` : null);
 
+    // Formatted Timing
+    const bookingTimeStr = formatTimestamp(b.createdAt) || 'Recent';
+    const acceptTimeStr = formatTimestamp(b.driverAcceptedAt || b.acceptedAt);
+    const timeDiffMins = getTimeDiffMinutes(b.createdAt, b.driverAcceptedAt || b.acceptedAt);
+
+    let driverCellHtml = '';
+    const hasAssignedDriver = b.driverId && (b.status === 'driver_assigned' || b.status === 'driver_arrived' || b.status === 'trip_started' || b.status === 'completed' || b.status === 'trip_completed');
+
+    if (hasAssignedDriver) {
+      driverCellHtml = `
+        <div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-circle-check" style="color:#059669; font-size:13px;"></i>
+            <strong style="color:#0F172A; font-size:13.5px;">${dName}</strong>
+          </div>
+          <a href="tel:${b.driverPhone}" style="color:#64748B; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; margin-top:2px;">
+            <i class="fa-solid fa-phone" style="color:#059669;"></i> ${b.driverPhone || 'N/A'}
+          </a>
+          ${acceptTimeStr ? `
+            <div style="font-size:11.5px; color:#059669; font-weight:700; margin-top:3px;">
+              <i class="fa-solid fa-clock-check"></i> Accepted: ${acceptTimeStr} ${timeDiffMins !== null ? `(+${timeDiffMins}m)` : ''}
+            </div>
+          ` : `
+            <div style="font-size:11px; color:#64748B; margin-top:3px;">
+              <i class="fa-solid fa-check"></i> Driver Assigned
+            </div>
+          `}
+        </div>
+      `;
+    } else if (b.status && b.status.includes('cancelled')) {
+      driverCellHtml = `
+        <div>
+          <span class="badge badge-danger"><i class="fa-solid fa-ban"></i> Cancelled</span>
+          <span style="display:block; font-size:11px; color:#94A3B8; margin-top:3px;">No Driver Assigned</span>
+        </div>
+      `;
+    } else {
+      // NOT ACCEPTED YET -> Dropdown with all available drivers
+      const driverOptions = getAvailableDriverOptions(b.vehicleCategoryId);
+      driverCellHtml = `
+        <div style="min-width:220px;">
+          <div style="margin-bottom:6px;">
+            <span class="badge badge-warning" style="font-size:11px;">
+              <i class="fa-solid fa-hourglass-half"></i> Not Accepted Yet
+            </span>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="assignSelect_${b.id}" class="filter-select" style="font-size:12px; padding:5px 6px; width:155px; background:#FFFFFF; border:1px solid #CBD5E1;">
+              <option value="">-- Assign Driver --</option>
+              ${driverOptions}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="handleQuickAssign('${b.id}')" title="Assign Selected Driver" style="padding:6px 9px;">
+              <i class="fa-solid fa-user-check"></i> Assign
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     html += `
       <tr>
         <td>
           <strong style="color:#059669; font-size:14px;">${b.readableId || b.id.substring(0, 8)}</strong>
-          ${b.rideOtp ? `<span style="display:block; font-size:11px; color:#64748B; font-weight:700;">OTP: <span style="background:#FEF08A; padding:1px 5px; border-radius:3px; color:#064E3B;">${b.rideOtp}</span></span>` : ''}
+          <span style="display:block; font-size:12px; color:#475569; font-weight:700; margin-top:2px;">
+            <i class="fa-regular fa-clock" style="color:#059669;"></i> ${bookingTimeStr}
+          </span>
+          ${b.rideOtp ? `<span style="display:block; font-size:11px; color:#64748B; font-weight:700; margin-top:2px;">OTP: <span style="background:#FEF08A; padding:1px 5px; border-radius:3px; color:#064E3B;">${b.rideOtp}</span></span>` : ''}
         </td>
         <td>
           <strong style="display:block; color:#0F172A;">${b.customerName || 'Customer'}</strong>
@@ -562,12 +624,7 @@ function renderBookingsTable() {
           </a>
         </td>
         <td>
-          ${dName ? `
-            <strong style="display:block; color:#0F172A;">${dName}</strong>
-            <a href="tel:${b.driverPhone}" style="color:#64748B; font-size:12px; text-decoration:none;">
-              <i class="fa-solid fa-phone" style="color:#059669;"></i> ${b.driverPhone || ''}
-            </a>
-          ` : '<span style="color:#94A3B8; font-style:italic;">Not Assigned</span>'}
+          ${driverCellHtml}
         </td>
         <td>
           <span class="badge-category">${(b.vehicleCategoryId || 'CAB').toUpperCase()}</span>
@@ -852,6 +909,104 @@ function openDriverModal(driverId) {
   openModal('driverDetailModal');
 }
 
+/**
+ * Time & Date Formatting Helpers
+ */
+function formatTimestamp(ts) {
+  if (!ts) return null;
+  const d = ts.seconds ? new Date(ts.seconds * 1000) : (ts instanceof Date ? ts : new Date(ts));
+  if (isNaN(d.getTime())) return null;
+
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function getTimeDiffMinutes(startTs, endTs) {
+  if (!startTs || !endTs) return null;
+  const t1 = startTs.seconds ? startTs.seconds * 1000 : new Date(startTs).getTime();
+  const t2 = endTs.seconds ? endTs.seconds * 1000 : new Date(endTs).getTime();
+  const diffMs = t2 - t1;
+  if (isNaN(diffMs) || diffMs < 0) return null;
+  return Math.round(diffMs / 60000);
+}
+
+/**
+ * Generates Available Driver <option> list for manual ride dispatch
+ */
+function getAvailableDriverOptions(selectedCategoryId = '') {
+  const drivers = AdminStore.drivers || [];
+  // Sort so online/idle drivers come first
+  const sorted = [...drivers].sort((a, b) => {
+    if (a.isOnline && !b.isOnline) return -1;
+    if (!a.isOnline && b.isOnline) return 1;
+    return 0;
+  });
+
+  return sorted.map(d => {
+    const dName = getDriverName(d);
+    const cat = (d.vehicleCategoryId || 'CAB').toUpperCase();
+    const plate = d.vehiclePlateNumber || 'No Plate';
+    const status = d.driverStatus === 'busy' ? 'Busy' : (d.isOnline ? 'Online' : 'Offline');
+    const isCatMatch = selectedCategoryId && (d.vehicleCategoryId || '').toLowerCase() === selectedCategoryId.toLowerCase();
+    const matchPrefix = isCatMatch ? '★ ' : '';
+    return `<option value="${d.id}">${matchPrefix}${dName} (${cat} • ${plate} - ${status})</option>`;
+  }).join('');
+}
+
+/**
+ * Quick Manual Driver Assignment Handler from Rides Table
+ */
+async function handleQuickAssign(bookingId) {
+  const selectEl = document.getElementById(`assignSelect_${bookingId}`);
+  if (!selectEl) return;
+  const driverId = selectEl.value;
+  if (!driverId) {
+    return alert('Please select an available driver from the dropdown first.');
+  }
+
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  const dName = d ? getDriverName(d) : 'selected driver';
+
+  if (!confirm(`Are you sure you want to manually assign driver "${dName}" to this booking?`)) return;
+
+  try {
+    await apiAssignDriverToBooking(bookingId, driverId);
+    showToast(`Driver "${dName}" manually assigned to ride!`);
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to assign driver: ' + err.message);
+  }
+}
+
+/**
+ * Manual Driver Assignment Handler from Modal
+ */
+async function handleModalAssignDriver() {
+  if (!activeModalBookingId) return;
+  const selectEl = document.getElementById('modalDriverSelect');
+  if (!selectEl) return;
+  const driverId = selectEl.value;
+  if (!driverId) {
+    return alert('Please select a driver partner to assign.');
+  }
+
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  const dName = d ? getDriverName(d) : 'driver partner';
+
+  try {
+    await apiAssignDriverToBooking(activeModalBookingId, driverId);
+    showToast(`Driver "${dName}" assigned to ride!`);
+    openBookingAuditModal(activeModalBookingId);
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to assign driver: ' + err.message);
+  }
+}
+
 function openBookingAuditModal(bookingId) {
   activeModalBookingId = bookingId;
   const b = AdminStore.bookings.find(x => x.id === bookingId);
@@ -861,10 +1016,33 @@ function openBookingAuditModal(bookingId) {
 
   safeSetText('auditBookingId', b.readableId || b.id);
   safeSetText('auditCustomer', `${b.customerName || 'Customer'} (${b.customerPhone || 'N/A'})`);
-  safeSetText('auditDriver', `${dName} (${b.driverPhone || 'N/A'})`);
+  safeSetText('auditDriver', `${dName} ${b.driverPhone ? `(${b.driverPhone})` : ''}`);
   safeSetText('auditPickup', b.pickup?.address || 'N/A');
   safeSetText('auditDestination', b.destination?.address || 'N/A');
   safeSetText('auditOTP', b.rideOtp || 'N/A');
+
+  const bTime = formatTimestamp(b.createdAt) || 'Recent';
+  safeSetText('auditBookingTime', bTime);
+
+  const aTime = formatTimestamp(b.driverAcceptedAt || b.acceptedAt);
+  const diffMins = getTimeDiffMinutes(b.createdAt, b.driverAcceptedAt || b.acceptedAt);
+  if (aTime) {
+    safeSetText('auditAcceptTime', `${aTime} ${diffMins !== null ? `(+${diffMins} mins)` : ''}`);
+  } else {
+    safeSetText('auditAcceptTime', b.status.includes('cancelled') ? 'Cancelled' : 'Not Accepted Yet');
+  }
+
+  // If unassigned, show assign dropdown in modal
+  const assignSec = document.getElementById('modalAssignDriverSection');
+  const modalSelect = document.getElementById('modalDriverSelect');
+  if (assignSec && modalSelect) {
+    if (!b.driverId && !b.status.includes('cancelled')) {
+      assignSec.style.display = 'block';
+      modalSelect.innerHTML = `<option value="">-- Choose Driver Partner --</option>` + getAvailableDriverOptions(b.vehicleCategoryId);
+    } else {
+      assignSec.style.display = 'none';
+    }
+  }
 
   const gross = parseFloat(b.finalFare || b.estimatedFare || 0);
   safeSetText('auditGrossFare', `₹${gross.toFixed(0)}`);

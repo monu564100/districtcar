@@ -411,16 +411,16 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Booking ID & OTP</th>
+                  <th>Booking ID, Time & OTP</th>
                   <th>Customer</th>
-                  <th>Assigned Driver</th>
+                  <th>Driver Partner & Accept Time</th>
                   <th>Vehicle Category</th>
                   <th>Route (Pickup & Destination)</th>
                   <th>Status</th>
                   <th>Gross Fare</th>
                   <th>10% Platform Fee</th>
                   <th>90% Driver Share</th>
-                  <th style="text-align:right;">Audit</th>
+                  <th style="text-align:right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="bookingsTableBody">
@@ -799,13 +799,33 @@
       </div>
       <div class="modal-body">
         <div style="display:flex; flex-direction:column; gap:14px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+              <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Booking Requested At</div>
+              <div style="font-size:13.5px; font-weight:800; color:#0F172A; margin-top:2px;" id="auditBookingTime">-</div>
+            </div>
+            <div style="background:#F8FAFC; padding:12px; border-radius:8px;">
+              <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Driver Accepted At</div>
+              <div style="font-size:13.5px; font-weight:800; color:#059669; margin-top:2px;" id="auditAcceptTime">-</div>
+            </div>
+          </div>
+
           <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
             <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Customer</div>
             <div style="font-size:14px; font-weight:800; color:#0F172A;" id="auditCustomer">-</div>
           </div>
-          <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
+          <div style="background:#F8FAFC; padding:14px; border-radius:8px;" id="auditDriverBox">
             <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Assigned Driver Partner</div>
             <div style="font-size:14px; font-weight:800; color:#0F172A;" id="auditDriver">-</div>
+            <div id="modalAssignDriverSection" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #CBD5E1;">
+              <span style="display:block; font-size:12px; font-weight:700; color:#0F172A; margin-bottom:6px;">Manually Assign Available Driver:</span>
+              <div style="display:flex; gap:8px;">
+                <select id="modalDriverSelect" class="form-control" style="font-size:12.5px; padding:7px 10px;"></select>
+                <button type="button" class="btn btn-primary btn-sm" onclick="handleModalAssignDriver()">
+                  <i class="fa-solid fa-user-check"></i> Assign
+                </button>
+              </div>
+            </div>
           </div>
           <div style="background:#F8FAFC; padding:14px; border-radius:8px;">
             <div style="font-size:11px; color:#64748B; font-weight:700; text-transform:uppercase;">Ride Start Verification (OTP)</div>

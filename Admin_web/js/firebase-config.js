@@ -442,6 +442,79 @@ async function apiDeleteBooking(bookingId) {
 }
 
 /**
+ * Manually Assign an Available Driver to a Booking
+ * Updates bookings/{bookingId} and drivers/{driverId} in Firestore
+ */
+async function apiAssignDriverToBooking(bookingId, driverId) {
+  const driver = AdminStore.drivers.find(d => d.id === driverId);
+  if (!driver) throw new Error("Selected driver partner not found.");
+
+  const dName = resolveDriverName(driver);
+  const dPhone = driver.phoneNumber || driver.driverPhone || '';
+  const dPlate = driver.vehiclePlateNumber || driver.vehiclePlate || '';
+  const dModel = driver.vehicleModel || '';
+  const dCategory = driver.vehicleCategoryId || 'cab';
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
+  if (db) {
+    try {
+      const batch = db.batch();
+      const bookingRef = db.collection('bookings').doc(bookingId);
+      const driverRef = db.collection('drivers').doc(driverId);
+
+      batch.update(bookingRef, {
+        status: 'driver_assigned',
+        driverId: driverId,
+        driverName: dName,
+        driverPhone: dPhone,
+        vehiclePlate: dPlate,
+        vehiclePlateNumber: dPlate,
+        vehicleModel: dModel,
+        vehicleCategoryId: dCategory,
+        driverAcceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        assignedByAdmin: true,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      batch.set(driverRef, {
+        driverStatus: 'busy',
+        isBusy: true,
+        activeBookingId: bookingId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      await batch.commit();
+      console.log(`✅ [Firestore] Driver ${dName} manually assigned to booking ${bookingId}`);
+    } catch (e) {
+      console.error("Firestore assign driver error:", e);
+    }
+  }
+
+  // Local state update for instant zero-latency feedback
+  const booking = AdminStore.bookings.find(b => b.id === bookingId);
+  if (booking) {
+    booking.status = 'driver_assigned';
+    booking.driverId = driverId;
+    booking.driverName = dName;
+    booking.driverPhone = dPhone;
+    booking.vehiclePlate = dPlate;
+    booking.vehiclePlateNumber = dPlate;
+    booking.vehicleModel = dModel;
+    booking.vehicleCategoryId = dCategory;
+    booking.driverAcceptedAt = { seconds: nowSeconds };
+    booking.acceptedAt = { seconds: nowSeconds };
+    booking.assignedByAdmin = true;
+  }
+
+  driver.driverStatus = 'busy';
+  driver.isBusy = true;
+  driver.activeBookingId = bookingId;
+
+  return true;
+}
+
+/**
  * Payout Request Actions
  */
 async function apiProcessPayout(payoutId, status, transactionRef = '') {
@@ -637,7 +710,8 @@ function loadFallbackBookings(callback) {
       paymentMethod: "cash",
       paymentStatus: "paid",
       rideOtp: "4821",
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 3600 }
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 3600 },
+      driverAcceptedAt: { seconds: Math.floor(Date.now() / 1000) - 3480 }
     },
     {
       id: "booking_jh_002",
@@ -659,7 +733,8 @@ function loadFallbackBookings(callback) {
       paymentStatus: "pending",
       rideOtp: "9012",
       isRoundTrip: true,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 7200 }
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 7200 },
+      driverAcceptedAt: { seconds: Math.floor(Date.now() / 1000) - 7020 }
     },
     {
       id: "booking_jh_003",
@@ -680,7 +755,8 @@ function loadFallbackBookings(callback) {
       paymentMethod: "cash",
       paymentStatus: "paid",
       rideOtp: "3319",
-      createdAt: { seconds: Math.floor(Date.now() / 1000) - 14400 }
+      createdAt: { seconds: Math.floor(Date.now() / 1000) - 14400 },
+      driverAcceptedAt: { seconds: Math.floor(Date.now() / 1000) - 14220 }
     },
     {
       id: "booking_jh_004",
