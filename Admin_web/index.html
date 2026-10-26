@@ -19,6 +19,35 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- MASTER SECURITY PIN LOCK OVERLAY (PIN: 564100) -->
+  <div class="pin-lock-overlay" id="pinLockOverlay">
+    <div class="pin-card" id="pinCard">
+      <img src="assets/app_logo.jpg" alt="District Car" class="pin-logo">
+      <h2 class="pin-title">Admin Access Lock</h2>
+      <p class="pin-subtitle">Enter 6-digit Master Security PIN to access District Car HQ operations.</p>
+      
+      <form id="pinLockForm" onsubmit="handlePinSubmit(event)">
+        <div class="pin-input-group">
+          <input type="password" maxlength="1" class="pin-digit" id="p1" inputmode="numeric" autocomplete="off" autofocus>
+          <input type="password" maxlength="1" class="pin-digit" id="p2" inputmode="numeric" autocomplete="off">
+          <input type="password" maxlength="1" class="pin-digit" id="p3" inputmode="numeric" autocomplete="off">
+          <input type="password" maxlength="1" class="pin-digit" id="p4" inputmode="numeric" autocomplete="off">
+          <input type="password" maxlength="1" class="pin-digit" id="p5" inputmode="numeric" autocomplete="off">
+          <input type="password" maxlength="1" class="pin-digit" id="p6" inputmode="numeric" autocomplete="off">
+        </div>
+
+        <div class="pin-error-msg" id="pinErrorMsg"></div>
+
+        <button type="submit" class="pin-btn">
+          <i class="fa-solid fa-lock-open"></i> Unlock Dashboard
+        </button>
+      </form>
+      <div style="margin-top:18px; font-size:11.5px; color:#64748B;">
+        <i class="fa-solid fa-shield-halved" style="color:#059669; margin-right:4px;"></i> District Car Enterprise Security
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
@@ -98,6 +127,9 @@
           <div class="clock-badge" id="liveClock">Loading clock...</div>
           <button class="quick-btn" onclick="exportBookingsCSV()">
             <i class="fa-solid fa-file-excel"></i> Export Rides
+          </button>
+          <button class="quick-btn" style="background:#FEF2F2; color:#DC2626; border-color:#FECACA;" onclick="lockAdminDashboard()" title="Lock Admin Panel">
+            <i class="fa-solid fa-lock"></i> Lock
           </button>
           <div class="admin-profile" title="Signed in as Master District Car Admin">
             <div class="admin-avatar">DC</div>

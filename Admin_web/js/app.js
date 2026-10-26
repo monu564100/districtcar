@@ -5,6 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Initialize UI Elements & Event Listeners
+  setupPinLock();
   setupNavigation();
   setupSearch();
   setupClock();
@@ -1191,4 +1192,124 @@ function showToast(msg) {
     t.style.transform = 'translateX(100%)';
     setTimeout(() => t.remove(), 300);
   }, 3500);
+}
+
+
+/**
+ * 15. Master Security PIN Lock Controller (PIN: 564100)
+ */
+const MASTER_ADMIN_PIN = '564100';
+
+function setupPinLock() {
+  const overlay = document.getElementById('pinLockOverlay');
+  if (!overlay) return;
+
+  // Check existing session
+  if (sessionStorage.getItem('dc_admin_unlocked') === 'true') {
+    overlay.classList.add('unlocked');
+  } else {
+    overlay.classList.remove('unlocked');
+    setTimeout(() => {
+      const p1 = document.getElementById('p1');
+      if (p1) p1.focus();
+    }, 250);
+  }
+
+  // Setup 6-digit auto-advancing inputs
+  const digits = [
+    document.getElementById('p1'),
+    document.getElementById('p2'),
+    document.getElementById('p3'),
+    document.getElementById('p4'),
+    document.getElementById('p5'),
+    document.getElementById('p6')
+  ];
+
+  digits.forEach((input, idx) => {
+    if (!input) return;
+
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.length >= 1) {
+        input.value = val.slice(-1);
+        if (idx < digits.length - 1) {
+          digits[idx + 1].focus();
+        } else {
+          verifyPin();
+        }
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        if (!input.value && idx > 0) {
+          digits[idx - 1].focus();
+          digits[idx - 1].value = '';
+        } else {
+          input.value = '';
+        }
+      }
+    });
+
+    // Support paste of entire 6-digit PIN
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (/^\d{6}$/.test(pasteData)) {
+        pasteData.split('').forEach((char, i) => {
+          if (digits[i]) digits[i].value = char;
+        });
+        verifyPin();
+      }
+    });
+  });
+}
+
+function handlePinSubmit(e) {
+  if (e) e.preventDefault();
+  verifyPin();
+}
+
+function verifyPin() {
+  const digits = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].map(id => document.getElementById(id)?.value || '').join('');
+  const errorMsg = document.getElementById('pinErrorMsg');
+  const card = document.getElementById('pinCard');
+  const overlay = document.getElementById('pinLockOverlay');
+
+  if (digits === MASTER_ADMIN_PIN) {
+    if (errorMsg) errorMsg.innerHTML = '';
+    sessionStorage.setItem('dc_admin_unlocked', 'true');
+    if (overlay) overlay.classList.add('unlocked');
+    showToast('Master Admin unlocked! Welcome to District Car HQ. 🚀');
+  } else {
+    if (errorMsg) {
+      errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Invalid Security PIN. Access Denied.';
+    }
+    if (card) {
+      card.classList.add('shake');
+      setTimeout(() => card.classList.remove('shake'), 450);
+    }
+    // Clear inputs and refocus
+    ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const p1 = document.getElementById('p1');
+    if (p1) p1.focus();
+  }
+}
+
+function lockAdminDashboard() {
+  sessionStorage.removeItem('dc_admin_unlocked');
+  const overlay = document.getElementById('pinLockOverlay');
+  if (overlay) overlay.classList.remove('unlocked');
+  ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const errorMsg = document.getElementById('pinErrorMsg');
+  if (errorMsg) errorMsg.innerHTML = '';
+  const p1 = document.getElementById('p1');
+  if (p1) p1.focus();
+  showToast('Dashboard locked.');
 }
