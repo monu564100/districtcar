@@ -274,6 +274,24 @@ async function apiToggleDriverBlock(driverId, currentBlockedStatus) {
 }
 
 /**
+ * Permanently Delete Driver Partner from Firestore
+ */
+async function apiDeleteDriver(driverId) {
+  if (db) {
+    try {
+      await db.collection('drivers').doc(driverId).delete();
+      console.log(`🗑️ [Firestore] Driver ${driverId} permanently deleted.`);
+    } catch (e) {
+      console.error("Error deleting driver from Firestore:", e);
+      throw e;
+    }
+  }
+  // Local state update
+  AdminStore.drivers = AdminStore.drivers.filter(d => d.id !== driverId);
+  return true;
+}
+
+/**
  * Settle Driver Platform Commission
  * Resets 3-trip rule unpaid counter and clears platform commission dues
  */
@@ -385,6 +403,42 @@ async function apiToggleUserBlock(userId, currentBlockedStatus) {
     console.error("Error toggling user block:", e);
     throw e;
   }
+}
+
+/**
+ * Permanently Delete Customer / User from Firestore
+ */
+async function apiDeleteUser(userId) {
+  if (db) {
+    try {
+      await db.collection('users').doc(userId).delete();
+      console.log(`🗑️ [Firestore] User ${userId} permanently deleted.`);
+    } catch (e) {
+      console.error("Error deleting user from Firestore:", e);
+      throw e;
+    }
+  }
+  // Local state update
+  AdminStore.users = AdminStore.users.filter(u => u.id !== userId);
+  return true;
+}
+
+/**
+ * Permanently Delete Booking / Ride from Firestore
+ */
+async function apiDeleteBooking(bookingId) {
+  if (db) {
+    try {
+      await db.collection('bookings').doc(bookingId).delete();
+      console.log(`🗑️ [Firestore] Booking ${bookingId} permanently deleted.`);
+    } catch (e) {
+      console.error("Error deleting booking from Firestore:", e);
+      throw e;
+    }
+  }
+  // Local state update
+  AdminStore.bookings = AdminStore.bookings.filter(b => b.id !== bookingId);
+  return true;
 }
 
 /**

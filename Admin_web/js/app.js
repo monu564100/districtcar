@@ -404,6 +404,9 @@ function renderDriversTable() {
             <button class="btn btn-primary btn-sm" onclick="openSettlePaymentModal('${d.id}')" title="Settle 10% Platform Fee">
               <i class="fa-solid fa-hand-holding-dollar"></i> Settle
             </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDriver('${d.id}')" title="Permanently Delete Driver">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
           </div>
         </td>
       </tr>
@@ -474,6 +477,9 @@ function renderUsersTable() {
           <div class="action-btns">
             <button class="btn ${isBlocked ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleUserBlock('${u.id}', ${isBlocked})">
               <i class="fa-solid ${isBlocked ? 'fa-unlock' : 'fa-ban'}"></i> ${isBlocked ? 'Unblock' : 'Block'}
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')" title="Permanently Delete Customer">
+              <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </td>
@@ -579,9 +585,14 @@ function renderBookingsTable() {
         <td><strong style="font-size:14px; color:#B91C1C;">₹${comm10.toFixed(0)}</strong></td>
         <td><strong style="font-size:14px; color:#059669;">₹${driver90.toFixed(0)}</strong></td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="openBookingAuditModal('${b.id}')">
-            <i class="fa-solid fa-receipt"></i> Details
-          </button>
+          <div class="action-btns">
+            <button class="btn btn-secondary btn-sm" onclick="openBookingAuditModal('${b.id}')" title="View Details">
+              <i class="fa-solid fa-receipt"></i> Details
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBooking('${b.id}')" title="Permanently Delete Booking">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -813,7 +824,11 @@ function renderRemoteConfigView() {
 /**
  * 12. Modal Handlers
  */
+let activeModalDriverId = null;
+let activeModalBookingId = null;
+
 function openDriverModal(driverId) {
+  activeModalDriverId = driverId;
   const d = AdminStore.drivers.find(x => x.id === driverId);
   if (!d) return;
 
@@ -837,6 +852,7 @@ function openDriverModal(driverId) {
 }
 
 function openBookingAuditModal(bookingId) {
+  activeModalBookingId = bookingId;
   const b = AdminStore.bookings.find(x => x.id === bookingId);
   if (!b) return;
 
@@ -967,6 +983,74 @@ async function toggleUserBlock(userId, currentBlocked) {
     renderUsersTable();
   } catch (e) {
     alert('Failed to update user: ' + e.message);
+  }
+}
+
+/**
+ * Delete Handlers for Drivers, Users, and Bookings
+ */
+async function deleteDriver(driverId) {
+  const d = AdminStore.drivers.find(x => x.id === driverId);
+  const dName = d ? getDriverName(d) : 'this driver partner';
+
+  if (!confirm(`⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete driver "${dName}"?\n\nThis will remove their driver profile, KYC records, and vehicle data from Firestore. This action CANNOT be undone.`)) {
+    return;
+  }
+
+  try {
+    await apiDeleteDriver(driverId);
+    showToast(`Driver "${dName}" permanently deleted.`);
+    closeModal('driverDetailModal');
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to delete driver: ' + err.message);
+  }
+}
+
+function deleteDriverFromModal() {
+  if (activeModalDriverId) {
+    deleteDriver(activeModalDriverId);
+  }
+}
+
+async function deleteUser(userId) {
+  const u = AdminStore.users.find(x => x.id === userId);
+  const uName = u ? (u.displayName || u.name || 'this customer') : 'this customer';
+
+  if (!confirm(`⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete customer "${uName}"?\n\nThis will delete their customer profile from Firestore. This action CANNOT be undone.`)) {
+    return;
+  }
+
+  try {
+    await apiDeleteUser(userId);
+    showToast(`Customer "${uName}" permanently deleted.`);
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to delete user: ' + err.message);
+  }
+}
+
+async function deleteBooking(bookingId) {
+  const b = AdminStore.bookings.find(x => x.id === bookingId);
+  const rId = b ? (b.readableId || b.id.substring(0, 8)) : bookingId;
+
+  if (!confirm(`⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete booking "${rId}"?\n\nThis will permanently delete this ride transaction record from Firestore. This action CANNOT be undone.`)) {
+    return;
+  }
+
+  try {
+    await apiDeleteBooking(bookingId);
+    showToast(`Booking "${rId}" permanently deleted.`);
+    closeModal('bookingAuditModal');
+    renderAllViews();
+  } catch (err) {
+    alert('Failed to delete booking: ' + err.message);
+  }
+}
+
+function deleteBookingFromModal() {
+  if (activeModalBookingId) {
+    deleteBooking(activeModalBookingId);
   }
 }
 
