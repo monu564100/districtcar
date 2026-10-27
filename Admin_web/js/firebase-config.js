@@ -542,7 +542,7 @@ async function apiProcessPayout(payoutId, status, transactionRef = '') {
 /**
  * Remote Config & Fare Actions
  */
-async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl) {
+async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup) {
   if (!db) return false;
   try {
     await db.collection('remote_configs').doc('app_updates').set({
@@ -550,6 +550,7 @@ async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkU
       customerCurrentBuild: parseInt(customerBuild, 10) || 26,
       forceUpdate: Boolean(forceUpdate),
       driverApkUrl: apkUrl || "https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk",
+      showGuestSignInPopup: showGuestSignInPopup !== undefined ? Boolean(showGuestSignInPopup) : true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
     return true;
@@ -573,7 +574,8 @@ function loadFallbackData(callback) {
     driverCurrentBuild: 26,
     customerCurrentBuild: 26,
     forceUpdate: false,
-    driverApkUrl: "https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk"
+    driverApkUrl: "https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk",
+    showGuestSignInPopup: true
   };
   if (callback) callback('all');
 }

@@ -877,6 +877,12 @@ function renderRemoteConfigView() {
   if (customerBuildInput) customerBuildInput.value = cfg.customerCurrentBuild || 26;
   if (forceUpdateCheckbox) forceUpdateCheckbox.checked = Boolean(cfg.forceUpdate);
   if (apkUrlInput) apkUrlInput.value = cfg.driverApkUrl || 'https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk';
+  
+  const guestPopupCheckbox = document.getElementById('cfgGuestSignInPopup');
+  if (guestPopupCheckbox) {
+    // Enabled by default unless explicitly set to false
+    guestPopupCheckbox.checked = (cfg.showGuestSignInPopup !== false);
+  }
 }
 
 /**
@@ -1263,10 +1269,11 @@ async function saveRemoteConfigForm(e) {
   const cBuild = document.getElementById('cfgCustomerBuild').value;
   const force = document.getElementById('cfgForceUpdate').checked;
   const apk = document.getElementById('cfgDriverApkUrl').value;
+  const guestPopup = document.getElementById('cfgGuestSignInPopup') ? document.getElementById('cfgGuestSignInPopup').checked : true;
 
   try {
-    await apiSaveRemoteConfig(dBuild, cBuild, force, apk);
-    showToast(`Remote version updated: Driver App v${dBuild}, Customer App v${cBuild}!`);
+    await apiSaveRemoteConfig(dBuild, cBuild, force, apk, guestPopup);
+    showToast(`Remote config updated! Driver v${dBuild}, Customer v${cBuild}, Guest Popup: ${guestPopup ? 'ON' : 'OFF'}`);
   } catch (e) {
     alert('Failed to save configuration: ' + e.message);
   }

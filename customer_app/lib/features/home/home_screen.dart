@@ -28,6 +28,10 @@ import '../booking/booking_confirm_sheet.dart';
 import 'categories_provider.dart';
 import '../booking/booking_service.dart';
 import '../auth/auth_service.dart';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/home/guest_sign_in_popup_dialog.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -37,6 +41,7 @@ class CustomerHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
+  Timer? _guestPopupTimer;
   int _currentDockIndex = 0;
   String? _selectedCategory;
   bool _isHindi = false;
@@ -127,12 +132,75 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         role: 'customer',
       );
     });
+
+    // 5-second non-mandatory Guest Sign-in Popup if customer is not logged in
+    _guestPopupTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        _checkAndShowGuestSignInPopup();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _guestPopupTimer?.cancel();
+    _guestPopupTimer = null;
     _scrollController.dispose();
     super.dispose();
+  }
+
+  
+  Future<void> _checkAndShowGuestSignInPopup() async {
+    try {
+      // 1. If customer is already logged in, do not show popup
+      final loggedInUser = ref.read(authServiceProvider).currentUser;
+      if (loggedInUser != null) return;
+      if (FirebaseAuth.instance.currentUser != null) return;
+
+      // 2. Frequency limit: Show only once per day per device
+      final prefs = await SharedPreferences.getInstance();
+      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final lastShownDate = prefs.getString('last_guest_signin_popup_date');
+      if (lastShownDate == todayStr) {
+        return; // Already presented today
+      }
+
+      // 3. Remote Config Check from Firestore (remote_configs/app_updates)
+      // Allows Admin Web to remotely toggle this popup ON or OFF
+      try {
+        final configDoc = await FirebaseFirestore.instance
+            .collection('remote_configs')
+            .doc('app_updates')
+            .get(const GetOptions(source: Source.serverAndCache))
+            .timeout(const Duration(seconds: 4));
+        if (configDoc.exists) {
+          final data = configDoc.data();
+          // If admin turned off guest popup, abort
+          if (data != null && data['showGuestSignInPopup'] == false) {
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('Guest popup remote config check notice: $e');
+      }
+
+      // 4. Double check widget is still mounted & user didn't sign in
+      if (!mounted) return;
+      if (ref.read(authServiceProvider).currentUser != null ||
+          FirebaseAuth.instance.currentUser != null) {
+        return;
+      }
+
+      // 5. Store today's date so it does not repeat today
+      await prefs.setString('last_guest_signin_popup_date', todayStr);
+
+      // 6. Present High-Quality Non-mandatory Sign-in Dialog
+      if (mounted) {
+        await GuestSignInPopupDialog.show(context);
+      }
+    } catch (e) {
+      debugPrint('Error triggering guest sign-in popup: $e');
+    }
   }
 
   void _detectUserCurrentGpsOnStart() async {
