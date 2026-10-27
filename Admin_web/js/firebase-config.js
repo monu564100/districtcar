@@ -445,6 +445,66 @@ async function apiDeleteBooking(bookingId) {
 }
 
 /**
+ * Cancel Booking / Ride from Admin
+ * Updates bookings/{bookingId} status to 'cancelled' and frees up driver if assigned
+ */
+async function apiCancelBooking(bookingId, reason = 'Cancelled by District Car Admin HQ') {
+  const booking = AdminStore.bookings.find(b => b.id === bookingId);
+  const driverId = booking?.driverId;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
+  if (db) {
+    try {
+      const batch = db.batch();
+      const bookingRef = db.collection('bookings').doc(bookingId);
+
+      batch.update(bookingRef, {
+        status: 'cancelled',
+        cancellationReason: reason,
+        cancelledBy: 'Admin HQ',
+        cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      if (driverId) {
+        const driverRef = db.collection('drivers').doc(driverId);
+        batch.set(driverRef, {
+          driverStatus: 'idle',
+          isBusy: false,
+          activeBookingId: null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+
+      await batch.commit();
+      console.log(`🚫 [Firestore] Booking ${bookingId} cancelled by Admin.`);
+    } catch (e) {
+      console.error("Firestore cancel booking error:", e);
+      throw e;
+    }
+  }
+
+  // Local state update for instant zero-latency feedback
+  if (booking) {
+    booking.status = 'cancelled';
+    booking.cancellationReason = reason;
+    booking.cancelledBy = 'Admin HQ';
+    booking.cancelledAt = { seconds: nowSeconds };
+  }
+
+  if (driverId) {
+    const driver = AdminStore.drivers.find(d => d.id === driverId);
+    if (driver) {
+      driver.driverStatus = 'idle';
+      driver.isBusy = false;
+      driver.activeBookingId = null;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Manually Assign an Available Driver to a Booking
  * Updates bookings/{bookingId} and drivers/{driverId} in Firestore
  */

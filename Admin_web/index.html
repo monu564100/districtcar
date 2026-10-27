@@ -870,6 +870,9 @@
                 <button type="button" class="btn btn-primary btn-sm" onclick="handleModalAssignDriver()">
                   <i class="fa-solid fa-user-check"></i> Assign
                 </button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="handleCancelBookingFromModal()" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA;">
+                  <i class="fa-solid fa-ban"></i> Cancel Booking
+                </button>
               </div>
             </div>
           </div>
@@ -904,9 +907,14 @@
         </div>
       </div>
       <div class="modal-footer" style="justify-content:space-between;">
-        <button class="btn btn-danger" onclick="deleteBookingFromModal()">
-          <i class="fa-solid fa-trash-can"></i> Delete Booking
-        </button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-warning" id="modalCancelBookingBtn" onclick="handleCancelBookingFromModal()" style="display:none; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA;">
+            <i class="fa-solid fa-ban"></i> Cancel Booking
+          </button>
+          <button class="btn btn-danger" onclick="deleteBookingFromModal()">
+            <i class="fa-solid fa-trash-can"></i> Delete Booking
+          </button>
+        </div>
         <button class="btn btn-secondary" onclick="closeModal('bookingAuditModal')">Close</button>
       </div>
     </div>

@@ -577,6 +577,13 @@ function renderBookingsTable() {
               <i class="fa-solid fa-check"></i> Driver Assigned
             </div>
           `}
+          ${(b.status === 'driver_assigned' || b.status === 'driver_arrived' || b.status === 'trip_started') ? `
+            <div style="margin-top:6px;">
+              <button class="btn btn-danger btn-sm" onclick="handleCancelBooking('${b.id}')" title="Cancel this active ride" style="padding:3px 8px; font-size:11px; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA;">
+                <i class="fa-solid fa-ban"></i> Cancel Ride
+              </button>
+            </div>
+          ` : ''}
         </div>
       `;
     } else if (b.status && b.status.includes('cancelled')) {
@@ -596,13 +603,16 @@ function renderBookingsTable() {
               <i class="fa-solid fa-hourglass-half"></i> Not Accepted Yet
             </span>
           </div>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <select id="assignSelect_${b.id}" class="filter-select" style="font-size:12px; padding:5px 6px; width:155px; background:#FFFFFF; border:1px solid #CBD5E1;">
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <select id="assignSelect_${b.id}" class="filter-select" style="font-size:12px; padding:5px 6px; width:140px; background:#FFFFFF; border:1px solid #CBD5E1;">
               <option value="">-- Assign Driver --</option>
               ${driverOptions}
             </select>
             <button class="btn btn-primary btn-sm" onclick="handleQuickAssign('${b.id}')" title="Assign Selected Driver" style="padding:6px 9px;">
               <i class="fa-solid fa-user-check"></i> Assign
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="handleCancelBooking('${b.id}')" title="Cancel this Booking" style="padding:6px 9px; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA;">
+              <i class="fa-solid fa-ban"></i> Cancel
             </button>
           </div>
         </div>
@@ -648,6 +658,11 @@ function renderBookingsTable() {
             <button class="btn btn-secondary btn-sm" onclick="openBookingAuditModal('${b.id}')" title="View Details">
               <i class="fa-solid fa-receipt"></i> Details
             </button>
+            ${(!b.status.includes('cancelled') && b.status !== 'completed' && b.status !== 'trip_completed') ? `
+              <button class="btn btn-sm" onclick="handleCancelBooking('${b.id}')" title="Cancel Booking" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; padding:5px 8px;">
+                <i class="fa-solid fa-ban"></i> Cancel
+              </button>
+            ` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteBooking('${b.id}')" title="Permanently Delete Booking">
               <i class="fa-solid fa-trash-can"></i>
             </button>
@@ -968,6 +983,34 @@ function getAvailableDriverOptions(selectedCategoryId = '') {
 /**
  * Quick Manual Driver Assignment Handler from Rides Table
  */
+/**
+ * Cancel Booking Handler from Rides Table or Direct Button
+ */
+async function handleCancelBooking(bookingId) {
+  const b = AdminStore.bookings.find(x => x.id === bookingId);
+  const rideIdStr = b ? (b.readableId || b.id.substring(0, 8)) : bookingId;
+
+  if (!confirm('Are you sure you want to cancel booking ' + rideIdStr + '?')) {
+    return;
+  }
+
+  try {
+    await apiCancelBooking(bookingId, 'Cancelled by Admin HQ');
+    showToast('Booking ' + rideIdStr + ' cancelled successfully!');
+    renderAllViews();
+    if (activeModalBookingId === bookingId) {
+      openBookingAuditModal(bookingId);
+    }
+  } catch (err) {
+    alert('Failed to cancel booking: ' + err.message);
+  }
+}
+
+async function handleCancelBookingFromModal() {
+  if (!activeModalBookingId) return;
+  await handleCancelBooking(activeModalBookingId);
+}
+
 async function handleQuickAssign(bookingId) {
   const selectEl = document.getElementById(`assignSelect_${bookingId}`);
   if (!selectEl) return;
@@ -1049,6 +1092,15 @@ function openBookingAuditModal(bookingId) {
       modalSelect.innerHTML = `<option value="">-- Choose Driver Partner --</option>` + getAvailableDriverOptions(b.vehicleCategoryId);
     } else {
       assignSec.style.display = 'none';
+    }
+  }
+
+  const modalCancelBtn = document.getElementById('modalCancelBookingBtn');
+  if (modalCancelBtn) {
+    if (!b.status.includes('cancelled') && b.status !== 'completed' && b.status !== 'trip_completed') {
+      modalCancelBtn.style.display = 'inline-flex';
+    } else {
+      modalCancelBtn.style.display = 'none';
     }
   }
 
