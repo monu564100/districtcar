@@ -196,6 +196,37 @@ function updateNavBadges() {
 }
 
 /**
+ * Helper to extract or calculate total distance in KM for a booking
+ */
+function getBookingDistanceKm(b) {
+  if (!b) return null;
+  const candidates = [b.estimatedDistanceKm, b.distanceKm, b.distance, b.approxDistanceKm, b.totalKm];
+  for (const c of candidates) {
+    if (c !== undefined && c !== null && !isNaN(c) && Number(c) > 0) {
+      return Math.round(Number(c) * 10) / 10;
+    }
+  }
+  // Fallback calculate from coordinates if present
+  const pLat = b.pickup?.latitude;
+  const pLng = b.pickup?.longitude;
+  const dLat = b.destination?.latitude;
+  const dLng = b.destination?.longitude;
+  if (pLat && pLng && dLat && dLng) {
+    const R = 6371;
+    const dLatRad = (dLat - pLat) * Math.PI / 180;
+    const dLngRad = (dLng - pLng) * Math.PI / 180;
+    const a = Math.sin(dLatRad / 2) * Math.sin(dLatRad / 2) +
+              Math.cos(pLat * Math.PI / 180) * Math.cos(dLat * Math.PI / 180) *
+              Math.sin(dLngRad / 2) * Math.sin(dLngRad / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const aerialKm = R * c;
+    const roadKm = Math.round((aerialKm * 1.25) * 10) / 10;
+    return roadKm > 0 ? roadKm : null;
+  }
+  return null;
+}
+
+/**
  * 4. Dashboard Metrics Calculation
  */
 function renderMetrics() {
@@ -227,6 +258,11 @@ function renderMetrics() {
   safeSetText('metricCommission', `₹${Math.round(platformCommission).toLocaleString('en-IN')}`);
   safeSetText('metricDriverShare', `₹${Math.round(driverNetShare).toLocaleString('en-IN')}`);
   safeSetText('metricTotalRides', completedBookings.length.toLocaleString('en-IN'));
+  const totalKm = completedBookings.reduce((sum, b) => {
+    const d = getBookingDistanceKm(b);
+    return sum + (d || 0);
+  }, 0);
+  safeSetText('metricTotalKm', `${Math.round(totalKm).toLocaleString('en-IN')} km`);
   safeSetText('metricActiveDrivers', `${onlineDrivers} / ${approvedDrivers}`);
   safeSetText('metricTotalUsers', users.length.toLocaleString('en-IN'));
 
@@ -550,6 +586,8 @@ function renderBookingsTable() {
     const destStr = b.destination?.address || 'Destination';
     const dName = b.driverName ? b.driverName : (b.driverId ? `Driver #${b.driverId.substring(0, 6)}` : null);
 
+    const distKm = getBookingDistanceKm(b);
+
     // Formatted Timing
     const bookingTimeStr = formatTimestamp(b.createdAt) || 'Recent';
     const acceptTimeStr = formatTimestamp(b.driverAcceptedAt || b.acceptedAt);
@@ -641,6 +679,12 @@ function renderBookingsTable() {
           <span class="badge-category">${(b.vehicleCategoryId || 'CAB').toUpperCase()}</span>
           ${b.isRoundTrip ? '<span class="badge badge-info" style="margin-left:4px;">Round Trip</span>' : ''}
         </td>
+        <td>
+          <span style="display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:800; color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; padding:3px 9px; border-radius:20px; white-space:nowrap;">
+            <i class="fa-solid fa-road"></i> ${distKm !== null ? `${distKm} km` : 'N/A'}
+          </span>
+          ${b.isRoundTrip ? '<span style="display:block; font-size:10.5px; color:#7C3AED; font-weight:700; margin-top:3px;">Round Trip</span>' : ''}
+        </td>
         <td style="max-width:240px;">
           <div style="font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
             <i class="fa-solid fa-location-dot" style="color:#059669; width:14px;"></i> ${pickupStr}
@@ -648,6 +692,11 @@ function renderBookingsTable() {
           <div style="font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#64748B; margin-top:2px;">
             <i class="fa-solid fa-flag-checkered" style="color:#DC2626; width:14px;"></i> ${destStr}
           </div>
+          ${distKm !== null ? `
+            <div style="margin-top:3px; font-size:11px; color:#2563EB; font-weight:700;">
+              <i class="fa-solid fa-route"></i> Total Distance: <strong>${distKm} km</strong>
+            </div>
+          ` : ''}
         </td>
         <td>${statusChip}</td>
         <td><strong style="font-size:14px; color:#0F172A;">₹${grossFare.toFixed(0)}</strong></td>
@@ -1071,6 +1120,8 @@ function openBookingAuditModal(bookingId) {
   safeSetText('auditPickup', b.pickup?.address || 'N/A');
   safeSetText('auditDestination', b.destination?.address || 'N/A');
   safeSetText('auditOTP', b.rideOtp || 'N/A');
+  const modalDistKm = getBookingDistanceKm(b);
+  safeSetText('auditDistance', modalDistKm !== null ? `${modalDistKm} km ${b.isRoundTrip ? '(Round Trip)' : ''}` : 'Direct City/Rural Route');
 
   const bTime = formatTimestamp(b.createdAt) || 'Recent';
   safeSetText('auditBookingTime', bTime);
@@ -1452,11 +1503,12 @@ function exportBookingsCSV() {
   const list = AdminStore.bookings;
   if (list.length === 0) return alert('No bookings to export.');
 
-  let csv = 'BookingID,Date,CustomerName,CustomerPhone,DriverName,Category,Status,GrossFare,Commission10,DriverNet90,PaymentMethod\n';
+  let csv = 'BookingID,Date,CustomerName,CustomerPhone,DriverName,Category,TotalDistanceKm,Status,GrossFare,Commission10,DriverNet90,PaymentMethod\n';
   list.forEach(b => {
     const gross = parseFloat(b.finalFare || b.estimatedFare || 0);
     const dateStr = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt).toISOString() : '';
-    csv += `"${b.readableId || b.id}","${dateStr}","${b.customerName || ''}","${b.customerPhone || ''}","${b.driverName || ''}","${b.vehicleCategoryId || ''}","${b.status}","${gross}","${(gross*0.1).toFixed(0)}","${(gross*0.9).toFixed(0)}","${b.paymentMethod || 'cash'}"\n`;
+    const rowDist = getBookingDistanceKm(b) || 'N/A';
+    csv += `"${b.readableId || b.id}","${dateStr}","${b.customerName || ''}","${b.customerPhone || ''}","${b.driverName || ''}","${b.vehicleCategoryId || ''}","${rowDist}","${b.status}","${gross}","${(gross*0.1).toFixed(0)}","${(gross*0.9).toFixed(0)}","${b.paymentMethod || 'cash'}"\n`;
   });
 
   downloadCSV(csv, `DistrictCar_Bookings_Report_${new Date().toISOString().split('T')[0]}.csv`);
