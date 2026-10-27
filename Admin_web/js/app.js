@@ -146,6 +146,7 @@ function renderAllViews() {
   renderCommissionView();
   renderPayoutsTable();
   renderRemoteConfigView();
+  updateGuestPopupUI();
   updateNavBadges();
 }
 
@@ -883,6 +884,7 @@ function renderRemoteConfigView() {
     // Enabled by default unless explicitly set to false
     guestPopupCheckbox.checked = (cfg.showGuestSignInPopup !== false);
   }
+  updateGuestPopupUI(cfg.showGuestSignInPopup !== false);
 }
 
 /**
@@ -1276,6 +1278,81 @@ async function saveRemoteConfigForm(e) {
     showToast(`Remote config updated! Driver v${dBuild}, Customer v${cBuild}, Guest Popup: ${guestPopup ? 'ON' : 'OFF'}`);
   } catch (e) {
     alert('Failed to save configuration: ' + e.message);
+  }
+}
+
+/**
+ * Standalone direct button handlers for Customer App Guest Sign-In Popup
+ */
+async function setGuestSignInPopupDirect(enabled) {
+  try {
+    await apiSetGuestSignInPopup(enabled);
+    updateGuestPopupUI(enabled);
+    showToast(enabled ? 'Popup Sign-In turned ON for all customer apps!' : 'Popup Sign-In turned OFF remotely.');
+  } catch (e) {
+    alert('Failed to update popup status: ' + e.message);
+  }
+}
+
+async function toggleGuestSignInPopupDirectly() {
+  const cfg = AdminStore.remoteConfig || {};
+  const currentlyOn = (cfg.showGuestSignInPopup !== false);
+  await setGuestSignInPopupDirect(!currentlyOn);
+}
+
+function updateGuestPopupUI(enabled) {
+  const isEnabled = enabled !== undefined ? Boolean(enabled) : ((AdminStore.remoteConfig?.showGuestSignInPopup) !== false);
+
+  // 1. Topbar Button & Status
+  const topbarStatus = document.getElementById('topbarGuestPopupStatus');
+  const topbarBtn = document.getElementById('topbarGuestPopupBtn');
+  if (topbarStatus) topbarStatus.textContent = isEnabled ? 'ON' : 'OFF';
+  if (topbarBtn) {
+    if (isEnabled) {
+      topbarBtn.style.background = '#ECFDF5';
+      topbarBtn.style.color = '#059669';
+      topbarBtn.style.borderColor = '#A7F3D0';
+    } else {
+      topbarBtn.style.background = '#FEF2F2';
+      topbarBtn.style.color = '#DC2626';
+      topbarBtn.style.borderColor = '#FECACA';
+    }
+  }
+
+  // 2. Dashboard Button & Status
+  const dashStatus = document.getElementById('dashGuestPopupStatus');
+  const dashBtn = document.getElementById('dashGuestPopupBtn');
+  if (dashStatus) dashStatus.textContent = isEnabled ? 'ON' : 'OFF';
+  if (dashBtn) {
+    if (isEnabled) {
+      dashBtn.style.color = '#059669';
+      dashBtn.style.borderColor = '#A7F3D0';
+    } else {
+      dashBtn.style.color = '#DC2626';
+      dashBtn.style.borderColor = '#FECACA';
+    }
+  }
+
+  // 3. Standalone Status Badge in Updates view
+  const badge = document.getElementById('guestPopupStatusBadge');
+  if (badge) {
+    if (isEnabled) {
+      badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> ACTIVE (ON)';
+      badge.style.background = '#ECFDF5';
+      badge.style.color = '#059669';
+      badge.style.borderColor = '#A7F3D0';
+    } else {
+      badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> DISABLED (OFF)';
+      badge.style.background = '#FEF2F2';
+      badge.style.color = '#DC2626';
+      badge.style.borderColor = '#FECACA';
+    }
+  }
+
+  // 4. Form Checkbox
+  const checkbox = document.getElementById('cfgGuestSignInPopup');
+  if (checkbox) {
+    checkbox.checked = isEnabled;
   }
 }
 

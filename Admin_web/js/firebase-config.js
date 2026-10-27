@@ -203,6 +203,9 @@ function initRealtimeListeners(onDataChange) {
     db.collection('remote_configs').doc('app_updates').onSnapshot((doc) => {
       if (doc.exists) {
         AdminStore.remoteConfig = doc.data();
+        if (typeof updateGuestPopupUI === 'function') {
+          updateGuestPopupUI(AdminStore.remoteConfig.showGuestSignInPopup !== false);
+        }
         if (onDataChange) onDataChange('remoteConfig');
       }
     }, (err) => {
@@ -542,6 +545,30 @@ async function apiProcessPayout(payoutId, status, transactionRef = '') {
 /**
  * Remote Config & Fare Actions
  */
+/**
+ * Standalone 1-click API to Turn ON or Turn OFF Customer App Guest Sign-In Popup
+ */
+async function apiSetGuestSignInPopup(enabled) {
+  const isEnabled = Boolean(enabled);
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('app_updates').set({
+        showGuestSignInPopup: isEnabled,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log(`✅ [Firestore] Guest sign-in popup set to: ${isEnabled ? 'ON' : 'OFF'}`);
+    } catch (e) {
+      console.error("Error setting guest sign-in popup in Firestore:", e);
+      throw e;
+    }
+  }
+  if (!AdminStore.remoteConfig) {
+    AdminStore.remoteConfig = {};
+  }
+  AdminStore.remoteConfig.showGuestSignInPopup = isEnabled;
+  return isEnabled;
+}
+
 async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup) {
   if (!db) return false;
   try {
