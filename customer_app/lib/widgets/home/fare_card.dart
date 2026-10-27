@@ -473,6 +473,17 @@ class _FareCardState extends State<FareCard> with SingleTickerProviderStateMixin
                                     valueColor: const Color(0xFFD97706),
                                     isBold: true,
                                   ),
+                                  if (widget.isRoundTrip) ...[
+                                    const SizedBox(height: 6),
+                                    _buildReceiptRow(
+                                      title: widget.isHindi
+                                          ? 'राउंड ट्रिप छूट (2x बेस पर 35% OFF)'
+                                          : 'Round Trip Discount (35% OFF on 2x)',
+                                      value: '-35% APPLIED',
+                                      valueColor: const Color(0xFF16A34A),
+                                      isBold: true,
+                                    ),
+                                  ],
                                   if (widget.isRoundTrip && widget.returnAllowance > 0) ...[
                                     const SizedBox(height: 6),
                                     _buildReceiptRow(

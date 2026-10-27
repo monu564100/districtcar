@@ -1051,8 +1051,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             Expanded(
                               child: Text(
                                 distanceKm <= pricingRules.shortTripMaxDistanceKm
-                                    ? 'One-way includes 20% driver return compensation. Tap here to switch to Round Trip & save 35%!'
-                                    : 'Long distance one-way includes 40% driver compensation. Tap to switch to Round Trip & save 35%!',
+                                    ? 'One-way includes 20% driver return fee. Tap to switch to Round Trip (2x one-way with 35% OFF)!'
+                                    : 'Long trip one-way includes 40% driver compensation. Tap to switch to Round Trip (2x one-way with 35% OFF)!',
                                 style: const TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
@@ -1065,6 +1065,38 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF2563EB)),
                           ],
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                // Confirmation banner when Round Trip is active
+                if (_isRoundTrip && distanceKm >= pricingRules.minDistanceCapKm) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Round Trip Active: 2x One-Way fare with 35% discount + 1 hr free waiting included!',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF15803D),
+                                height: 1.25,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1882,10 +1914,27 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                               ),
                             ),
                           ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text(
+                              '35% OFF',
+                              style: TextStyle(
+                                color: Color(0xFF15803D),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       Text(
-                        _isHindi ? 'उसी गाड़ी से वापसी' : 'Same driver stays for return',
+                        _isHindi
+                            ? '2x एकतरफा मूल्य पर 35% छूट • उसी गाड़ी से वापसी'
+                            : '2x One-Way with 35% OFF • Same driver stays for return',
                         style: const TextStyle(fontSize: 10, color: AppTokens.secondary),
                       ),
                     ],

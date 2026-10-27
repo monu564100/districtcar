@@ -875,41 +875,66 @@
             </div>
           </div>
 
-          <!-- Section 3: Server-Driven UI (SDUI) Festive Theme Studio -->
+          <!-- Section 3: Ultra-Interactive Server-Driven UI (SDUI) Festive Theme Studio -->
           <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:14px; padding:22px; box-shadow:var(--shadow-sm); margin-bottom:24px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
               <div>
                 <h3 style="font-size:17px; font-weight:800; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
-                  <i class="fa-solid fa-wand-magic-sparkles" style="color:#F59E0B;"></i> Server-Driven UI (SDUI) Festive Overlay Studio
+                  <i class="fa-solid fa-wand-magic-sparkles" style="color:#F59E0B;"></i> Ultra-Interactive SDUI Festive Overlay Studio
                 </h3>
                 <p style="font-size:13px; color:#64748B; margin:4px 0 0 0;">
-                  Remotely pushes festive animations (e.g. Diwali bottom rocket fireworks, golden sparkles) to customer app without updating the home page layout.
+                  Configure dynamic animations, tap-to-burst fireworks, animated GIFs, images, floating banners & coupon codes remotely in Firestore (<code>remote_configs/festive_theme</code>).
                 </p>
               </div>
-              <div style="display:flex; align-items:center; gap:12px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span id="festiveThemeStatusBadge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:800;">
                   <i class="fa-solid fa-spinner fa-spin"></i> LOADING THEME...
                 </span>
-                <button class="btn btn-outline" onclick="loadDefaultDiwaliTheme()">
-                  <i class="fa-solid fa-fire"></i> Load Diwali Preset
+                <button class="btn btn-sm btn-outline" onclick="loadDefaultDiwaliTheme()" title="Diwali Fireworks + Diya GIF">
+                  <i class="fa-solid fa-fire"></i> Diwali Diya
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="loadNewYearTheme()" title="New Year Confetti + Countdown">
+                  <i class="fa-solid fa-champagne-glasses"></i> New Year
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="loadHoliTheme()" title="Holi Multicolor Gulal Splash">
+                  <i class="fa-solid fa-palette"></i> Holi Colors
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="loadCustomGifTheme()" title="Custom Animated GIF/Sticker">
+                  <i class="fa-solid fa-image"></i> Custom GIF
                 </button>
               </div>
             </div>
 
             <!-- Visual Controls & JSON Editor side-by-side -->
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap:20px;">
               <!-- Visual Form -->
               <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:18px;">
-                <h4 style="font-size:14px; font-weight:700; color:#1E293B; margin-top:0; margin-bottom:14px;">
-                  Visual Overlay Controls
+                <h4 style="font-size:14px; font-weight:700; color:#1E293B; margin-top:0; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
+                  <i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Visual Overlay & Interactivity Controls
                 </h4>
 
-                <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                  <label style="font-size:12.5px; font-weight:700; color:#334155;">Overlay Enabled in Customer App</label>
-                  <label class="switch">
-                    <input type="checkbox" id="festiveThemeEnabledToggle" onchange="syncFestiveFormToJson()">
-                    <span class="slider round"></span>
-                  </label>
+                <!-- Master Toggle & Interactivity -->
+                <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:12px; margin-bottom:14px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div>
+                      <strong style="font-size:13px; color:#0F172A; display:block;">Enable Overlay in App</strong>
+                      <span style="font-size:11px; color:#64748B;">Renders on launch/home screen</span>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="festiveThemeEnabledToggle" onchange="syncFestiveFormToJson()">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #F1F5F9; padding-top:10px;">
+                    <div>
+                      <strong style="font-size:12.5px; color:#0F172A; display:block;">Interactive Tap-to-Burst</strong>
+                      <span style="font-size:11px; color:#64748B;">User taps anywhere to spawn fireworks!</span>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="festiveThemeInteractiveTap" checked onchange="syncFestiveFormToJson()">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
                 </div>
 
                 <div style="margin-bottom:12px;">
@@ -919,10 +944,10 @@
 
                 <div style="margin-bottom:12px;">
                   <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
-                    Overlay Duration (5 - 10 Seconds)
+                    Overlay Duration (5 - 15 Seconds)
                   </label>
                   <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="range" id="festiveThemeDurationRange" min="5" max="10" step="1" value="8" style="flex:1;" oninput="document.getElementById('festiveThemeDurationVal').innerText = this.value + 's'; syncFestiveFormToJson();">
+                    <input type="range" id="festiveThemeDurationRange" min="5" max="15" step="1" value="8" style="flex:1;" oninput="document.getElementById('festiveThemeDurationVal').innerText = this.value + 's'; syncFestiveFormToJson();">
                     <span id="festiveThemeDurationVal" style="font-weight:800; font-size:13px; color:#0F172A; min-width:30px;">8s</span>
                   </div>
                 </div>
@@ -932,30 +957,66 @@
                   <input type="text" id="festiveThemeGreeting" class="form-input" value="✨ Shubh Deepawali from District Car ✨" oninput="syncFestiveFormToJson()">
                 </div>
 
+                <!-- Media / Animated GIF Box -->
+                <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:12px; margin-bottom:14px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12.5px; font-weight:800; color:#92400E; display:flex; align-items:center; gap:6px;">
+                      <i class="fa-solid fa-photo-film"></i> Animated GIF / Image Sticker
+                    </span>
+                    <label class="switch">
+                      <input type="checkbox" id="festiveThemeShowMedia" onchange="syncFestiveFormToJson()">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div style="margin-bottom:8px;">
+                    <label style="display:block; font-size:11px; font-weight:700; color:#78350F; margin-bottom:2px;">GIF or Image URL</label>
+                    <input type="url" id="festiveThemeMediaUrl" class="form-input" placeholder="https://.../festive_diya.gif" oninput="syncFestiveFormToJson()">
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                      <label style="display:block; font-size:11px; font-weight:700; color:#78350F; margin-bottom:2px;">Position</label>
+                      <select id="festiveThemeMediaPos" class="form-input" style="padding:4px 8px; font-size:12px;" onchange="syncFestiveFormToJson()">
+                        <option value="center">Center Float</option>
+                        <option value="bottom">Bottom Stage</option>
+                        <option value="top">Top Header</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="display:block; font-size:11px; font-weight:700; color:#78350F; margin-bottom:2px;">Animation</label>
+                      <select id="festiveThemeMediaAnim" class="form-input" style="padding:4px 8px; font-size:12px;" onchange="syncFestiveFormToJson()">
+                        <option value="pulse">Pulse Scale</option>
+                        <option value="bounce">Bouncy Spring</option>
+                        <option value="float">Smooth Float</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Particle Customization -->
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
                   <div>
                     <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Primary (Gold)</label>
-                    <input type="color" id="festiveThemePrimaryColor" value="#FFD700" style="width:100%; height:36px; border-radius:8px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
+                    <input type="color" id="festiveThemePrimaryColor" value="#FFD700" style="width:100%; height:34px; border-radius:6px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
                   </div>
                   <div>
                     <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Secondary (Festive Red)</label>
-                    <input type="color" id="festiveThemeSecondaryColor" value="#FF4500" style="width:100%; height:36px; border-radius:8px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
+                    <input type="color" id="festiveThemeSecondaryColor" value="#FF4500" style="width:100%; height:34px; border-radius:6px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
                   </div>
                 </div>
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                   <div>
-                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Rocket Count (2-12)</label>
-                    <input type="number" id="festiveThemeRocketCount" class="form-input" min="2" max="12" value="6" oninput="syncFestiveFormToJson()">
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Rocket Count (2-16)</label>
+                    <input type="number" id="festiveThemeRocketCount" class="form-input" min="2" max="16" value="6" oninput="syncFestiveFormToJson()">
                   </div>
                   <div>
-                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Sparkle Density (15-80)</label>
-                    <input type="number" id="festiveThemeSparkleDensity" class="form-input" min="15" max="80" value="45" oninput="syncFestiveFormToJson()">
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Sparkle Density (15-120)</label>
+                    <input type="number" id="festiveThemeSparkleDensity" class="form-input" min="15" max="120" value="45" oninput="syncFestiveFormToJson()">
                   </div>
                 </div>
               </div>
 
-              <!-- JSON Editor -->
+              <!-- Live SDUI JSON Editor -->
               <div style="background:#0F172A; border-radius:12px; padding:18px; display:flex; flex-direction:column;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                   <span style="font-size:13px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:6px;">
@@ -966,11 +1027,14 @@
                   </button>
                 </div>
 
-                <textarea id="festiveThemeJsonArea" style="flex:1; min-height:220px; background:#1E293B; color:#38BDF8; font-family:monospace; font-size:12px; padding:12px; border-radius:8px; border:1px solid #334155; resize:vertical;" oninput="syncJsonToFestiveForm()"></textarea>
+                <textarea id="festiveThemeJsonArea" style="flex:1; min-height:360px; background:#1E293B; color:#38BDF8; font-family:monospace; font-size:12px; padding:12px; border-radius:8px; border:1px solid #334155; resize:vertical;" oninput="syncJsonToFestiveForm()"></textarea>
 
-                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px;">
+                  <span style="font-size:11.5px; color:#94A3B8;">
+                    <i class="fa-solid fa-circle-info"></i> Real-time synchronized with customer app
+                  </span>
                   <button class="btn btn-primary" onclick="publishFestiveThemeJson()">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Publish Festive Theme SDUI to App
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Publish Ultra-Interactive SDUI to App
                   </button>
                 </div>
               </div>

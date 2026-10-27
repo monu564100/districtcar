@@ -196,7 +196,7 @@ class RoundTripSuggestionDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Long trip one-way journeys (${distanceKm.toStringAsFixed(1)} km) include a 40% driver return compensation fee.\n\nTurn on Round Trip now to get a 35% discount with guaranteed return ride + 1 hr free waiting!',
+                      'Long trip one-way journeys (${distanceKm.toStringAsFixed(1)} km) include a 40% driver return compensation fee.\n\nTurn on Round Trip now to get double the one-way price with an instant 35% discount + 1 hr free waiting!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12.5,
@@ -246,7 +246,7 @@ class RoundTripSuggestionDialog extends StatelessWidget {
                                   const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF16A34A)),
                                   const SizedBox(width: 4),
                                   const Text(
-                                    'Round Trip (35% OFF):',
+                                    'Round Trip (2x with 35% OFF):',
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       color: Color(0xFF16A34A),

@@ -148,42 +148,89 @@ class RuralFareCalculator {
         : getRatePerKm(
             categoryIdOrName: '${category.id} ${category.name} ${category.displayName}',
             oneWayDistanceKm: dist,
-            isRoundTrip: isRoundTrip,
+            isRoundTrip: false,
           );
 
     final double baseFee = category.baseFare > 0.0 ? category.baseFare : 0.0;
 
-    // 4. Raw Distance Base Cost
-    // One-Way: distance * ratePerKm
-    // Round-Trip: distance * 2 * ratePerKm
-    final double totalTravelDistanceKm = isRoundTrip ? (dist * 2.0) : dist;
-    final double rawDistanceCost = baseFee + (totalTravelDistanceKm * ratePerKm);
+    // 4. If Round-Trip:
+    // User Specification: "when customer click round trip it should be double the price of one way and then off 35% on it this is round trip make this in customer ."
+    if (isRoundTrip) {
+      // Step A: Calculate full one-way fare for this distance & vehicle category
+      final oneWayBreakdown = calculateDetailedFare(
+        category: category,
+        oneWayDistanceKm: dist,
+        isRoundTrip: false,
+        stoppingHours: 0.0,
+        rules: r,
+      );
 
-    double oneWayCompensation = 0.0;
-    double roundTripDiscount = 0.0;
-    String? suggestionMessage;
+      final double oneWayFare = oneWayBreakdown.finalFare;
 
-    if (!isRoundTrip) {
-      // One-way ride: Apply driver compensation
-      if (isShortTrip) {
-        // Short trip one-way: +20% driver compensation
-        final double compPct = r.shortTripOneWayCompensationPercent / 100.0;
-        oneWayCompensation = rawDistanceCost * compPct;
-        suggestionMessage = 'Save 35% on return fare by switching to Round Trip!';
-      } else {
-        // Long trip one-way: +40% driver compensation
-        final double compPct = r.longTripOneWayCompensationPercent / 100.0;
-        oneWayCompensation = rawDistanceCost * compPct;
-        suggestionMessage = 'Tip: Turn on Round Trip to save 35% on return travel!';
-      }
-    } else {
-      // Round-trip ride: Apply 35% discount on the total return distance cost
+      // Step B: Double the price of one way
+      final double doubleOfOneWay = oneWayFare * 2.0;
+
+      // Step C: 35% discount applied on the doubled one-way price
       final double discountPct = r.roundTripDiscountPercent / 100.0;
-      roundTripDiscount = rawDistanceCost * discountPct;
+      final double roundTripDiscount = (doubleOfOneWay * discountPct).roundToDouble();
+      final double baseRoundTripFare = doubleOfOneWay - roundTripDiscount;
+
+      // Step D: Waiting Charges (1 hour free; extra hours billed at category waiting charge)
+      double waitingCharge = 0.0;
+      final double extraHours = (stoppingHours - 1.0).clamp(0.0, 48.0);
+      final double hourlyRate = category.hourlyWaitingCharge > 0 ? category.hourlyWaitingCharge : 60.0;
+      waitingCharge = (extraHours * hourlyRate).roundToDouble();
+
+      // Step E: Final Fare guaranteed to be at least category.minimumFare
+      final double computedFare = baseRoundTripFare + waitingCharge;
+      final double finalFare = max(category.minimumFare, computedFare).roundToDouble();
+
+      // Step F: Platform Commission
+      double commPercent = isShortTrip ? r.shortTripCommissionPercent : r.longTripCommissionPercent;
+      if (r.adminSurgeEnabled) {
+        commPercent += r.adminSurgePercent;
+      }
+
+      final double platformCommission = (finalFare * (commPercent / 100.0)).roundToDouble();
+      final double driverNetEarnings = max(0.0, finalFare - platformCommission).roundToDouble();
+
+      return DistrictCarFareBreakdown(
+        finalFare: finalFare,
+        baseDistanceCost: doubleOfOneWay,
+        oneWayCompensation: 0.0,
+        roundTripDiscount: roundTripDiscount,
+        shortTripSurge: (oneWayBreakdown.shortTripSurge * 2.0).roundToDouble(),
+        adminSurge: (oneWayBreakdown.adminSurge * 2.0).roundToDouble(),
+        waitingCharge: waitingCharge,
+        platformCommission: platformCommission,
+        platformCommissionPercent: commPercent,
+        driverNetEarnings: driverNetEarnings,
+        isShortTrip: isShortTrip,
+        isBelowMinCap: isBelowMinCap,
+        minDistanceCapKm: r.minDistanceCapKm,
+        suggestionMessage: null,
+      );
     }
 
-    // Cost after directional compensation / discount
-    double intermediateCost = rawDistanceCost + oneWayCompensation - roundTripDiscount;
+    // --- ONE-WAY CALCULATION ---
+    final double rawDistanceCost = baseFee + (dist * ratePerKm);
+
+    double oneWayCompensation = 0.0;
+    String? suggestionMessage;
+
+    if (isShortTrip) {
+      // Short trip one-way: +20% driver compensation
+      final double compPct = r.shortTripOneWayCompensationPercent / 100.0;
+      oneWayCompensation = rawDistanceCost * compPct;
+      suggestionMessage = 'Save 35% on return fare by switching to Round Trip!';
+    } else {
+      // Long trip one-way: +40% driver compensation
+      final double compPct = r.longTripOneWayCompensationPercent / 100.0;
+      oneWayCompensation = rawDistanceCost * compPct;
+      suggestionMessage = 'Tip: Turn on Round Trip to save 35% on return travel!';
+    }
+
+    double intermediateCost = rawDistanceCost + oneWayCompensation;
 
     // 5. Short Trip Surge: 10% hike applicable on 5-25 km trips
     double shortTripSurge = 0.0;
@@ -192,29 +239,18 @@ class RuralFareCalculator {
       shortTripSurge = intermediateCost * surgePct;
     }
 
-    // 6. Waiting Charges (1 hour free on round trips; extra hours billed at category rate)
-    double waitingCharge = 0.0;
-    if (isRoundTrip) {
-      final double extraHours = (stoppingHours - 1.0).clamp(0.0, 48.0);
-      final double hourlyRate = category.hourlyWaitingCharge > 0 ? category.hourlyWaitingCharge : 60.0;
-      waitingCharge = extraHours * hourlyRate;
-    }
-
-    // 7. Admin Surge Fee (Dynamic toggle from admin_web: +8% platform fee)
+    // 6. Admin Surge Fee (Dynamic toggle from admin_web: +8% platform fee)
     double adminSurge = 0.0;
     if (r.adminSurgeEnabled) {
       final double adminSurgePct = r.adminSurgePercent / 100.0;
-      adminSurge = (intermediateCost + shortTripSurge + waitingCharge) * adminSurgePct;
+      adminSurge = (intermediateCost + shortTripSurge) * adminSurgePct;
     }
 
-    // 8. Total Gross Fare before minimum floor
-    double computedFare = intermediateCost + shortTripSurge + waitingCharge + adminSurge;
+    // 7. Total Gross Fare before minimum floor
+    double computedFare = intermediateCost + shortTripSurge + adminSurge;
     final double finalFare = max(category.minimumFare, computedFare).roundToDouble();
 
-    // 9. Platform Commission Calculation
-    // Short trip: 18% commission
-    // Long trip: 10% commission
-    // If admin surge enabled: add adminSurgePercent (8%)
+    // 8. Platform Commission Calculation
     double commPercent = isShortTrip ? r.shortTripCommissionPercent : r.longTripCommissionPercent;
     if (r.adminSurgeEnabled) {
       commPercent += r.adminSurgePercent;
@@ -227,10 +263,10 @@ class RuralFareCalculator {
       finalFare: finalFare,
       baseDistanceCost: rawDistanceCost.roundToDouble(),
       oneWayCompensation: oneWayCompensation.roundToDouble(),
-      roundTripDiscount: roundTripDiscount.roundToDouble(),
+      roundTripDiscount: 0.0,
       shortTripSurge: shortTripSurge.roundToDouble(),
       adminSurge: adminSurge.roundToDouble(),
-      waitingCharge: waitingCharge.roundToDouble(),
+      waitingCharge: 0.0,
       platformCommission: platformCommission,
       platformCommissionPercent: commPercent,
       driverNetEarnings: driverNetEarnings,

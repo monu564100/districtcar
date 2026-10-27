@@ -1947,6 +1947,11 @@ function syncFestiveThemeToUI(theme) {
     toggle.checked = (theme.enabled === true);
   }
 
+  const tapToggle = document.getElementById('festiveThemeInteractiveTap');
+  if (tapToggle && tapToggle.checked !== (theme.interactiveTap !== false)) {
+    tapToggle.checked = (theme.interactiveTap !== false);
+  }
+
   const nameEl = document.getElementById('festiveThemeName');
   if (nameEl && !nameEl.matches(':focus')) {
     nameEl.value = theme.theme || 'diwali_rockets';
@@ -1964,6 +1969,28 @@ function syncFestiveThemeToUI(theme) {
     greetingEl.value = theme.greetingText || '✨ Shubh Deepawali from District Car ✨';
   }
 
+  // Media / GIF
+  const showMediaToggle = document.getElementById('festiveThemeShowMedia');
+  if (showMediaToggle && showMediaToggle.checked !== (theme.showMedia === true)) {
+    showMediaToggle.checked = (theme.showMedia === true);
+  }
+
+  const mediaUrlEl = document.getElementById('festiveThemeMediaUrl');
+  if (mediaUrlEl && !mediaUrlEl.matches(':focus')) {
+    mediaUrlEl.value = theme.mediaUrl || '';
+  }
+
+  const mediaPosEl = document.getElementById('festiveThemeMediaPos');
+  if (mediaPosEl) {
+    mediaPosEl.value = theme.mediaPosition || 'center';
+  }
+
+  const mediaAnimEl = document.getElementById('festiveThemeMediaAnim');
+  if (mediaAnimEl) {
+    mediaAnimEl.value = theme.mediaAnimation || 'pulse';
+  }
+
+  // Colors
   const primaryCol = document.getElementById('festiveThemePrimaryColor');
   if (primaryCol && theme.primaryColor) {
     primaryCol.value = theme.primaryColor;
@@ -2006,17 +2033,36 @@ function syncFestiveThemeToUI(theme) {
 }
 
 function syncFestiveFormToJson() {
+  const showMedia = Boolean(document.getElementById('festiveThemeShowMedia')?.checked);
+  const mediaUrl = document.getElementById('festiveThemeMediaUrl')?.value?.trim();
+
   const current = {
     enabled: Boolean(document.getElementById('festiveThemeEnabledToggle')?.checked),
     theme: document.getElementById('festiveThemeName')?.value || 'diwali_rockets',
     durationSeconds: parseInt(document.getElementById('festiveThemeDurationRange')?.value, 10) || 8,
+    interactiveTap: Boolean(document.getElementById('festiveThemeInteractiveTap')?.checked),
+    enableHaptics: true,
+    showGreetingBadge: true,
+    greetingText: document.getElementById('festiveThemeGreeting')?.value || '✨ Shubh Deepawali from District Car ✨',
+    showMedia: showMedia || Boolean(mediaUrl),
+    mediaUrl: mediaUrl || undefined,
+    mediaPosition: document.getElementById('festiveThemeMediaPos')?.value || 'center',
+    mediaAnimation: document.getElementById('festiveThemeMediaAnim')?.value || 'pulse',
+    mediaWidth: 150,
+    mediaHeight: 150,
+    colors: [
+      document.getElementById('festiveThemePrimaryColor')?.value || '#FFD700',
+      document.getElementById('festiveThemeSecondaryColor')?.value || '#FF4500',
+      '#FF1493',
+      '#00E676',
+      '#FFFFFF'
+    ],
     primaryColor: document.getElementById('festiveThemePrimaryColor')?.value || '#FFD700',
     secondaryColor: document.getElementById('festiveThemeSecondaryColor')?.value || '#FF4500',
     sparkleColor: '#FFFFFF',
     rocketCount: parseInt(document.getElementById('festiveThemeRocketCount')?.value, 10) || 6,
     sparkleDensity: parseInt(document.getElementById('festiveThemeSparkleDensity')?.value, 10) || 45,
-    showGreetingBadge: true,
-    greetingText: document.getElementById('festiveThemeGreeting')?.value || '✨ Shubh Deepawali from District Car ✨',
+    particleShape: 'stars',
   };
 
   const jsonArea = document.getElementById('festiveThemeJsonArea');
@@ -2050,6 +2096,10 @@ function syncJsonToFestiveForm() {
         const toggle = document.getElementById('festiveThemeEnabledToggle');
         if (toggle) toggle.checked = Boolean(parsed.enabled);
       }
+      if (parsed.interactiveTap !== undefined) {
+        const tapToggle = document.getElementById('festiveThemeInteractiveTap');
+        if (tapToggle) tapToggle.checked = Boolean(parsed.interactiveTap);
+      }
       if (parsed.theme) {
         const n = document.getElementById('festiveThemeName');
         if (n) n.value = parsed.theme;
@@ -2063,6 +2113,22 @@ function syncJsonToFestiveForm() {
       if (parsed.greetingText) {
         const g = document.getElementById('festiveThemeGreeting');
         if (g) g.value = parsed.greetingText;
+      }
+      if (parsed.showMedia !== undefined) {
+        const sm = document.getElementById('festiveThemeShowMedia');
+        if (sm) sm.checked = Boolean(parsed.showMedia);
+      }
+      if (parsed.mediaUrl !== undefined) {
+        const mu = document.getElementById('festiveThemeMediaUrl');
+        if (mu) mu.value = parsed.mediaUrl;
+      }
+      if (parsed.mediaPosition) {
+        const mp = document.getElementById('festiveThemeMediaPos');
+        if (mp) mp.value = parsed.mediaPosition;
+      }
+      if (parsed.mediaAnimation) {
+        const ma = document.getElementById('festiveThemeMediaAnim');
+        if (ma) ma.value = parsed.mediaAnimation;
       }
       if (parsed.primaryColor) {
         const p = document.getElementById('festiveThemePrimaryColor');
@@ -2098,22 +2164,119 @@ function formatFestiveJsonTextarea() {
   }
 }
 
+// =================== PRESETS ===================
+
 function loadDefaultDiwaliTheme() {
   const diwaliPreset = {
     enabled: true,
     theme: "diwali_rockets",
     title: "Happy Diwali!",
-    durationSeconds: 8,
+    durationSeconds: 10,
+    interactiveTap: true,
+    enableHaptics: true,
+    showGreetingBadge: true,
+    greetingText: "✨ Shubh Deepawali from District Car ✨",
+    showMedia: true,
+    mediaUrl: "https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif",
+    mediaPosition: "center",
+    mediaAnimation: "pulse",
+    mediaWidth: 150,
+    mediaHeight: 150,
+    colors: ["#FFD700", "#FF4500", "#FF1493", "#00E676", "#FFFFFF"],
     primaryColor: "#FFD700",
     secondaryColor: "#FF4500",
     sparkleColor: "#FFFFFF",
-    rocketCount: 6,
-    sparkleDensity: 45,
-    showGreetingBadge: true,
-    greetingText: "✨ Shubh Deepawali from District Car ✨"
+    rocketCount: 8,
+    sparkleDensity: 55,
+    particleShape: "stars"
   };
   syncFestiveThemeToUI(diwaliPreset);
-  showToast('🎆 Diwali Rockets & Fireworks Preset Loaded');
+  showToast('🎆 Diwali Grand Fireworks & Diya GIF Preset Loaded');
+}
+
+function loadNewYearTheme() {
+  const newYearPreset = {
+    enabled: true,
+    theme: "new_year_2027",
+    title: "Happy New Year!",
+    durationSeconds: 10,
+    interactiveTap: true,
+    enableHaptics: true,
+    showGreetingBadge: true,
+    greetingText: "🎉 Happy New Year from District Car! 🎉",
+    showMedia: true,
+    mediaUrl: "https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif",
+    mediaPosition: "center",
+    mediaAnimation: "bounce",
+    mediaWidth: 160,
+    mediaHeight: 160,
+    colors: ["#38BDF8", "#F43F5E", "#EAB308", "#A855F7", "#FFFFFF"],
+    primaryColor: "#38BDF8",
+    secondaryColor: "#F43F5E",
+    sparkleColor: "#FFFFFF",
+    rocketCount: 8,
+    sparkleDensity: 60,
+    particleShape: "confetti"
+  };
+  syncFestiveThemeToUI(newYearPreset);
+  showToast('🍾 New Year Countdown & Confetti Preset Loaded');
+}
+
+function loadHoliTheme() {
+  const holiPreset = {
+    enabled: true,
+    theme: "holi_color_splash",
+    title: "Happy Holi!",
+    durationSeconds: 9,
+    interactiveTap: true,
+    enableHaptics: true,
+    showGreetingBadge: true,
+    greetingText: "🌈 Happy Holi! Rangon Ka Tyohar Mubarak 🌈",
+    showMedia: false,
+    mediaPosition: "center",
+    mediaAnimation: "pulse",
+    colors: ["#EC4899", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"],
+    primaryColor: "#EC4899",
+    secondaryColor: "#10B981",
+    sparkleColor: "#FFFFFF",
+    rocketCount: 10,
+    sparkleDensity: 70,
+    particleShape: "sparks"
+  };
+  syncFestiveThemeToUI(holiPreset);
+  showToast('🎨 Holi Color Splash Preset Loaded');
+}
+
+function loadCustomGifTheme() {
+  const customPreset = {
+    enabled: true,
+    theme: "custom_festive_promo",
+    title: "District Car Festival Special",
+    durationSeconds: 12,
+    interactiveTap: true,
+    enableHaptics: true,
+    showGreetingBadge: true,
+    greetingText: "⚡ 35% Flat Discount on Round Trips! ⚡",
+    showMedia: true,
+    mediaUrl: "https://media.giphy.com/media/l41JGlwa1xYhkAJB6/giphy.gif",
+    mediaPosition: "bottom",
+    mediaAnimation: "float",
+    mediaWidth: 160,
+    mediaHeight: 160,
+    showPromoCard: true,
+    promoTitle: "FESTIVE SUPER SAVER",
+    promoSubtitle: "Save 35% on all Round Trips across Jharkhand",
+    promoCouponCode: "FESTIVE35",
+    colors: ["#F59E0B", "#10B981", "#3B82F6", "#EC4899", "#FFFFFF"],
+    primaryColor: "#F59E0B",
+    secondaryColor: "#10B981",
+    sparkleColor: "#FFFFFF",
+    rocketCount: 7,
+    sparkleDensity: 50,
+    particleShape: "stars"
+  };
+  syncFestiveThemeToUI(customPreset);
+  showToast('🎁 Custom Animated Sticker & Promo Preset Loaded');
 }
 
 async function publishFestiveThemeJson() {
