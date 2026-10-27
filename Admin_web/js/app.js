@@ -166,6 +166,8 @@ function renderCurrentView() {
     renderPayoutsTable();
   } else if (currentView === 'updates') {
     renderRemoteConfigView();
+  } else if (currentView === 'pricing') {
+    renderPricingView();
   }
 }
 
@@ -1678,4 +1680,459 @@ function lockAdminDashboard() {
   const p1 = document.getElementById('p1');
   if (p1) p1.focus();
   showToast('Dashboard locked.');
+}
+
+
+/* =========================================================================
+ * 13. DYNAMIC PRICING, CATEGORIES & SDUI FESTIVE THEME STUDIO
+ * ========================================================================= */
+
+const DEFAULT_CATEGORIES = [
+  { id: 'car', name: 'Mini Cab', displayName: 'Economy Mini Cab', baseFare: 0, perKmRate: 15, minimumFare: 60, hourlyWaitingCharge: 60, cancellationFee: 30 },
+  { id: 'auto', name: 'Auto / E-Rick', displayName: 'Auto', baseFare: 0, perKmRate: 11, minimumFare: 40, hourlyWaitingCharge: 40, cancellationFee: 20 },
+  { id: 'sedan', name: 'Sedan', displayName: 'Comfort Sedan', baseFare: 0, perKmRate: 23, minimumFare: 80, hourlyWaitingCharge: 60, cancellationFee: 40 },
+  { id: 'suv', name: 'SUV', displayName: 'SUV', baseFare: 0, perKmRate: 21, minimumFare: 100, hourlyWaitingCharge: 60, cancellationFee: 50 },
+  { id: 'bike', name: 'Bike', displayName: 'Gramin Bike', baseFare: 25, perKmRate: 8, minimumFare: 35, hourlyWaitingCharge: 30, cancellationFee: 15 }
+];
+
+/**
+ * Render Category Pricing & Dynamic Rules View
+ */
+function renderPricingView() {
+  const rules = AdminStore.pricingRules || {};
+
+  // 1. Populate Pricing Rules Inputs
+  const elMinCap = document.getElementById('ruleMinDistanceCapKm');
+  if (elMinCap && !elMinCap.matches(':focus')) {
+    elMinCap.value = rules.minDistanceCapKm ?? 5.0;
+  }
+
+  const elShortCap = document.getElementById('ruleShortTripMaxDistanceKm');
+  if (elShortCap && !elShortCap.matches(':focus')) {
+    elShortCap.value = rules.shortTripMaxDistanceKm ?? 25.0;
+  }
+
+  const elShortSurge = document.getElementById('ruleShortTripSurgePercent');
+  if (elShortSurge && !elShortSurge.matches(':focus')) {
+    elShortSurge.value = rules.shortTripSurgePercent ?? 10.0;
+  }
+
+  const elShortComm = document.getElementById('ruleShortTripCommissionPercent');
+  if (elShortComm && !elShortComm.matches(':focus')) {
+    elShortComm.value = rules.shortTripCommissionPercent ?? 18.0;
+  }
+
+  const elLongComm = document.getElementById('ruleLongTripCommissionPercent');
+  if (elLongComm && !elLongComm.matches(':focus')) {
+    elLongComm.value = rules.longTripCommissionPercent ?? 10.0;
+  }
+
+  const elShortComp = document.getElementById('ruleShortOneWayCompPercent');
+  if (elShortComp && !elShortComp.matches(':focus')) {
+    elShortComp.value = rules.shortTripOneWayCompensationPercent ?? 20.0;
+  }
+
+  const elLongComp = document.getElementById('ruleLongOneWayCompPercent');
+  if (elLongComp && !elLongComp.matches(':focus')) {
+    elLongComp.value = rules.longTripOneWayCompensationPercent ?? 40.0;
+  }
+
+  const elRoundDiscount = document.getElementById('ruleRoundTripDiscountPercent');
+  if (elRoundDiscount && !elRoundDiscount.matches(':focus')) {
+    elRoundDiscount.value = rules.roundTripDiscountPercent ?? 35.0;
+  }
+
+  // 2. Surge Fee Switch & Badges
+  updateSurgeFeeUI(rules.adminSurgeEnabled === true);
+
+  // 3. Render Vehicle Categories Fares Table
+  renderCategoryPricingTable();
+
+  // 4. Populate SDUI Festive Theme Studio
+  syncFestiveThemeToUI(AdminStore.festiveTheme);
+}
+
+/**
+ * Render Vehicle Category Fares Table
+ */
+function renderCategoryPricingTable() {
+  const tbody = document.getElementById('categoryPricingTableBody');
+  if (!tbody) return;
+
+  const categories = (AdminStore.categories && AdminStore.categories.length > 0)
+    ? AdminStore.categories
+    : DEFAULT_CATEGORIES;
+
+  const badgeEl = document.getElementById('categoryCountBadge');
+  if (badgeEl) {
+    badgeEl.innerText = `${categories.length} Active Classes`;
+  }
+
+  let html = '';
+  categories.forEach((cat) => {
+    const id = cat.id || 'cab';
+    const name = cat.displayName || cat.name || id;
+    const baseFare = cat.baseFare !== undefined ? cat.baseFare : 0;
+    const perKmRate = cat.perKmRate !== undefined ? cat.perKmRate : 15;
+    const minimumFare = cat.minimumFare !== undefined ? cat.minimumFare : 60;
+    const hourlyWaiting = cat.hourlyWaitingCharge !== undefined ? cat.hourlyWaitingCharge : 60;
+
+    let iconHtml = '<i class="fa-solid fa-car"></i>';
+    const lower = (id + ' ' + name).toLowerCase();
+    if (lower.includes('auto') || lower.includes('rick')) iconHtml = '<i class="fa-solid fa-bolt"></i>';
+    else if (lower.includes('bike')) iconHtml = '<i class="fa-solid fa-motorcycle"></i>';
+    else if (lower.includes('suv')) iconHtml = '<i class="fa-solid fa-truck-monster"></i>';
+    else if (lower.includes('sedan')) iconHtml = '<i class="fa-solid fa-taxi"></i>';
+
+    html += `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:#F1F5F9; color:#0F172A;">
+              ${iconHtml}
+            </span>
+            <div>
+              <strong style="color:#0F172A; display:block;">${escapeHTML(name)}</strong>
+              <span style="font-size:11px; color:#64748B;">ID: ${escapeHTML(id)}</span>
+            </div>
+          </div>
+        </td>
+        <td><strong>₹${baseFare}</strong></td>
+        <td><strong style="color:var(--primary);">₹${perKmRate}</strong>/km</td>
+        <td>₹${minimumFare}</td>
+        <td>₹${hourlyWaiting}/hr</td>
+        <td>
+          <button class="btn btn-sm btn-outline" onclick="openEditCategoryModal('${escapeHTML(id)}')">
+            <i class="fa-solid fa-pen-to-square"></i> Edit
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+/**
+ * Topbar & Switch Surge Fee Quick Toggles
+ */
+function updateSurgeFeeUI(isEnabled) {
+  const topbarBtn = document.getElementById('topbarSurgeFeeBtn');
+  const topbarStatus = document.getElementById('topbarSurgeFeeStatus');
+  const checkbox = document.getElementById('ruleAdminSurgeToggle');
+
+  if (topbarStatus) {
+    topbarStatus.innerText = isEnabled ? 'ON' : 'OFF';
+  }
+  if (topbarBtn) {
+    if (isEnabled) {
+      topbarBtn.style.background = '#ECFDF5';
+      topbarBtn.style.borderColor = '#10B981';
+      topbarBtn.style.color = '#047857';
+    } else {
+      topbarBtn.style.background = '#FFFBEB';
+      topbarBtn.style.borderColor = '#FDE68A';
+      topbarBtn.style.color = '#B45309';
+    }
+  }
+
+  if (checkbox && checkbox.checked !== isEnabled) {
+    checkbox.checked = isEnabled;
+  }
+}
+
+async function toggleSurgeFeeDirectly() {
+  const current = AdminStore.pricingRules?.adminSurgeEnabled === true;
+  const next = !current;
+  try {
+    await apiToggleSurgeFee(next);
+    updateSurgeFeeUI(next);
+    showToast(`⚡ Surge Fee (+8% Platform Fee) set to ${next ? 'ON' : 'OFF'}`);
+  } catch (e) {
+    showToast(`Error toggling surge fee: ${e.message}`, 'error');
+  }
+}
+
+async function toggleSurgeFeeFromCheckbox(checked) {
+  try {
+    await apiToggleSurgeFee(checked);
+    updateSurgeFeeUI(checked);
+    showToast(`⚡ Surge Fee (+8% Platform Fee) set to ${checked ? 'ON' : 'OFF'}`);
+  } catch (e) {
+    showToast(`Error toggling surge fee: ${e.message}`, 'error');
+  }
+}
+
+/**
+ * Save Dynamic Pricing Rules to Firestore
+ */
+async function saveAllPricingRulesFromForm() {
+  const rules = {
+    minDistanceCapKm: parseFloat(document.getElementById('ruleMinDistanceCapKm')?.value) || 5.0,
+    shortTripMaxDistanceKm: parseFloat(document.getElementById('ruleShortTripMaxDistanceKm')?.value) || 25.0,
+    shortTripSurgePercent: parseFloat(document.getElementById('ruleShortTripSurgePercent')?.value) || 10.0,
+    shortTripCommissionPercent: parseFloat(document.getElementById('ruleShortTripCommissionPercent')?.value) || 18.0,
+    longTripCommissionPercent: parseFloat(document.getElementById('ruleLongTripCommissionPercent')?.value) || 10.0,
+    shortTripOneWayCompensationPercent: parseFloat(document.getElementById('ruleShortOneWayCompPercent')?.value) || 20.0,
+    longTripOneWayCompensationPercent: parseFloat(document.getElementById('ruleLongOneWayCompPercent')?.value) || 40.0,
+    roundTripDiscountPercent: parseFloat(document.getElementById('ruleRoundTripDiscountPercent')?.value) || 35.0,
+    adminSurgeEnabled: Boolean(document.getElementById('ruleAdminSurgeToggle')?.checked),
+    adminSurgePercent: 8.0,
+  };
+
+  try {
+    await apiSavePricingRules(rules);
+    showToast('✅ Dynamic Pricing Rules updated and published live to apps!');
+  } catch (e) {
+    showToast(`Failed to save pricing rules: ${e.message}`, 'error');
+  }
+}
+
+/**
+ * Edit Vehicle Category Fares Modal
+ */
+function openEditCategoryModal(catId) {
+  const categories = (AdminStore.categories && AdminStore.categories.length > 0)
+    ? AdminStore.categories
+    : DEFAULT_CATEGORIES;
+
+  const cat = categories.find(c => c.id === catId) || DEFAULT_CATEGORIES.find(c => c.id === catId) || { id: catId };
+
+  document.getElementById('editCatId').value = cat.id || catId;
+  document.getElementById('editCatDisplayName').value = cat.displayName || cat.name || cat.id;
+  document.getElementById('editCatBaseFare').value = cat.baseFare !== undefined ? cat.baseFare : 0;
+  document.getElementById('editCatPerKmRate').value = cat.perKmRate !== undefined ? cat.perKmRate : 15;
+  document.getElementById('editCatMinimumFare').value = cat.minimumFare !== undefined ? cat.minimumFare : 60;
+  document.getElementById('editCatHourlyWaiting').value = cat.hourlyWaitingCharge !== undefined ? cat.hourlyWaitingCharge : 60;
+  document.getElementById('editCatCancellationFee').value = cat.cancellationFee !== undefined ? cat.cancellationFee : 30;
+
+  document.getElementById('editCategoryModalTitle').innerText = `Edit ${cat.displayName || cat.name || cat.id} Fares`;
+  document.getElementById('modalEditCategoryPricing').style.display = 'flex';
+}
+
+function closeEditCategoryModal() {
+  document.getElementById('modalEditCategoryPricing').style.display = 'none';
+}
+
+async function saveCategoryPricingFromModal() {
+  const catId = document.getElementById('editCatId').value;
+  const catData = {
+    displayName: document.getElementById('editCatDisplayName').value,
+    baseFare: parseFloat(document.getElementById('editCatBaseFare').value) || 0,
+    perKmRate: parseFloat(document.getElementById('editCatPerKmRate').value) || 15,
+    minimumFare: parseFloat(document.getElementById('editCatMinimumFare').value) || 60,
+    hourlyWaitingCharge: parseFloat(document.getElementById('editCatHourlyWaiting').value) || 60,
+    cancellationFee: parseFloat(document.getElementById('editCatCancellationFee').value) || 30,
+    isActive: true,
+  };
+
+  try {
+    await apiSaveVehicleCategory(catId, catData);
+    closeEditCategoryModal();
+    renderCategoryPricingTable();
+    showToast(`✅ ${catData.displayName} fares updated successfully!`);
+  } catch (e) {
+    showToast(`Failed to update category: ${e.message}`, 'error');
+  }
+}
+
+/**
+ * SDUI Festive Theme Studio Handlers
+ */
+function syncFestiveThemeToUI(theme) {
+  if (!theme) return;
+
+  const toggle = document.getElementById('festiveThemeEnabledToggle');
+  if (toggle && toggle.checked !== (theme.enabled === true)) {
+    toggle.checked = (theme.enabled === true);
+  }
+
+  const nameEl = document.getElementById('festiveThemeName');
+  if (nameEl && !nameEl.matches(':focus')) {
+    nameEl.value = theme.theme || 'diwali_rockets';
+  }
+
+  const durationRange = document.getElementById('festiveThemeDurationRange');
+  const durationVal = document.getElementById('festiveThemeDurationVal');
+  if (durationRange && !durationRange.matches(':focus')) {
+    durationRange.value = theme.durationSeconds || 8;
+    if (durationVal) durationVal.innerText = `${theme.durationSeconds || 8}s`;
+  }
+
+  const greetingEl = document.getElementById('festiveThemeGreeting');
+  if (greetingEl && !greetingEl.matches(':focus')) {
+    greetingEl.value = theme.greetingText || '✨ Shubh Deepawali from District Car ✨';
+  }
+
+  const primaryCol = document.getElementById('festiveThemePrimaryColor');
+  if (primaryCol && theme.primaryColor) {
+    primaryCol.value = theme.primaryColor;
+  }
+
+  const secCol = document.getElementById('festiveThemeSecondaryColor');
+  if (secCol && theme.secondaryColor) {
+    secCol.value = theme.secondaryColor;
+  }
+
+  const countEl = document.getElementById('festiveThemeRocketCount');
+  if (countEl && !countEl.matches(':focus')) {
+    countEl.value = theme.rocketCount || 6;
+  }
+
+  const densityEl = document.getElementById('festiveThemeSparkleDensity');
+  if (densityEl && !densityEl.matches(':focus')) {
+    densityEl.value = theme.sparkleDensity || 45;
+  }
+
+  const jsonArea = document.getElementById('festiveThemeJsonArea');
+  if (jsonArea && !jsonArea.matches(':focus')) {
+    jsonArea.value = JSON.stringify(theme, null, 2);
+  }
+
+  const badge = document.getElementById('festiveThemeStatusBadge');
+  if (badge) {
+    if (theme.enabled) {
+      badge.style.background = '#ECFDF5';
+      badge.style.borderColor = '#A7F3D0';
+      badge.style.color = '#059669';
+      badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> OVERLAY LIVE IN APP';
+    } else {
+      badge.style.background = '#F1F5F9';
+      badge.style.borderColor = '#CBD5E1';
+      badge.style.color = '#64748B';
+      badge.innerHTML = '<i class="fa-solid fa-circle-pause"></i> OVERLAY DISABLED';
+    }
+  }
+}
+
+function syncFestiveFormToJson() {
+  const current = {
+    enabled: Boolean(document.getElementById('festiveThemeEnabledToggle')?.checked),
+    theme: document.getElementById('festiveThemeName')?.value || 'diwali_rockets',
+    durationSeconds: parseInt(document.getElementById('festiveThemeDurationRange')?.value, 10) || 8,
+    primaryColor: document.getElementById('festiveThemePrimaryColor')?.value || '#FFD700',
+    secondaryColor: document.getElementById('festiveThemeSecondaryColor')?.value || '#FF4500',
+    sparkleColor: '#FFFFFF',
+    rocketCount: parseInt(document.getElementById('festiveThemeRocketCount')?.value, 10) || 6,
+    sparkleDensity: parseInt(document.getElementById('festiveThemeSparkleDensity')?.value, 10) || 45,
+    showGreetingBadge: true,
+    greetingText: document.getElementById('festiveThemeGreeting')?.value || '✨ Shubh Deepawali from District Car ✨',
+  };
+
+  const jsonArea = document.getElementById('festiveThemeJsonArea');
+  if (jsonArea) {
+    jsonArea.value = JSON.stringify(current, null, 2);
+  }
+
+  const badge = document.getElementById('festiveThemeStatusBadge');
+  if (badge) {
+    if (current.enabled) {
+      badge.style.background = '#ECFDF5';
+      badge.style.borderColor = '#A7F3D0';
+      badge.style.color = '#059669';
+      badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> OVERLAY LIVE IN APP';
+    } else {
+      badge.style.background = '#F1F5F9';
+      badge.style.borderColor = '#CBD5E1';
+      badge.style.color = '#64748B';
+      badge.innerHTML = '<i class="fa-solid fa-circle-pause"></i> OVERLAY DISABLED';
+    }
+  }
+}
+
+function syncJsonToFestiveForm() {
+  const jsonArea = document.getElementById('festiveThemeJsonArea');
+  if (!jsonArea) return;
+  try {
+    const parsed = JSON.parse(jsonArea.value);
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.enabled !== undefined) {
+        const toggle = document.getElementById('festiveThemeEnabledToggle');
+        if (toggle) toggle.checked = Boolean(parsed.enabled);
+      }
+      if (parsed.theme) {
+        const n = document.getElementById('festiveThemeName');
+        if (n) n.value = parsed.theme;
+      }
+      if (parsed.durationSeconds) {
+        const d = document.getElementById('festiveThemeDurationRange');
+        const dv = document.getElementById('festiveThemeDurationVal');
+        if (d) d.value = parsed.durationSeconds;
+        if (dv) dv.innerText = `${parsed.durationSeconds}s`;
+      }
+      if (parsed.greetingText) {
+        const g = document.getElementById('festiveThemeGreeting');
+        if (g) g.value = parsed.greetingText;
+      }
+      if (parsed.primaryColor) {
+        const p = document.getElementById('festiveThemePrimaryColor');
+        if (p) p.value = parsed.primaryColor;
+      }
+      if (parsed.secondaryColor) {
+        const s = document.getElementById('festiveThemeSecondaryColor');
+        if (s) s.value = parsed.secondaryColor;
+      }
+      if (parsed.rocketCount) {
+        const rc = document.getElementById('festiveThemeRocketCount');
+        if (rc) rc.value = parsed.rocketCount;
+      }
+      if (parsed.sparkleDensity) {
+        const sd = document.getElementById('festiveThemeSparkleDensity');
+        if (sd) sd.value = parsed.sparkleDensity;
+      }
+    }
+  } catch (_) {
+    // User typing, ignore until valid JSON
+  }
+}
+
+function formatFestiveJsonTextarea() {
+  const jsonArea = document.getElementById('festiveThemeJsonArea');
+  if (!jsonArea) return;
+  try {
+    const obj = JSON.parse(jsonArea.value);
+    jsonArea.value = JSON.stringify(obj, null, 2);
+    showToast('JSON formatted cleanly');
+  } catch (e) {
+    showToast('Invalid JSON: ' + e.message, 'error');
+  }
+}
+
+function loadDefaultDiwaliTheme() {
+  const diwaliPreset = {
+    enabled: true,
+    theme: "diwali_rockets",
+    title: "Happy Diwali!",
+    durationSeconds: 8,
+    primaryColor: "#FFD700",
+    secondaryColor: "#FF4500",
+    sparkleColor: "#FFFFFF",
+    rocketCount: 6,
+    sparkleDensity: 45,
+    showGreetingBadge: true,
+    greetingText: "✨ Shubh Deepawali from District Car ✨"
+  };
+  syncFestiveThemeToUI(diwaliPreset);
+  showToast('🎆 Diwali Rockets & Fireworks Preset Loaded');
+}
+
+async function publishFestiveThemeJson() {
+  const jsonArea = document.getElementById('festiveThemeJsonArea');
+  if (!jsonArea) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonArea.value);
+  } catch (e) {
+    showToast('JSON Syntax Error: ' + e.message, 'error');
+    return;
+  }
+
+  try {
+    await apiSaveFestiveTheme(parsed);
+    syncFestiveThemeToUI(parsed);
+    showToast('🚀 Festive Theme SDUI published live to Customer App!');
+  } catch (e) {
+    showToast('Failed to publish festive theme: ' + e.message, 'error');
+  }
 }

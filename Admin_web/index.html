@@ -94,6 +94,10 @@
         </a>
 
         <div class="nav-section-title">System & App Control</div>
+        <a class="nav-item" data-view="pricing">
+          <i class="fa-solid fa-tags"></i>
+          <span>Category Pricing & Rules</span>
+        </a>
         <a class="nav-item" data-view="updates">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <span>Remote App Version</span>
@@ -125,6 +129,9 @@
 
         <div class="topbar-right">
           <div class="clock-badge" id="liveClock">Loading clock...</div>
+          <button class="quick-btn" id="topbarSurgeFeeBtn" onclick="toggleSurgeFeeDirectly()" title="Click to toggle Surge Fee (+8% Platform Fee) ON/OFF" style="background:#FFFBEB; border-color:#FDE68A; color:#B45309;">
+            <i class="fa-solid fa-bolt"></i> Surge Fee (+8%): <span id="topbarSurgeFeeStatus" style="font-weight:800;">OFF</span>
+          </button>
           <button class="quick-btn" id="topbarGuestPopupBtn" onclick="toggleGuestSignInPopupDirectly()" title="Click to toggle Customer App Guest Sign-In Popup ON/OFF">
             <i class="fa-solid fa-mobile-screen-button"></i> Popup Signin: <span id="topbarGuestPopupStatus" style="font-weight:800;">ON</span>
           </button>
@@ -696,6 +703,281 @@
           </div>
         </section>
 
+        <!-- ==================== VIEW: DYNAMIC PRICING & FESTIVE SDUI ==================== -->
+        <section id="view-pricing" class="view-section">
+          <div class="view-header">
+            <div class="view-title">
+              <h2>DistrictCar Dynamic Pricing, Fares & SDUI Themes</h2>
+              <p>Configure dynamic ride pricing rules, commission tiers, driver one-way compensation, vehicle category base fares, and upload festive theme SDUI overlays (<code>remote_configs/pricing_rules</code> and <code>remote_configs/festive_theme</code>).</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-primary" onclick="saveAllPricingRulesFromForm()">
+                <i class="fa-solid fa-floppy-disk"></i> Save Pricing Rules
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Pricing Rules & Vehicle Category Grid -->
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 24px;">
+            <!-- 1. DistrictCar Pricing Rules Engine Card -->
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size:16px; font-weight:800; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-calculator" style="color:var(--primary);"></i> Dynamic Distance & Commission Rules
+                </h3>
+                <span id="pricingRulesSyncBadge" style="background:#ECFDF5; color:#059669; border:1px solid #A7F3D0; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;">
+                  LIVE SYNC
+                </span>
+              </div>
+
+              <form id="formPricingRules" onsubmit="event.preventDefault(); saveAllPricingRulesFromForm();">
+                <!-- Min Cap -->
+                <div style="margin-bottom:14px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                    Minimum Distance Cap (KM) <span style="color:#DC2626;">*Rides below blocked with 3D Popup</span>
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="number" step="0.5" id="ruleMinDistanceCapKm" class="form-input" value="5.0" style="flex:1;">
+                    <span style="font-size:12px; font-weight:700; color:#64748B;">KM</span>
+                  </div>
+                </div>
+
+                <!-- Short Trip Max Distance -->
+                <div style="margin-bottom:14px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                    Short Trip Max Distance Cap (KM) <span style="color:#64748B;">(5 - 25 KM is Short Trip)</span>
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="number" step="1" id="ruleShortTripMaxDistanceKm" class="form-input" value="25.0" style="flex:1;">
+                    <span style="font-size:12px; font-weight:700; color:#64748B;">KM</span>
+                  </div>
+                </div>
+
+                <!-- Short Trip Surge % -->
+                <div style="margin-bottom:14px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                    Short Trip Surge Hike (%) <span style="color:#64748B;">(Default 10% on 5-25 KM trips)</span>
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="number" step="0.5" id="ruleShortTripSurgePercent" class="form-input" value="10.0" style="flex:1;">
+                    <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                  </div>
+                </div>
+
+                <!-- Platform Commissions -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+                  <div>
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                      Short Trip Commission
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input type="number" step="0.5" id="ruleShortTripCommissionPercent" class="form-input" value="18.0" style="flex:1;">
+                      <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                      Long Trip Commission
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input type="number" step="0.5" id="ruleLongTripCommissionPercent" class="form-input" value="10.0" style="flex:1;">
+                      <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Driver One-Way Compensation -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+                  <div>
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                      Short One-Way Driver Comp
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input type="number" step="0.5" id="ruleShortOneWayCompPercent" class="form-input" value="20.0" style="flex:1;">
+                      <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                      Long One-Way Driver Comp
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input type="number" step="0.5" id="ruleLongOneWayCompPercent" class="form-input" value="40.0" style="flex:1;">
+                      <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Round-Trip Discount -->
+                <div style="margin-bottom:16px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                    Round Trip Discount (%) <span style="color:#059669;">(Applied on both Short & Long trips)</span>
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="number" step="0.5" id="ruleRoundTripDiscountPercent" class="form-input" value="35.0" style="flex:1;">
+                    <span style="font-size:12px; font-weight:700; color:#64748B;">%</span>
+                  </div>
+                </div>
+
+                <!-- Admin Surge Fee Toggle Box -->
+                <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px; margin-bottom:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                      <span style="font-weight:800; font-size:13px; color:#92400E; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-bolt"></i> Admin Surge Fee (+8% Platform Fee)
+                      </span>
+                      <p style="font-size:11.5px; color:#B45309; margin:3px 0 0 0;">
+                        Temporarily hikes platform fee by 8% during peak hours/rains/festivals.
+                      </p>
+                    </div>
+                    <label class="switch" style="margin-left:12px;">
+                      <input type="checkbox" id="ruleAdminSurgeToggle" onchange="toggleSurgeFeeFromCheckbox(this.checked)">
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;">
+                  <i class="fa-solid fa-floppy-disk"></i> Update & Push Dynamic Pricing Rules
+                </button>
+              </form>
+            </div>
+
+            <!-- 2. Vehicle Categories Rates Table -->
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size:16px; font-weight:800; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-car" style="color:var(--primary);"></i> Vehicle Category Rates & Base Fares
+                </h3>
+                <span id="categoryCountBadge" style="font-size:12px; color:#64748B; font-weight:600;">5 Active Classes</span>
+              </div>
+              <p style="font-size:12.5px; color:#64748B; margin-top:-8px; margin-bottom:14px;">
+                Click <strong>Edit</strong> on any vehicle type to customize base fare, per km rate, and waiting charges dynamically.
+              </p>
+
+              <div class="table-responsive">
+                <table class="data-table" style="font-size:12.5px;">
+                  <thead>
+                    <tr>
+                      <th>Vehicle</th>
+                      <th>Base (₹)</th>
+                      <th>Rate / KM (₹)</th>
+                      <th>Min (₹)</th>
+                      <th>Wait / Hr (₹)</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="categoryPricingTableBody">
+                    <!-- Rendered by app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Server-Driven UI (SDUI) Festive Theme Studio -->
+          <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:14px; padding:22px; box-shadow:var(--shadow-sm); margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h3 style="font-size:17px; font-weight:800; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-wand-magic-sparkles" style="color:#F59E0B;"></i> Server-Driven UI (SDUI) Festive Overlay Studio
+                </h3>
+                <p style="font-size:13px; color:#64748B; margin:4px 0 0 0;">
+                  Remotely pushes festive animations (e.g. Diwali bottom rocket fireworks, golden sparkles) to customer app without updating the home page layout.
+                </p>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span id="festiveThemeStatusBadge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:800;">
+                  <i class="fa-solid fa-spinner fa-spin"></i> LOADING THEME...
+                </span>
+                <button class="btn btn-outline" onclick="loadDefaultDiwaliTheme()">
+                  <i class="fa-solid fa-fire"></i> Load Diwali Preset
+                </button>
+              </div>
+            </div>
+
+            <!-- Visual Controls & JSON Editor side-by-side -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+              <!-- Visual Form -->
+              <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:18px;">
+                <h4 style="font-size:14px; font-weight:700; color:#1E293B; margin-top:0; margin-bottom:14px;">
+                  Visual Overlay Controls
+                </h4>
+
+                <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                  <label style="font-size:12.5px; font-weight:700; color:#334155;">Overlay Enabled in Customer App</label>
+                  <label class="switch">
+                    <input type="checkbox" id="festiveThemeEnabledToggle" onchange="syncFestiveFormToJson()">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Theme Name</label>
+                  <input type="text" id="festiveThemeName" class="form-input" value="diwali_rockets" oninput="syncFestiveFormToJson()">
+                </div>
+
+                <div style="margin-bottom:12px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
+                    Overlay Duration (5 - 10 Seconds)
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="range" id="festiveThemeDurationRange" min="5" max="10" step="1" value="8" style="flex:1;" oninput="document.getElementById('festiveThemeDurationVal').innerText = this.value + 's'; syncFestiveFormToJson();">
+                    <span id="festiveThemeDurationVal" style="font-weight:800; font-size:13px; color:#0F172A; min-width:30px;">8s</span>
+                  </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                  <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Greeting Floating Pill Text</label>
+                  <input type="text" id="festiveThemeGreeting" class="form-input" value="✨ Shubh Deepawali from District Car ✨" oninput="syncFestiveFormToJson()">
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+                  <div>
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Primary (Gold)</label>
+                    <input type="color" id="festiveThemePrimaryColor" value="#FFD700" style="width:100%; height:36px; border-radius:8px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Secondary (Festive Red)</label>
+                    <input type="color" id="festiveThemeSecondaryColor" value="#FF4500" style="width:100%; height:36px; border-radius:8px; border:1px solid #CBD5E1; cursor:pointer;" onchange="syncFestiveFormToJson()">
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                  <div>
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Rocket Count (2-12)</label>
+                    <input type="number" id="festiveThemeRocketCount" class="form-input" min="2" max="12" value="6" oninput="syncFestiveFormToJson()">
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Sparkle Density (15-80)</label>
+                    <input type="number" id="festiveThemeSparkleDensity" class="form-input" min="15" max="80" value="45" oninput="syncFestiveFormToJson()">
+                  </div>
+                </div>
+              </div>
+
+              <!-- JSON Editor -->
+              <div style="background:#0F172A; border-radius:12px; padding:18px; display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:13px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-code"></i> SDUI JSON Payload (remote_configs/festive_theme)
+                  </span>
+                  <button class="btn btn-sm" style="background:#334155; color:#F1F5F9; border:none; padding:4px 10px; font-size:11px;" onclick="formatFestiveJsonTextarea()">
+                    Format JSON
+                  </button>
+                </div>
+
+                <textarea id="festiveThemeJsonArea" style="flex:1; min-height:220px; background:#1E293B; color:#38BDF8; font-family:monospace; font-size:12px; padding:12px; border-radius:8px; border:1px solid #334155; resize:vertical;" oninput="syncJsonToFestiveForm()"></textarea>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+                  <button class="btn btn-primary" onclick="publishFestiveThemeJson()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Publish Festive Theme SDUI to App
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
   </div>
@@ -939,5 +1221,52 @@
   <!-- District Car Admin Engine Scripts -->
   <script src="js/firebase-config.js"></script>
   <script src="js/app.js"></script>
+  <!-- MODAL: EDIT VEHICLE CATEGORY FARES -->
+  <div class="modal-backdrop" id="modalEditCategoryPricing" style="display:none;">
+    <div class="modal-dialog" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="editCategoryModalTitle">Edit Vehicle Category Fare</h3>
+        <button class="modal-close" onclick="closeModal('modalEditCategoryPricing')">&times;</button>
+      </div>
+      <form id="formEditCategory" onsubmit="event.preventDefault(); saveCategoryPricingFromModal();">
+        <input type="hidden" id="editCatId">
+        <div class="modal-body">
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Display Name</label>
+            <input type="text" id="editCatDisplayName" class="form-input" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Base Fare (₹)</label>
+              <input type="number" step="1" id="editCatBaseFare" class="form-input" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Per KM Rate (₹)</label>
+              <input type="number" step="0.5" id="editCatPerKmRate" class="form-input" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Minimum Fare (₹)</label>
+              <input type="number" step="1" id="editCatMinimumFare" class="form-input" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Wait Rate / Hr (₹)</label>
+              <input type="number" step="1" id="editCatHourlyWaiting" class="form-input" required>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-size:12px; font-weight:700; margin-bottom:4px;">Cancellation Fee (₹)</label>
+            <input type="number" step="1" id="editCatCancellationFee" class="form-input" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEditCategoryPricing')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Category Fares</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>

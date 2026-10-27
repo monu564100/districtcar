@@ -32,6 +32,9 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/home/guest_sign_in_popup_dialog.dart';
+import '../../widgets/home/short_distance_dialog.dart';
+import '../../widgets/home/round_trip_suggestion_dialog.dart';
+import '../../widgets/home/festive_theme_overlay.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -470,7 +473,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     return distanceKm <= 300.0;
   }
 
-  double _calculateFare(VehicleCategoryModel? category, double distanceKm) {
+  double _calculateFare(VehicleCategoryModel? category, double distanceKm, [DistrictCarPricingRules? rules]) {
     if (category == null) {
       return (60.0 + (distanceKm * 18.0)).roundToDouble();
     }
@@ -479,6 +482,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       oneWayDistanceKm: distanceKm,
       isRoundTrip: _isRoundTrip,
       stoppingHours: _roundTripStoppingHours,
+      rules: rules,
     );
   }
 
@@ -903,6 +907,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(vehicleCategoriesProvider);
+    final pricingRulesAsync = ref.watch(pricingRulesProvider);
+    final pricingRules = pricingRulesAsync.valueOrNull ?? const DistrictCarPricingRules();
     final distanceKm = _getCalculatedDistanceKm();
     final durationMinutes = _getCalculatedDurationMinutes(distanceKm);
 
@@ -925,7 +931,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final waitingMins = _isRoundTrip ? (_roundTripStoppingHours * 60).round() : 0;
     final totalDurationMinutes = baseDuration + waitingMins;
 
-    final totalFare = _calculateFare(currentCat, distanceKm);
+    final totalFare = _calculateFare(currentCat, distanceKm, pricingRules);
     final formattedDuration = _formatDuration(totalDurationMinutes);
 
     final topInset = MediaQuery.of(context).padding.top;
@@ -1015,8 +1021,55 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 const SizedBox(height: 16),
 
                 // C. Vehicle Selector (horizontal snap carousel, 2.3 visible)
-                _buildVehicleSelector(categoriesAsync, distanceKm),
-                const SizedBox(height: 16),
+                _buildVehicleSelector(categoriesAsync, distanceKm, pricingRules),
+                const SizedBox(height: 12),
+
+                // Suggestion banner when one-way is active to guide customer to save money
+                if (!_isRoundTrip && distanceKm >= pricingRules.minDistanceCapKm) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: InkWell(
+                      onTap: () {
+                        HapticService.selection();
+                        setState(() {
+                          _isRoundTrip = true;
+                          _roundTripStoppingHours = 1.0;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.tips_and_updates_rounded, color: Color(0xFF2563EB), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                distanceKm <= pricingRules.shortTripMaxDistanceKm
+                                    ? 'One-way includes 20% driver return compensation. Tap here to switch to Round Trip & save 35%!'
+                                    : 'Long distance one-way includes 40% driver compensation. Tap to switch to Round Trip & save 35%!',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E40AF),
+                                  height: 1.25,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF2563EB)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // D. Fare Summary (dark gradient card, collapsible)
                 FareCard(
@@ -1130,6 +1183,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
           // Persistent Active Booking Rectangle Popup Banner
           _buildActiveTripPersistentPopup(),
+
+          // Server-Driven UI Festive Theme Overlay (Diwali bottom rockets + sparkle stars)
+          const FestiveThemeOverlay(),
         ],
       ),
 
@@ -1140,12 +1196,51 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         isServiceable: true,
         isDestinationSelected: _destinationLocation.address.isNotEmpty,
         isLoading: _isBookingLoading,
-        onBook: () {
+        onBook: () async {
+          // Enforce minimum booking cap with 3D illustration popup
+          if (distanceKm < pricingRules.minDistanceCapKm) {
+            await ShortDistanceDialog.show(
+              context,
+              distanceKm: distanceKm,
+              minCapKm: pricingRules.minDistanceCapKm,
+            );
+            return;
+          }
+
           if (!isServiceable) {
             _showNoRideAvailableSheet();
-          } else {
-            _showBookingConfirmSheet(totalFare, currentCat);
+            return;
           }
+
+          // Suggestion popup for Long Trip (>25km) One-Way
+          if (!_isRoundTrip && distanceKm > pricingRules.shortTripMaxDistanceKm && currentCat != null) {
+            final double roundTripFare = RuralFareCalculator.calculateFare(
+              category: currentCat,
+              oneWayDistanceKm: distanceKm,
+              isRoundTrip: true,
+              stoppingHours: 1.0,
+              rules: pricingRules,
+            );
+            final double savings = (totalFare * 2.0) - roundTripFare;
+            final switchToRoundTrip = await RoundTripSuggestionDialog.show(
+              context,
+              distanceKm: distanceKm,
+              oneWayFare: totalFare,
+              roundTripFare: roundTripFare,
+              savingsAmount: savings > 0 ? savings : (totalFare * 0.35),
+            );
+
+            if (switchToRoundTrip == true) {
+              setState(() {
+                _isRoundTrip = true;
+                _roundTripStoppingHours = 1.0;
+              });
+              HapticService.selection();
+              return;
+            }
+          }
+
+          _showBookingConfirmSheet(totalFare, currentCat);
         },
         currentNavIndex: 0,
         onNavSelected: _onDockTabSelected,
@@ -1157,8 +1252,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   /// C. Vehicle Selector (horizontal snap carousel, 2.3 visible)
   Widget _buildVehicleSelector(
     AsyncValue<List<VehicleCategoryModel>> categoriesAsync,
-    double distanceKm,
-  ) {
+    double distanceKm, [
+    DistrictCarPricingRules? rules,
+  ]) {
     final categories = (categoriesAsync.valueOrNull?.isNotEmpty == true)
         ? categoriesAsync.valueOrNull!
         : defaultVehicleCategories;
@@ -1167,7 +1263,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     // Find cheapest fare
     double minFare = double.infinity;
     for (final c in categories) {
-      final f = _calculateFare(c, distanceKm);
+      final f = _calculateFare(c, distanceKm, rules);
       if (f < minFare) minFare = f;
     }
 
@@ -1181,7 +1277,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         itemBuilder: (context, index) {
           final cat = categories[index];
           final isSelected = cat.id == activeSelectedId;
-          final estCategoryFare = _calculateFare(cat, distanceKm);
+          final estCategoryFare = _calculateFare(cat, distanceKm, rules);
           final isCatServiceable = _isVehicleServiceable(cat.name, distanceKm);
 
           // Badge tag assignment

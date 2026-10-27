@@ -37,6 +37,31 @@ const AdminStore = {
   payouts: [],
   settlements: [],
   categories: [],
+  pricingRules: {
+    minDistanceCapKm: 5.0,
+    shortTripMaxDistanceKm: 25.0,
+    shortTripSurgePercent: 10.0,
+    shortTripCommissionPercent: 18.0,
+    longTripCommissionPercent: 10.0,
+    shortTripOneWayCompensationPercent: 20.0,
+    longTripOneWayCompensationPercent: 40.0,
+    roundTripDiscountPercent: 35.0,
+    adminSurgeEnabled: false,
+    adminSurgePercent: 8.0,
+  },
+  festiveTheme: {
+    enabled: true,
+    theme: "diwali_rockets",
+    title: "Happy Diwali!",
+    durationSeconds: 8,
+    primaryColor: "#FFD700",
+    secondaryColor: "#FF4500",
+    sparkleColor: "#FFFFFF",
+    rocketCount: 6,
+    sparkleDensity: 45,
+    showGreetingBadge: true,
+    greetingText: "✨ Shubh Deepawali from District Car ✨"
+  },
   remoteConfig: null,
   isLive: false,
   listeners: []
@@ -221,6 +246,37 @@ function initRealtimeListeners(onDataChange) {
       if (onDataChange) onDataChange('categories');
     }, (err) => {
       console.warn("Categories error:", err.message);
+    });
+
+    // 8. Listen to Dynamic Pricing Rules
+    db.collection('remote_configs').doc('pricing_rules').onSnapshot((doc) => {
+      if (doc.exists) {
+        AdminStore.pricingRules = { ...AdminStore.pricingRules, ...doc.data() };
+        console.log("📊 [Firestore] Synced Dynamic Pricing Rules:", AdminStore.pricingRules);
+        if (typeof updateSurgeFeeUI === 'function') {
+          updateSurgeFeeUI(AdminStore.pricingRules.adminSurgeEnabled === true);
+        }
+        if (typeof renderPricingView === 'function') {
+          renderPricingView();
+        }
+        if (onDataChange) onDataChange('pricingRules');
+      }
+    }, (err) => {
+      console.warn("Pricing rules listener error:", err.message);
+    });
+
+    // 9. Listen to SDUI Festive Theme
+    db.collection('remote_configs').doc('festive_theme').onSnapshot((doc) => {
+      if (doc.exists) {
+        AdminStore.festiveTheme = { ...AdminStore.festiveTheme, ...doc.data() };
+        console.log("✨ [Firestore] Synced Festive Theme SDUI:", AdminStore.festiveTheme);
+        if (typeof syncFestiveThemeToUI === 'function') {
+          syncFestiveThemeToUI(AdminStore.festiveTheme);
+        }
+        if (onDataChange) onDataChange('festiveTheme');
+      }
+    }, (err) => {
+      console.warn("Festive theme listener error:", err.message);
     });
 
   } catch (e) {
@@ -627,6 +683,80 @@ async function apiSetGuestSignInPopup(enabled) {
   }
   AdminStore.remoteConfig.showGuestSignInPopup = isEnabled;
   return isEnabled;
+}
+
+async function apiSavePricingRules(rules) {
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('pricing_rules').set({
+        ...rules,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log("✅ [Firestore] Pricing rules saved successfully");
+    } catch (e) {
+      console.error("Error saving pricing rules in Firestore:", e);
+      throw e;
+    }
+  }
+  AdminStore.pricingRules = { ...AdminStore.pricingRules, ...rules };
+  return AdminStore.pricingRules;
+}
+
+async function apiToggleSurgeFee(enabled) {
+  const isEnabled = Boolean(enabled);
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('pricing_rules').set({
+        adminSurgeEnabled: isEnabled,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log(`✅ [Firestore] Surge Fee (+8%) set to: ${isEnabled ? 'ON' : 'OFF'}`);
+    } catch (e) {
+      console.error("Error setting surge fee in Firestore:", e);
+      throw e;
+    }
+  }
+  AdminStore.pricingRules.adminSurgeEnabled = isEnabled;
+  return isEnabled;
+}
+
+async function apiSaveVehicleCategory(catId, catData) {
+  if (db) {
+    try {
+      await db.collection('vehicleCategories').doc(catId).set({
+        ...catData,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log(`✅ [Firestore] Vehicle category ${catId} updated successfully`);
+    } catch (e) {
+      console.error(`Error updating vehicle category ${catId}:`, e);
+      throw e;
+    }
+  }
+  const idx = AdminStore.categories.findIndex(c => c.id === catId);
+  if (idx !== -1) {
+    AdminStore.categories[idx] = { ...AdminStore.categories[idx], ...catData };
+  } else {
+    AdminStore.categories.push({ id: catId, ...catData });
+  }
+  return true;
+}
+
+async function apiSaveFestiveTheme(themeConfig) {
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('festive_theme').set({
+        ...themeConfig,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log("✅ [Firestore] Festive theme SDUI saved successfully");
+    } catch (e) {
+      console.error("Error saving festive theme in Firestore:", e);
+      throw e;
+    }
+  }
+  AdminStore.festiveTheme = { ...AdminStore.festiveTheme, ...themeConfig };
+  return AdminStore.festiveTheme;
 }
 
 async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup) {

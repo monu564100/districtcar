@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:district_car_shared/models/models.dart';
+import 'package:district_car_shared/services/rural_fare_calculator.dart';
 
 final List<VehicleCategoryModel> defaultVehicleCategories = [
   VehicleCategoryModel(
@@ -107,5 +108,24 @@ final vehicleCategoriesProvider = StreamProvider<List<VehicleCategoryModel>>((re
         .handleError((_) => defaultVehicleCategories);
   } catch (_) {
     return Stream.value(defaultVehicleCategories);
+  }
+});
+
+/// Live Stream of Dynamic District Car Pricing Rules from Firestore `remote_configs/pricing_rules`
+final pricingRulesProvider = StreamProvider<DistrictCarPricingRules>((ref) {
+  try {
+    return FirebaseFirestore.instance
+        .collection('remote_configs')
+        .doc('pricing_rules')
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists || snapshot.data() == null) {
+            return const DistrictCarPricingRules();
+          }
+          return DistrictCarPricingRules.fromMap(snapshot.data());
+        })
+        .handleError((_) => const DistrictCarPricingRules());
+  } catch (_) {
+    return Stream.value(const DistrictCarPricingRules());
   }
 });
