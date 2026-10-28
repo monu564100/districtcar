@@ -442,43 +442,57 @@ class _FestiveThemeOverlayState extends State<FestiveThemeOverlay>
     );
   }
 
+  Widget _buildMediaFallback() {
+    return Container(
+      width: _config.mediaWidth,
+      height: _config.mediaHeight,
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          colors: [_config.primaryColor, _config.secondaryColor],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(Icons.flare_rounded, size: 48, color: Colors.white),
+    );
+  }
+
   /// Builds Animated Media / GIF component based on SDUI JSON
   Widget _buildMediaLayer(Size screenSize, double topPadding) {
+    final rawUrl = _config.mediaUrl!;
+    final isLocalAsset = rawUrl.startsWith('assets/') || rawUrl.startsWith('asset/');
+
+    final Widget imageWidget = isLocalAsset
+        ? Image.asset(
+            rawUrl,
+            width: _config.mediaWidth,
+            height: _config.mediaHeight,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => _buildMediaFallback(),
+          )
+        : Image.network(
+            rawUrl,
+            width: _config.mediaWidth,
+            height: _config.mediaHeight,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return SizedBox(
+                width: _config.mediaWidth,
+                height: _config.mediaHeight,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFFFD700),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) => _buildMediaFallback(),
+          );
+
     Widget mediaContent = ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: Image.network(
-        _config.mediaUrl!,
-        width: _config.mediaWidth,
-        height: _config.mediaHeight,
-        fit: BoxFit.contain,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            width: _config.mediaWidth,
-            height: _config.mediaHeight,
-            child: const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFFFFD700),
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          // Graceful vector fallback if image URL unreachable
-          return Container(
-            width: _config.mediaWidth,
-            height: _config.mediaHeight,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [_config.primaryColor, _config.secondaryColor],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.flare_rounded, size: 48, color: Colors.white),
-          );
-        },
-      ),
+      child: imageWidget,
     );
 
     // Apply configured animation physics

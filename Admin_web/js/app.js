@@ -1990,6 +1990,8 @@ function syncFestiveThemeToUI(theme) {
     mediaAnimEl.value = theme.mediaAnimation || 'pulse';
   }
 
+  updateFestiveMediaPreview(theme.mediaUrl || '');
+
   // Colors
   const primaryCol = document.getElementById('festiveThemePrimaryColor');
   if (primaryCol && theme.primaryColor) {
@@ -2044,8 +2046,8 @@ function syncFestiveFormToJson() {
     enableHaptics: true,
     showGreetingBadge: true,
     greetingText: document.getElementById('festiveThemeGreeting')?.value || '✨ Shubh Deepawali from District Car ✨',
-    showMedia: showMedia || Boolean(mediaUrl),
-    mediaUrl: mediaUrl || undefined,
+    showMedia: showMedia && Boolean(mediaUrl),
+    mediaUrl: (showMedia && mediaUrl) ? mediaUrl : undefined,
     mediaPosition: document.getElementById('festiveThemeMediaPos')?.value || 'center',
     mediaAnimation: document.getElementById('festiveThemeMediaAnim')?.value || 'pulse',
     mediaWidth: 150,
@@ -2279,6 +2281,91 @@ function loadCustomGifTheme() {
   showToast('🎁 Custom Animated Sticker & Promo Preset Loaded');
 }
 
+// =================== GIF & MEDIA HELPERS ===================
+
+function selectSampleGif(url, name) {
+  const urlInput = document.getElementById('festiveThemeMediaUrl');
+  const showToggle = document.getElementById('festiveThemeShowMedia');
+  if (urlInput) urlInput.value = url;
+  if (showToggle) showToggle.checked = true;
+  updateFestiveMediaPreview(url);
+  syncFestiveFormToJson();
+  showToast(`🎬 ${name} GIF selected & sticker activated!`);
+}
+
+function onFestiveMediaUrlInput(url) {
+  const cleanUrl = (url || '').trim();
+  const showToggle = document.getElementById('festiveThemeShowMedia');
+  if (cleanUrl.length > 0 && showToggle && !showToggle.checked) {
+    showToggle.checked = true;
+  }
+  updateFestiveMediaPreview(cleanUrl);
+  syncFestiveFormToJson();
+}
+
+function toggleFestiveMedia(checked) {
+  const urlInput = document.getElementById('festiveThemeMediaUrl');
+  if (checked && (!urlInput || !urlInput.value || urlInput.value.trim().length === 0)) {
+    if (urlInput) urlInput.value = "https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif";
+  }
+  updateFestiveMediaPreview(urlInput ? urlInput.value : '');
+  syncFestiveFormToJson();
+}
+
+function clearFestiveMedia() {
+  const urlInput = document.getElementById('festiveThemeMediaUrl');
+  const showToggle = document.getElementById('festiveThemeShowMedia');
+  if (urlInput) urlInput.value = '';
+  if (showToggle) showToggle.checked = false;
+  updateFestiveMediaPreview('');
+  syncFestiveFormToJson();
+  showToast('Sticker GIF cleared & disabled');
+}
+
+function updateFestiveMediaPreview(url) {
+  const img = document.getElementById('festiveMediaPreviewImg');
+  const ph = document.getElementById('festiveMediaPreviewPlaceholder');
+  const title = document.getElementById('festiveMediaStatusText');
+  const sub = document.getElementById('festiveMediaStatusSub');
+  const showToggle = document.getElementById('festiveThemeShowMedia');
+  const isShowing = showToggle ? showToggle.checked : true;
+
+  const clean = (url || '').trim();
+  if (clean && isShowing) {
+    if (img) {
+      img.src = clean;
+      img.style.display = 'block';
+    }
+    if (ph) ph.style.display = 'none';
+    if (title) title.innerHTML = '<span style="color:#D97706"><i class="fa-solid fa-spinner fa-spin"></i> Checking GIF link...</span>';
+    if (sub) sub.innerText = clean.substring(0, 45) + (clean.length > 45 ? '...' : '');
+  } else {
+    if (img) {
+      img.src = '';
+      img.style.display = 'none';
+    }
+    if (ph) ph.style.display = 'block';
+    if (title) title.innerHTML = '<span style="color:#64748B">No GIF active</span>';
+    if (sub) sub.innerText = isShowing ? 'Enter a valid image/GIF URL' : 'Sticker layer turned OFF';
+  }
+}
+
+function onFestiveMediaLoaded() {
+  const title = document.getElementById('festiveMediaStatusText');
+  const sub = document.getElementById('festiveMediaStatusSub');
+  if (title) title.innerHTML = '<span style="color:#059669; font-weight:800;"><i class="fa-solid fa-circle-check"></i> GIF Verified & Active</span>';
+  if (sub) sub.innerText = 'Renders smoothly with transparency';
+}
+
+function onFestiveMediaLoadError() {
+  const title = document.getElementById('festiveMediaStatusText');
+  const sub = document.getElementById('festiveMediaStatusSub');
+  const showToggle = document.getElementById('festiveThemeShowMedia');
+  if (!showToggle || !showToggle.checked) return;
+  if (title) title.innerHTML = '<span style="color:#DC2626; font-weight:800;"><i class="fa-solid fa-triangle-exclamation"></i> Image Failed to Load</span>';
+  if (sub) sub.innerText = 'Check URL format or CORS permissions';
+}
+
 async function publishFestiveThemeJson() {
   const jsonArea = document.getElementById('festiveThemeJsonArea');
   if (!jsonArea) return;
@@ -2291,10 +2378,41 @@ async function publishFestiveThemeJson() {
     return;
   }
 
+  if (!parsed || typeof parsed !== 'object') {
+    showToast('Invalid SDUI configuration payload', 'error');
+    return;
+  }
+
+  // 1. AUTO ON: Always guarantee enabled is set to true when publishing
+  parsed.enabled = true;
+
+  // 2. CHECK GIF SECTION:
+  // Validate and auto-configure media GIF settings
+  if (parsed.mediaUrl && typeof parsed.mediaUrl === 'string' && parsed.mediaUrl.trim().length > 0) {
+    parsed.mediaUrl = parsed.mediaUrl.trim();
+    parsed.showMedia = true;
+  } else if (parsed.showMedia === true) {
+    // If showMedia was true but URL was missing or empty, assign standard high-quality Diwali Diya GIF
+    parsed.mediaUrl = "https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif";
+  }
+
+  if (parsed.showMedia) {
+    if (!parsed.mediaPosition) parsed.mediaPosition = 'center';
+    if (!parsed.mediaAnimation) parsed.mediaAnimation = 'pulse';
+    if (!parsed.mediaWidth) parsed.mediaWidth = 150;
+    if (!parsed.mediaHeight) parsed.mediaHeight = 150;
+  }
+
+  // Update JSON textarea to reflect auto ON and GIF check
+  jsonArea.value = JSON.stringify(parsed, null, 2);
+
+  // Sync back to Visual Controls (Master Toggle -> Checked, Badge -> OVERLAY LIVE, GIF preview updated)
+  syncFestiveThemeToUI(parsed);
+
   try {
     await apiSaveFestiveTheme(parsed);
-    syncFestiveThemeToUI(parsed);
-    showToast('🚀 Festive Theme SDUI published live to Customer App!');
+    const gifStatus = parsed.showMedia ? 'GIF Active 🎬' : 'No GIF';
+    showToast(`🚀 SDUI Auto-Enabled (ON) & Published Live to App! (${gifStatus})`);
   } catch (e) {
     showToast('Failed to publish festive theme: ' + e.message, 'error');
   }
