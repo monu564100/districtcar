@@ -1,16 +1,10 @@
 {
   "cleanUrls": false,
   "trailingSlash": false,
-  "redirects": [
+  "rewrites": [
     {
       "source": "/customer",
-      "destination": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
-      "permanent": false
-    },
-    {
-      "source": "/customer/",
-      "destination": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
-      "permanent": false
+      "destination": "/customer/index.html"
     }
   ],
   "headers": [
