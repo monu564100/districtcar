@@ -4,9 +4,17 @@
   <!-- Main Home Page -->
   <url>
     <loc>https://www.districtcar.in/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <!-- District Car Customer App Direct Play Store Redirect -->
+  <url>
+    <loc>https://www.districtcar.in/customer</loc>
+    <lastmod>2026-10-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
   </url>
 
   <!-- Jharkhand Tours & Travels Hub -->

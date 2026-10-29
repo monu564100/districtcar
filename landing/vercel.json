@@ -1,6 +1,18 @@
 {
   "cleanUrls": false,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/customer",
+      "destination": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
+      "permanent": false
+    },
+    {
+      "source": "/customer/",
+      "destination": "https://play.google.com/store/apps/details?id=com.districtcarcustomerd.app",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
