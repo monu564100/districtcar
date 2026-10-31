@@ -11,6 +11,12 @@ Allow: /tours.md
 Allow: /ai-travel-guide.md
 Allow: /news-local/
 Allow: /news-local.html
+Allow: /tours/
+Allow: /tours.html
+Allow: /blogs/
+Allow: /blogs.html
+Allow: /blog/
+Allow: /customer
 
 # Explicit AI Agent & Large Language Model Crawlers
 User-agent: GPTBot

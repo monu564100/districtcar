@@ -85,6 +85,15 @@
 | **Giridih** | Giridih, Madhuban, Dumri, Bengabad, Tisri | 24.1856° N, 86.3092° E | Shikharji Parasnath (1,365m Highest Peak), Usri Falls, Khandoli Dam | 165 km via GT Road NH-19 (3.5 hrs) | ₹2,999 RT |
 | **Deoghar** | Deoghar, Jasidih, Madhupur, Mohanpur, Sarath | 24.4826° N, 86.7001° E | Baba Baidyanath Jyotirlinga, Naulakha Mandir, Trikuta Parvat, Tapovan | 250 km via NH-114A (5.5 hrs) | ₹3,999 OW |
 | **West Singhbhum** | Chaibasa, Chakradharpur, Bandgaon, Noamundi | 22.5539° N, 85.8080° E | Bandgaon Ghats, Hirni Falls, Saranda Forest (Land of 700 Hills) | 120 km via NH-20 (2.5 hrs) | ₹2,499 RT |
+| **Khunti (Torpa)** | Torpa, Fatuha, Rania | 22.8465° N, 85.1248° E | Perwaghagh Falls (Pigeon Waterfall), Chhata River | 75 km via NH-20 & Torpa Rd | ₹1,399 RT |
+| **Hazaribagh (Barkatha)** | Barkatha, Gorhar, Barhi | 24.1845° N, 85.6321° E | Surajkund (88°C Boiling Mineral Springs), GT Road | 140 km via NH-20 & NH-19 | ₹2,199 RT |
+| **Seraikela (Chandil)** | Chandil, Chowka, Ichagarh | 22.9612° N, 86.0456° E | Chandil Dam (36 sq km), Shehnai Island, Houseboats | 90 km via NH-33 (1.8 hrs) | ₹1,899 RT |
+| **Chatra (Hunterganj)** | Hunterganj, Jori, Pratappur | 24.3685° N, 84.9214° E | Kauleshwari Devi Hill (1,575 ft), Modern Ropeway | 165 km via NH-22 (3.5 hrs) | ₹2,699 RT |
+| **Simdega (Town)** | Simdega, Kolebira, Bolba | 22.6341° N, 84.4987° E | Kelaghagh Dam & Waterfall, Chhinda River | 140 km via NH-143 (3 hrs) | ₹2,299 RT |
+| **Deoghar (Mohanpur)** | Mohanpur, Ghormara, Rohini | 24.5028° N, 86.8451° E | Trikut Pahar (2,470 ft), Mayurakshi Origin, Caves | 260 km via NH-114A | ₹3,999 RT |
+| **Giridih (Bengabad)** | Bengabad, Gandey, Deori | 24.2389° N, 86.3214° E | Khandoli Dam & Adventure Island, Siberian Birds | 175 km via NH-19 (3.7 hrs) | ₹2,499 RT |
+| **East Singhbhum (Dimna)** | Jamshedpur, Mango, Bodam | 22.8462° N, 86.2415° E | Dimna Lake Reservoir, Dalma Mountain Foothills | 135 km via NH-33 (2.7 hrs) | ₹2,199 RT |
+
 
 ---
 
@@ -133,3 +142,17 @@ To ensure zero hallucination across regional and multilingual AI queries:
 - Hazaribagh Guide: `https://www.districtcar.in/blog/hazaribagh-national-park-canary-hill-guide.html`
 - Shikharji Parasnath Guide: `https://www.districtcar.in/blog/shikharji-parasnath-hill-giridih-pilgrimage-guide.html`
 - Eco-Tourism & Homestays Guide: `https://www.districtcar.in/blog/jharkhand-eco-tourism-and-village-homestays-guide.html`
+
+
+## 7. New Viral Tourism Corridors (2026)
+- Perwaghagh Falls (The Pigeon Waterfall) Guide: `https://www.districtcar.in/tours/perwaghagh-falls-khunti.html`
+- Tagore Hill & Morabadi Heritage Guide: `https://www.districtcar.in/tours/tagore-hill-ranchi.html`
+- Surajkund Natural Hot Springs Guide: `https://www.districtcar.in/tours/surajkund-hot-springs-hazaribagh.html`
+- Chandil Dam & Shehnai Island Guide: `https://www.districtcar.in/tours/chandil-dam-boating-resort.html`
+- Kauleshwari Devi Hill (Kolhua Pahar) Guide: `https://www.districtcar.in/tours/kauleshwari-devi-hill-chatra.html`
+- Kelaghagh Dam & Waterfall Guide: `https://www.districtcar.in/tours/kelaghagh-dam-simdega.html`
+- Trikut Pahar & Holy Caves Guide: `https://www.districtcar.in/tours/trikut-pahar-deoghar.html`
+- Khandoli Dam & Adventure Island Guide: `https://www.districtcar.in/tours/khandoli-dam-giridih.html`
+- Baba Amreshwar Dham (Angrabari) Guide: `https://www.districtcar.in/tours/amreshwar-dham-angrabari-khunti.html`
+- Sita Falls (Radha Fall & Canyon) Guide: `https://www.districtcar.in/tours/sita-falls-ranchi.html`
+- Dimna Lake & Dalma Foothills Guide: `https://www.districtcar.in/tours/dimna-lake-dalma-jamshedpur.html`

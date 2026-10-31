@@ -97,3 +97,72 @@ Official Mobility & Sightseeing Partner for Jharkhand, India.
 4. Select your destination or choose a multi-stop combo (e.g. Tri-Waterfall, Netarhat 2-Day).
 5. Choose vehicle: **Economy Mini**, **Prime Sedan**, or **Heavy-Duty SUV**.
 6. Instant driver allocation with driver phone number, live vehicle GPS tracking, and transparent upfront fare.
+
+
+## 2026 Viral Tourist Destinations (Newly Added)
+
+### 13. Perwaghagh Falls, Torpa (Khunti)
+- **Distance**: 75 km from Ranchi via NH-20 and Torpa road.
+- **Fare**: Round-trip from ₹1,399 (Mini), ₹1,749 (Sedan).
+- **Highlights**: Turquoise natural pool, Chhata river canyon, wild pigeon nesting caves, deep forest picnic.
+- **URL**: https://www.districtcar.in/tours/perwaghagh-falls-khunti.html
+
+### 14. Tagore Hill & Morabadi Heritage (Ranchi)
+- **Distance**: 6 km from Ranchi city center.
+- **Fare**: City tour from ₹499 (Mini), ₹649 (Sedan).
+- **Highlights**: 300-ft solitary rock hill, Brahma Mandir, Rabindranath Tagore heritage, 360-degree city view.
+- **URL**: https://www.districtcar.in/tours/tagore-hill-ranchi.html
+
+### 15. Surajkund Natural Hot Springs, Barkatha (Hazaribagh)
+- **Distance**: 140 km from Ranchi via NH-20 & GT Road NH-19.
+- **Fare**: Round-trip from ₹2,199 (Mini), ₹2,699 (Sedan).
+- **Highlights**: Asia's hottest 88°C boiling springs, sulfur healing baths, winter pilgrimage.
+- **URL**: https://www.districtcar.in/tours/surajkund-hot-springs-hazaribagh.html
+
+### 16. Chandil Dam & Shehnai Island (Seraikela-Kharsawan)
+- **Distance**: 90 km from Ranchi / 32 km from Jamshedpur on NH-33.
+- **Fare**: Round-trip from ₹1,599 from Jamshedpur / ₹1,899 from Ranchi.
+- **Highlights**: 36-sq km lake, Dalma Wildlife Sanctuary mountain views, solar houseboat cruise, island boating.
+- **URL**: https://www.districtcar.in/tours/chandil-dam-boating-resort.html
+
+### 17. Kauleshwari Devi Hill, Hunterganj (Chatra)
+- **Distance**: 165 km from Ranchi / 65 km from Gaya.
+- **Fare**: Round-trip from ₹2,699 (Sedan).
+- **Highlights**: 1,575-ft sacred mountain, Hindu-Jain-Buddhist tri-religious shrine, modern ropeway, Amrit Kund.
+- **URL**: https://www.districtcar.in/tours/kauleshwari-devi-hill-chatra.html
+
+### 18. Kelaghagh Dam & Waterfall (Simdega)
+- **Distance**: 140 km from Ranchi via Khunti & Kolebira.
+- **Fare**: Round-trip from ₹2,299 (Mini), ₹2,799 (Sedan).
+- **Highlights**: Pine hills reservoir, waterfall cascade, speedboating, hockey heartland hospitality.
+- **URL**: https://www.districtcar.in/tours/kelaghagh-dam-simdega.html
+
+### 19. Trikut Pahar & Caves (Deoghar)
+- **Distance**: 260 km from Ranchi / 15 km from Baidyanath Dham.
+- **Fare**: Round-trip from ₹3,999 (Sedan).
+- **Highlights**: 2,470-ft 3 peaks, Mayurakshi river origin, Ravana tapobhumi, Bamdev cave, ropeway.
+- **URL**: https://www.districtcar.in/tours/trikut-pahar-deoghar.html
+
+### 20. Khandoli Dam & Adventure Island (Giridih)
+- **Distance**: 175 km from Ranchi / 65 km from Dhanbad / 10 km from Giridih.
+- **Fare**: Round-trip from ₹2,499 (Mini), ₹2,999 (Sedan).
+- **Highlights**: 600-ft saddle dam, parasailing, kayaking, Siberian migratory birding sanctuary.
+- **URL**: https://www.districtcar.in/tours/khandoli-dam-giridih.html
+
+### 21. Baba Amreshwar Dham Angrabari (Khunti)
+- **Distance**: 48 km from Ranchi via NH-20 (9 km from Khunti).
+- **Fare**: Round-trip from ₹799 (Mini), ₹999 (Sedan).
+- **Highlights**: Swayambhu Shivling, Ram-Sita mandir, sacred mango grove, ₹15-crore new corridor.
+- **URL**: https://www.districtcar.in/tours/amreshwar-dham-angrabari-khunti.html
+
+### 22. Sita Falls & Canyon, Gautamdhara (Ranchi)
+- **Distance**: 44 km from Ranchi near Jonha.
+- **Fare**: Round-trip from ₹1,299 (Mini), ₹1,599 (Sedan).
+- **Highlights**: 150-ft cascade in deep jungle canyon, Radhu river tributary, peaceful untouched escape.
+- **URL**: https://www.districtcar.in/tours/sita-falls-ranchi.html
+
+### 23. Dimna Lake & Dalma Foothills (Jamshedpur)
+- **Distance**: 135 km from Ranchi / 13 km from Jamshedpur center.
+- **Fare**: Round-trip from ₹2,199 (Mini), ₹2,699 (Sedan).
+- **Highlights**: Sprawling reservoir built by Tata Steel beneath Dalma mountain ranges, sunrise views, boating.
+- **URL**: https://www.districtcar.in/tours/dimna-lake-dalma-jamshedpur.html

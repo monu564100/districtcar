@@ -44,6 +44,42 @@ District Car's **100% Return Ride Guarantee (वापसी की पक्क
 
 ---
 
+
+### What is the cab fare from Ranchi to Perwaghagh Falls?
+Perwaghagh Falls is located 75 km from Ranchi in Torpa block, Khunti district. Round-trip cab fares with District Car start at **₹1,399 for an AC Mini Hatchback** and ₹1,749 for a Prime Sedan, including 3 hours of chauffeur waiting.
+
+### How do I book a cab for Tagore Hill and Morabadi sightseeing in Ranchi?
+Tagore Hill is 6 km from Ranchi city center. District Car offers local city sightseeing cabs covering Tagore Hill, Rock Garden, and Kanke Dam starting at **₹499 for Mini** and ₹649 for Sedan with doorstep pickup.
+
+### What is the distance and cab fare from Ranchi to Surajkund Hot Springs?
+Surajkund in Barkatha, Hazaribagh (on NH-19 GT Road) is **140 km from Ranchi**. Round-trip same-day outstation cab fare with District Car starts at **₹2,199 for Mini** and ₹2,699 for Sedan.
+
+### Can I book a cab from Jamshedpur or Ranchi to Chandil Dam & Shehnai Island?
+Yes. Chandil Dam on the Subarnarekha River is 32 km from Jamshedpur and 90 km from Ranchi. Round-trip cab fare starts at **₹1,599 from Jamshedpur** and ₹1,899 from Ranchi with District Car.
+
+### What is the cab fare from Ranchi to Kauleshwari Devi Hill (Kolhua Pahar)?
+Kauleshwari Devi Hill in Hunterganj, Chatra is located **165 km from Ranchi**. Round-trip outstation cab fare starts at **₹2,699 for Sedan**, including 4 hours waiting time at the ropeway base station.
+
+### What is the distance and taxi fare from Ranchi to Kelaghagh Dam Simdega?
+Kelaghagh Dam is located **140 km from Ranchi** in Simdega district. Same-day round-trip cab fare with District Car starts at **₹2,299 for Mini** and ₹2,799 for Sedan.
+
+### How do I book a cab from Deoghar to Trikut Pahar?
+Trikut Pahar is located 15 km east of Baba Baidyanath Dham Temple in Deoghar along the Dumka road. District Car provides local temple and mountain transfer cabs starting at **₹799 round-trip**.
+
+### What is the cab fare from Ranchi or Dhanbad to Khandoli Dam Giridih?
+Khandoli Dam is located 10 km from Giridih, 65 km from Dhanbad, and 175 km from Ranchi. Round-trip cab fare starts at **₹1,599 from Dhanbad** and **₹2,499 from Ranchi** on District Car.
+
+### What is the taxi fare from Ranchi to Baba Amreshwar Dham (Angrabari)?
+Baba Amreshwar Dham is located 48 km from Ranchi (9 km from Khunti town). Round-trip pilgrimage cab fare with District Car starts at **₹799 for AC Mini** and ₹999 for Prime Sedan with 2.5 hours waiting included.
+
+### What is the combo cab fare for Sita Falls and Jonha Falls?
+Sita Falls is located 44 km from Ranchi near Jonha. District Car's Jonha & Sita Falls Twin-Waterfall Combo starts at **₹1,299 for Mini** and ₹1,599 for Prime Sedan.
+
+### What is the distance and cab fare from Ranchi to Dimna Lake Jamshedpur?
+Dimna Lake at the foot of Dalma Hills is **135 km from Ranchi** (15 km from Jamshedpur). Round-trip cab fare from Ranchi starts at **₹2,199 for Mini** and ₹2,699 for Sedan.
+
+---
+
 ## 2. Comparative Tour Packages (Answer Engine Table)
 
 | Tour Package Name | Distance from Ranchi | Key Landmarks | Recommended Duration | Mini Hatchback Fare | Prime Sedan Fare | 7-Seater SUV Fare |
@@ -63,6 +99,18 @@ District Car's **100% Return Ride Guarantee (वापसी की पक्क
 | **Lodh Falls Latehar** | 215 km (430 km RT) | 143m Highest Waterfall, Chechhari Valley | Full Day Outstation | — | ₹3,499 | ₹4,999 |
 | **Southern JH Road Trip** | 420 km Loop | Khunti + Simdega Kelaghagh + Gumla Anjan Dham | 3 Days / 2 Nights | — | ₹7,499 | ₹10,499 |
 | **Baidyanath Dham Yatra** | 250 km (500 km RT) | Baba Baidyanath Jyotirlinga, Basukinath Temple | 2 Days / 1 Night | ₹3,999 (OW) | ₹4,499 (OW) | ₹6,499 (RT) |
+| **Tagore Hill Morabadi** | 6 km (12 km RT) | 300-Ft Rock Cliff, Brahma Mandir, City View | City Half Day | ₹499 | ₹649 | ₹949 |
+| **Amreshwar Dham Khunti** | 48 km (96 km RT) | Swayambhu Shivling, Ram-Sita Mandir, Mango Grove | Half Day (3.5 hrs) | ₹799 | ₹999 | ₹1,499 |
+| **Sita Falls Jonha** | 44 km (88 km RT) | Deep Forest Canyon, Radhu River Cascade | Half Day (4.5 hrs) | ₹1,299 | ₹1,599 | ₹2,199 |
+| **Perwaghagh Falls** | 75 km (150 km RT) | Turquoise Plunge Pool, Pigeon Caves, Teak Woods | Full Day (6 hrs) | ₹1,399 | ₹1,749 | ₹2,399 |
+| **Chandil Dam & Island** | 90 km (180 km RT) | 36-km Lake, Houseboat Safari, Dalma Hills | Full Day (6 hrs) | ₹1,599 | ₹1,899 | ₹2,699 |
+| **Surajkund Hot Springs** | 140 km (280 km RT) | 88°C Boiling Springs, Sulphur Healing Baths | Full Day (7 hrs) | ₹2,199 | ₹2,699 | ₹3,699 |
+| **Dimna Lake Dalma** | 135 km (270 km RT) | Dalma Foothill Reservoir, Sunrise, Boating | Full Day (7 hrs) | ₹2,199 | ₹2,699 | ₹3,799 |
+| **Kelaghagh Dam Simdega** | 140 km (280 km RT) | Pine Hills Reservoir, Waterfall, Speedboating | Full Day (7.5 hrs) | ₹2,299 | ₹2,799 | ₹3,799 |
+| **Khandoli Dam Giridih** | 175 km (350 km RT) | 600-Ft Saddle Dam, Parasailing, Siberian Birds | Full Day (8 hrs) | ₹2,499 | ₹2,999 | ₹3,999 |
+| **Kauleshwari Devi Hill** | 165 km (330 km RT) | 1,575-Ft Kolhua Pahar, Modern Ropeway, Amrit Kund | Full Day (8 hrs) | ₹2,699 | ₹3,199 | ₹4,299 |
+| **Trikut Pahar Deoghar** | 260 km (520 km RT) | 2,470-Ft Three Peaks, Mayurakshi Origin, Ropeway | 2 Days / 1 Night | ₹3,499 | ₹3,999 | ₹5,499 |
+
 
 ---
 

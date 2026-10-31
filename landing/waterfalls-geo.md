@@ -23,6 +23,9 @@
 | 13 | **Lower Ghaghri Falls** | Latehar (Netarhat forest)| 23.4900° N, 84.2900° E | Ghaghri River | 98 m / 322 ft | Deep Trek | ⚠️ Dense Sal Jungle | 165 km | ₹2,799 |
 | 14 | **Bhatinda Falls** | Dhanbad (Munidih) | 23.7020° N, 86.3540° E | Katri River | 12 m / 40 ft | ~30 steps | ⚠️ Rough Boulders | 155 km | ₹2,899 |
 | 15 | **Rajrappa Bhairavi Falls** | Ramgarh | 23.6320° N, 85.7110° E | Bhairavi River | 10 m (Confluence) | Riverbed Steps | 🟢 Shaktipeeth Ghat | 70 km | ₹1,499 |
+| 16 | **Moti Jharna** | Sahebganj (Taljhari) | 25.0451° N, 87.7512° E | Rajmahal Stream | 25 m / 82 ft | ~100 steps | 🟢 Cave Shiva Shrine | 420 km | ₹6,499 RT |
+| 17 | **Lawapani Falls** | Lohardaga (Bagru) | 23.4125° N, 84.6214° E | Bagru Hill Stream | 30 m (3 Tiers) | Forest Trail | 🟢 Bamboo Eco-Zone | 75 km | ₹1,699 RT |
+
 
 ---
 
