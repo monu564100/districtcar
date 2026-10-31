@@ -1377,9 +1377,11 @@ async function saveRemoteConfigForm(e) {
   const force = document.getElementById('cfgForceUpdate').checked;
   const apk = document.getElementById('cfgDriverApkUrl').value;
   const guestPopup = document.getElementById('cfgGuestSignInPopup') ? document.getElementById('cfgGuestSignInPopup').checked : true;
+  const rideNow = document.getElementById('cfgRideNowEnabled') ? document.getElementById('cfgRideNowEnabled').checked : true;
+  const schedule = document.getElementById('cfgScheduleEnabled') ? document.getElementById('cfgScheduleEnabled').checked : true;
 
   try {
-    await apiSaveRemoteConfig(dBuild, cBuild, force, apk, guestPopup);
+    await apiSaveRemoteConfig(dBuild, cBuild, force, apk, guestPopup, rideNow, schedule);
     showToast(`Remote config updated! Driver v${dBuild}, Customer v${cBuild}, Guest Popup: ${guestPopup ? 'ON' : 'OFF'}`);
   } catch (e) {
     alert('Failed to save configuration: ' + e.message);
@@ -1403,6 +1405,72 @@ async function toggleGuestSignInPopupDirectly() {
   const cfg = AdminStore.remoteConfig || {};
   const currentlyOn = (cfg.showGuestSignInPopup !== false);
   await setGuestSignInPopupDirect(!currentlyOn);
+}
+
+
+/**
+ * Standalone direct button handlers for Customer App Ride Now & Schedule Ride
+ */
+async function setRideNowDirect(enabled) {
+  try {
+    await apiSetRideNowEnabled(enabled);
+    updateRideTogglesUI(AdminStore.remoteConfig);
+    showToast(enabled ? 'Customer Ride Now turned ON!' : 'Customer Ride Now turned OFF remotely.');
+  } catch (e) {
+    alert('Failed to update Ride Now status: ' + e.message);
+  }
+}
+
+async function setScheduleDirect(enabled) {
+  try {
+    await apiSetScheduleEnabled(enabled);
+    updateRideTogglesUI(AdminStore.remoteConfig);
+    showToast(enabled ? 'Customer Schedule Ride turned ON!' : 'Customer Schedule Ride turned OFF remotely.');
+  } catch (e) {
+    alert('Failed to update Schedule status: ' + e.message);
+  }
+}
+
+function updateRideTogglesUI(config) {
+  const cfg = config || AdminStore.remoteConfig || {};
+  const isRideNowOn = (cfg.isRideNowEnabled !== false);
+  const isScheduleOn = (cfg.isScheduleEnabled !== false);
+
+  // 1. Ride Now Badge & Buttons
+  const rnBadge = document.getElementById('rideNowStatusBadge');
+  const btnTurnOnRN = document.getElementById('btnTurnOnRideNow');
+  const btnTurnOffRN = document.getElementById('btnTurnOffRideNow');
+  const chkRN = document.getElementById('cfgRideNowEnabled');
+
+  if (rnBadge) {
+    rnBadge.innerHTML = isRideNowOn
+      ? '<i class="fa-solid fa-circle-check"></i> ACTIVE (ON)'
+      : '<i class="fa-solid fa-circle-xmark"></i> PAUSED (OFF)';
+    rnBadge.style.background = isRideNowOn ? '#ECFDF5' : '#FEF2F2';
+    rnBadge.style.color = isRideNowOn ? '#059669' : '#DC2626';
+    rnBadge.style.borderColor = isRideNowOn ? '#A7F3D0' : '#FECACA';
+  }
+  if (btnTurnOnRN) btnTurnOnRN.style.display = isRideNowOn ? 'none' : 'inline-flex';
+  if (btnTurnOffRN) btnTurnOffRN.style.display = isRideNowOn ? 'inline-flex' : 'none';
+  if (chkRN) chkRN.checked = isRideNowOn;
+
+  // 2. Schedule Badge & Buttons
+  const scBadge = document.getElementById('scheduleStatusBadge');
+  const btnTurnOnSC = document.getElementById('btnTurnOnSchedule');
+  const btnTurnOffSC = document.getElementById('btnTurnOffSchedule');
+  const chkSC = document.getElementById('cfgScheduleEnabled');
+
+  if (scBadge) {
+    scBadge.innerHTML = isScheduleOn
+      ? '<i class="fa-solid fa-circle-check"></i> ACTIVE (ON)'
+      : '<i class="fa-solid fa-circle-xmark"></i> PAUSED (OFF)';
+    scBadge.style.background = isScheduleOn ? '#ECFDF5' : '#FEF2F2';
+    scBadge.style.color = isScheduleOn ? '#059669' : '#DC2626';
+    scBadge.style.borderColor = isScheduleOn ? '#A7F3D0' : '#FECACA';
+  }
+  if (btnTurnOnSC) btnTurnOnSC.style.display = isScheduleOn ? 'none' : 'inline-flex';
+  if (btnTurnOffSC) btnTurnOffSC.style.display = isScheduleOn ? 'inline-flex' : 'none';
+  if (chkSC) chkSC.checked = isScheduleOn;
 }
 
 function updateGuestPopupUI(enabled) {

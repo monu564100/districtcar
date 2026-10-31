@@ -44,10 +44,7 @@ class DestinationDetailScreen extends StatefulWidget {
   /// Sanitize image URLs to prevent 404s or stale URLs
   static String sanitizeUrl(String url) {
     if (url.isEmpty || url == 'placeholder') {
-      return 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80';
-    }
-    if (url.contains('wikimedia.org') || url.contains('wikipedia.org')) {
-      return 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80';
+      return 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=1200&q=80';
     }
     return url;
   }

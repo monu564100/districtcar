@@ -69,16 +69,18 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final quickChips = widget.isHindi
         ? [
-            {'icon': Icons.home_rounded, 'label': 'घर'},
-            {'icon': Icons.storefront_rounded, 'label': 'बाजार'},
-            {'icon': Icons.directions_bus_rounded, 'label': 'बस स्टैंड'},
-            {'icon': Icons.local_hospital_rounded, 'label': 'अस्पताल'},
+            {'icon': Icons.storefront_rounded, 'label': 'बाजार (खूंटी)'},
+            {'icon': Icons.directions_bus_rounded, 'label': 'बस स्टैंड (खूंटी)'},
+            {'icon': Icons.local_hospital_rounded, 'label': 'सदर अस्पताल (खूंटी)'},
+            {'icon': Icons.temple_hindu_rounded, 'label': 'अमरेश्वर धाम'},
+            {'icon': Icons.water_rounded, 'label': 'पंचघाघ फॉल्स'},
           ]
         : [
-            {'icon': Icons.home_rounded, 'label': 'Ghar'},
-            {'icon': Icons.storefront_rounded, 'label': 'Bazaar'},
-            {'icon': Icons.directions_bus_rounded, 'label': 'Bus Stand'},
-            {'icon': Icons.local_hospital_rounded, 'label': 'Hospital'},
+            {'icon': Icons.storefront_rounded, 'label': 'Bazaar (Khunti)'},
+            {'icon': Icons.directions_bus_rounded, 'label': 'Bus Stand (Khunti)'},
+            {'icon': Icons.local_hospital_rounded, 'label': 'Sadar Hospital (Khunti)'},
+            {'icon': Icons.temple_hindu_rounded, 'label': 'Amreshwar Dham'},
+            {'icon': Icons.water_rounded, 'label': 'Panchghagh Falls'},
           ];
 
     return Container(
@@ -251,7 +253,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.isHindi ? 'कहाँ जाना है?' : 'DROP DESTINATION',
+                                widget.isHindi ? 'मंजिल (ड्रॉप)' : 'ENTER DROP LOCATION',
                                 style: const TextStyle(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w700,
@@ -262,7 +264,7 @@ class _BookingCardState extends State<BookingCard> with SingleTickerProviderStat
                               const SizedBox(height: 2),
                               Text(
                                 widget.destinationAddress.isEmpty
-                                    ? (widget.isHindi ? 'स्थान चुनें (कहाँ जाना है?)' : 'Where to? (Kahan jaana hai?)')
+                                    ? (widget.isHindi ? 'ड्रॉप लोकेशन दर्ज करें (कहाँ जाना है?)' : 'Enter Drop Location')
                                     : widget.destinationAddress.split(',').first.trim(),
                                 style: TextStyle(
                                   fontSize: 13.5,

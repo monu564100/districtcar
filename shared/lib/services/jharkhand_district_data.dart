@@ -410,48 +410,353 @@ class JharkhandDistrictData {
       ),
     ],
 
-    'Khunti': [
+        'Khunti': [
+      // --- Khunti Sadar / Town Hubs ---
       const LocationSearchResult(
-        title: 'Khunti District Bus Stand & Bhagwan Birsa Chowk',
-        subtitle: 'Khunti, Jharkhand',
+        title: 'Khunti District Main Bus Stand (तोरपा रोड)',
+        subtitle: 'Torpa Road, Khunti, Jharkhand',
         latitude: 23.0740,
         longitude: 85.2780,
       ),
       const LocationSearchResult(
-        title: 'Khunti Sadar Hospital',
-        subtitle: 'Hospital Road, Khunti, Jharkhand',
+        title: 'Bhagat Singh Chowk & Daily Market (भगत सिंह चौक)',
+        subtitle: 'Main Road Market, Khunti, Jharkhand',
+        latitude: 23.0765,
+        longitude: 85.2798,
+      ),
+      const LocationSearchResult(
+        title: 'Khunti Sadar Hospital & Emergency Trauma Centre',
+        subtitle: 'Court Road, Khunti, Jharkhand',
+        latitude: 23.0792,
+        longitude: 85.2815,
+      ),
+      const LocationSearchResult(
+        title: 'Birsa College Khunti (बिरसा कॉलेज)',
+        subtitle: 'College Road, Khunti, Jharkhand',
+        latitude: 23.0680,
+        longitude: 85.2750,
+      ),
+      const LocationSearchResult(
+        title: 'DC Office & Collectorate Khunti (समाहरणालय)',
+        subtitle: 'Collectorate Complex, Khunti, Jharkhand',
+        latitude: 23.0718,
+        longitude: 85.2825,
+      ),
+      const LocationSearchResult(
+        title: 'Civil Court & Kutchery Khunti (व्यवहार न्यायालय)',
+        subtitle: 'Court Campus, Khunti, Jharkhand',
         latitude: 23.0780,
+        longitude: 85.2840,
+      ),
+      const LocationSearchResult(
+        title: 'Khunti Police Station & Thana Chowk (थाना चौक)',
+        subtitle: 'Thana Road, Khunti, Jharkhand',
+        latitude: 23.0750,
+        longitude: 85.2805,
+      ),
+      const LocationSearchResult(
+        title: 'Dakra Chowk & Dakra Mandir (डाकरा चौक)',
+        subtitle: 'Torpa Road, Khunti, Jharkhand',
+        latitude: 23.0850,
+        longitude: 85.2910,
+      ),
+      const LocationSearchResult(
+        title: 'Baghma Chowk (बाघमा चौक)',
+        subtitle: 'Khunti, Jharkhand',
+        latitude: 23.0820,
+        longitude: 85.2850,
+      ),
+      const LocationSearchResult(
+        title: 'Birhu Chowk / Birhu More (बिरहू मोड़)',
+        subtitle: 'Khunti-Simdega Road, Khunti, Jharkhand',
+        latitude: 23.0950,
+        longitude: 85.2980,
+      ),
+      const LocationSearchResult(
+        title: 'Kalamati Chowk (कालामाटी चौक)',
+        subtitle: 'Khunti-Ranchi Highway NH-75E, Khunti, Jharkhand',
+        latitude: 23.1550,
+        longitude: 85.2940,
+      ),
+      const LocationSearchResult(
+        title: 'Deer Park / Mrig Vihar Kalamati (मृग विहार)',
+        subtitle: 'Kalamati, Khunti, Jharkhand',
+        latitude: 23.1620,
+        longitude: 85.2970,
+      ),
+      const LocationSearchResult(
+        title: 'Belwadag Village & Chowk (बेलवादाग)',
+        subtitle: 'Khunti Sadar, Khunti, Jharkhand',
+        latitude: 23.1100,
+        longitude: 85.2880,
+      ),
+      const LocationSearchResult(
+        title: 'Fudi Industrial Area & Chowk (फूदी मोड़)',
+        subtitle: 'Khunti-Ranchi Road, Khunti, Jharkhand',
+        latitude: 23.1800,
+        longitude: 85.3050,
+      ),
+      const LocationSearchResult(
+        title: 'Anigada Chowk & Village (अनिगड़ा मोड़)',
+        subtitle: 'Khunti Sadar, Khunti, Jharkhand',
+        latitude: 23.0610,
+        longitude: 85.2920,
+      ),
+      const LocationSearchResult(
+        title: 'Siladon Chowk (सिलादोन)',
+        subtitle: 'Khunti Sadar, Khunti, Jharkhand',
+        latitude: 23.0520,
+        longitude: 85.3150,
+      ),
+      const LocationSearchResult(
+        title: 'Saiko Road Chowk (सैको मोड़)',
+        subtitle: 'Khunti-Saiko Road, Khunti, Jharkhand',
+        latitude: 23.0710,
+        longitude: 85.2910,
+      ),
+      const LocationSearchResult(
+        title: 'Tiril Chowk (तिरील मोड़)',
+        subtitle: 'Khunti Sadar, Khunti, Jharkhand',
+        latitude: 23.0890,
+        longitude: 85.2740,
+      ),
+
+      // --- Murhu Block Hubs ---
+      const LocationSearchResult(
+        title: 'Murhu Main Bazaar & Daily Market (मुरहू मुख्य बाजार)',
+        subtitle: 'Murhu Chowk, Khunti, Jharkhand',
+        latitude: 22.9840,
         longitude: 85.2810,
       ),
       const LocationSearchResult(
-        title: 'Torpa Block & Mission',
+        title: 'Panchghagh Falls & Picnic Zone (पंचघाघ जलप्रपात)',
+        subtitle: 'Banabira, Murhu, Khunti, Jharkhand',
+        latitude: 22.9460,
+        longitude: 85.2710,
+      ),
+      const LocationSearchResult(
+        title: 'Baba Amreshwar Dham Temple (बाबा अमरेश्वर धाम अंगराबाड़ी)',
+        subtitle: 'Angrabari, Khunti, Jharkhand',
+        latitude: 23.0210,
+        longitude: 85.2760,
+      ),
+      const LocationSearchResult(
+        title: 'Murhu CHC Community Hospital (मुरहू अस्पताल)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9860,
+        longitude: 85.2830,
+      ),
+      const LocationSearchResult(
+        title: 'Murhu Block Office & Police Station (मुरहू थाना)',
+        subtitle: 'Murhu, Khunti, Jharkhand',
+        latitude: 22.9830,
+        longitude: 85.2790,
+      ),
+      const LocationSearchResult(
+        title: 'Indipiri / Kandea Chowk (इंदीपिड़ी मोड़)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9600,
+        longitude: 85.2750,
+      ),
+      const LocationSearchResult(
+        title: 'Charid Chowk & Village (चारिद मुरहू)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9350,
+        longitude: 85.2910,
+      ),
+      const LocationSearchResult(
+        title: 'Bichna Chowk (बिचना मोड़ मुरहू)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9950,
+        longitude: 85.2890,
+      ),
+      const LocationSearchResult(
+        title: 'Sarwada Mission & High School (सरवादा)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9150,
+        longitude: 85.3120,
+      ),
+      const LocationSearchResult(
+        title: 'Burju Church & Mission (बुरजू चर्च)',
+        subtitle: 'Murhu Block, Khunti, Jharkhand',
+        latitude: 22.9520,
+        longitude: 85.3340,
+      ),
+
+      // --- Torpa Block Hubs ---
+      const LocationSearchResult(
+        title: 'Torpa Main Chowk & Daily Bazaar (तोरपा मेन चौक)',
+        subtitle: 'Torpa Market, Khunti, Jharkhand',
+        latitude: 22.9380,
+        longitude: 85.1220,
+      ),
+      const LocationSearchResult(
+        title: 'Perwaghagh Falls (पेरवाघाघ जलप्रपात)',
+        subtitle: 'Fatuha, Torpa, Khunti, Jharkhand',
+        latitude: 22.8450,
+        longitude: 85.0450,
+      ),
+      const LocationSearchResult(
+        title: 'Torpa Referral Hospital & CHC (तोरपा अस्पताल)',
+        subtitle: 'Hospital Road, Torpa, Khunti, Jharkhand',
+        latitude: 22.9400,
+        longitude: 85.1250,
+      ),
+      const LocationSearchResult(
+        title: 'Torpa Block Office & Police Station (तोरपा ब्लॉक व थाना)',
         subtitle: 'Torpa, Khunti, Jharkhand',
-        latitude: 22.9330,
+        latitude: 22.9360,
+        longitude: 85.1200,
+      ),
+      const LocationSearchResult(
+        title: 'St. Joseph College & School Torpa (सेंट जोसेफ तोरपा)',
+        subtitle: 'Torpa, Khunti, Jharkhand',
+        latitude: 22.9420,
+        longitude: 85.1280,
+      ),
+      const LocationSearchResult(
+        title: 'Fatuha Picnic Spot & Chhata River (फातुहा)',
+        subtitle: 'Torpa Block, Khunti, Jharkhand',
+        latitude: 22.8520,
+        longitude: 85.0510,
+      ),
+      const LocationSearchResult(
+        title: 'Dorma Chowk & Bazaar (डोरमा चौक)',
+        subtitle: 'Torpa-Karra Road, Khunti, Jharkhand',
+        latitude: 22.9050,
+        longitude: 85.1450,
+      ),
+      const LocationSearchResult(
+        title: 'Marcha Chowk / Ite More (मारचा मोड़)',
+        subtitle: 'Torpa Block, Khunti, Jharkhand',
+        latitude: 22.9650,
+        longitude: 85.1050,
+      ),
+      const LocationSearchResult(
+        title: 'Tapkara Road / Sundari Chowk (तपकरा मोड़)',
+        subtitle: 'Torpa Block, Khunti, Jharkhand',
+        latitude: 22.8850,
+        longitude: 85.0920,
+      ),
+      const LocationSearchResult(
+        title: 'Diyankel Village & Chowk (दियांकेल)',
+        subtitle: 'Torpa Block, Khunti, Jharkhand',
+        latitude: 22.9120,
+        longitude: 85.1080,
+      ),
+
+      // --- Karra Block Hubs ---
+      const LocationSearchResult(
+        title: 'Karra Main Chowk & Bazaar (कर्रा चौक)',
+        subtitle: 'Karra Market, Khunti, Jharkhand',
+        latitude: 23.1680,
+        longitude: 85.1240,
+      ),
+      const LocationSearchResult(
+        title: 'Karra Railway Station (कर्रा रेलवे स्टेशन)',
+        subtitle: 'Karra, Khunti, Jharkhand',
+        latitude: 23.1650,
+        longitude: 85.1180,
+      ),
+      const LocationSearchResult(
+        title: 'Karra CHC Hospital & Block (कर्रा अस्पताल व ब्लॉक)',
+        subtitle: 'Karra Block, Khunti, Jharkhand',
+        latitude: 23.1660,
+        longitude: 85.1260,
+      ),
+      const LocationSearchResult(
+        title: 'Govindpur Chowk (गोविंदपुर मोड़)',
+        subtitle: 'Karra-Khunti Road, Khunti, Jharkhand',
+        latitude: 23.1420,
+        longitude: 85.1680,
+      ),
+      const LocationSearchResult(
+        title: 'Lodhma Chowk & Station (लोधमा मोड़)',
+        subtitle: 'Karra-Ranchi Road, Khunti, Jharkhand',
+        latitude: 23.2350,
+        longitude: 85.2100,
+      ),
+      const LocationSearchResult(
+        title: 'Kullu / Bakaspur (कुल्लू मोड़ कर्रा)',
+        subtitle: 'Karra Block, Khunti, Jharkhand',
+        latitude: 23.1850,
+        longitude: 85.1100,
+      ),
+      const LocationSearchResult(
+        title: 'Jaria Chowk (जरिया मोड़ कर्रा)',
+        subtitle: 'Karra Block, Khunti, Jharkhand',
+        latitude: 23.1520,
+        longitude: 85.1420,
+      ),
+
+      // --- Rania Block Hubs ---
+      const LocationSearchResult(
+        title: 'Rania Main Chowk & Haat Bazaar (रानिया मेन बाजार)',
+        subtitle: 'Rania Market, Khunti, Jharkhand',
+        latitude: 22.7840,
+        longitude: 85.0850,
+      ),
+      const LocationSearchResult(
+        title: 'Rania CHC Community Hospital (रानिया अस्पताल)',
+        subtitle: 'Rania Block, Khunti, Jharkhand',
+        latitude: 22.7860,
+        longitude: 85.0870,
+      ),
+      const LocationSearchResult(
+        title: 'Rania Police Station & Block Office (रानिया थाना)',
+        subtitle: 'Rania, Khunti, Jharkhand',
+        latitude: 22.7830,
         longitude: 85.0830,
       ),
       const LocationSearchResult(
-        title: 'Murhu Block & Lac Market',
-        subtitle: 'Murhu, Khunti, Jharkhand',
-        latitude: 22.9660,
-        longitude: 85.2670,
+        title: 'Khatkura Chowk (खटकुरा मोड़ रानिया)',
+        subtitle: 'Rania Block, Khunti, Jharkhand',
+        latitude: 22.8100,
+        longitude: 85.0700,
       ),
       const LocationSearchResult(
-        title: 'Ulihatu (Birthplace of Bhagwan Birsa Munda)',
-        subtitle: 'Ulihatu, Khunti, Jharkhand',
-        latitude: 22.9800,
-        longitude: 85.5200,
+        title: 'Sode / Bano Road Chowk (सोडे मोड़ रानिया)',
+        subtitle: 'Rania Block, Khunti, Jharkhand',
+        latitude: 22.7650,
+        longitude: 85.0620,
+      ),
+
+      // --- Arki Block Hubs ---
+      const LocationSearchResult(
+        title: 'Arki Block Headquarters & Main Chowk (अड़की मेन चौक)',
+        subtitle: 'Arki Market, Khunti, Jharkhand',
+        latitude: 23.0150,
+        longitude: 85.5020,
       ),
       const LocationSearchResult(
-        title: 'Karra Railway Station & Block',
-        subtitle: 'Karra, Khunti, Jharkhand',
-        latitude: 23.1500,
-        longitude: 85.1330,
+        title: 'Arki CHC Hospital & Police Station (अड़की अस्पताल व थाना)',
+        subtitle: 'Arki Block, Khunti, Jharkhand',
+        latitude: 23.0180,
+        longitude: 85.5050,
       ),
       const LocationSearchResult(
-        title: 'Rania Remote Tribal Block',
-        subtitle: 'Rania, Khunti, Jharkhand',
-        latitude: 22.7800,
-        longitude: 85.0300,
+        title: 'Ulihatu - Bhagwan Birsa Munda Birthplace (उलिहातू)',
+        subtitle: 'Birsa Memorial, Arki, Khunti, Jharkhand',
+        latitude: 22.9560,
+        longitude: 85.4980,
+      ),
+      const LocationSearchResult(
+        title: 'Sindri Chowk (सिंदरी मोड़ अड़की)',
+        subtitle: 'Arki Block, Khunti, Jharkhand',
+        latitude: 23.0450,
+        longitude: 85.4700,
+      ),
+      const LocationSearchResult(
+        title: 'Kochang Chowk (कोचांग मोड़ अड़की)',
+        subtitle: 'Arki Block, Khunti, Jharkhand',
+        latitude: 22.9150,
+        longitude: 85.4420,
+      ),
+      const LocationSearchResult(
+        title: 'Maranghada Chowk & Bazaar (मारंगहादा चौक)',
+        subtitle: 'Khunti-Arki Road, Khunti, Jharkhand',
+        latitude: 23.0480,
+        longitude: 85.3850,
       ),
     ],
 
@@ -1493,6 +1798,14 @@ class JharkhandDistrictData {
           }
         }
       }
+    });
+
+    matched.sort((a, b) {
+      final aIsKhunti = a.subtitle.toLowerCase().contains('khunti') || a.title.toLowerCase().contains('khunti');
+      final bIsKhunti = b.subtitle.toLowerCase().contains('khunti') || b.title.toLowerCase().contains('khunti');
+      if (aIsKhunti && !bIsKhunti) return -1;
+      if (!aIsKhunti && bIsKhunti) return 1;
+      return 0;
     });
 
     return matched;

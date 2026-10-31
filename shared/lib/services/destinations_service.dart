@@ -558,7 +558,7 @@ class DestinationsService {
       locationAddress: 'Morabadi, Ranchi, Jharkhand 834008',
       latitude: 23.3967,
       longitude: 85.3400,
-      imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
         'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
       ],
@@ -591,6 +591,93 @@ class DestinationsService {
       isPopular: true,
     ),
   
+    
+    // 14. Perwaghagh Falls (Khunti)
+    PopularDestinationModel(
+      id: 'perwaghagh_falls',
+      name: 'Perwaghagh Falls',
+      hindiName: 'पेरवाघाघ जलप्रपात (खूंटी)',
+      category: 'waterfall',
+      district: 'Khunti',
+      locationAddress: 'Fatuha, Torpa Block, Khunti District, Jharkhand 835227',
+      latitude: 22.8450,
+      longitude: 85.0450,
+      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      ],
+      imageCredit: 'District Car Verified Partner / Tourism Dept',
+      imageLicense: 'CC BY-SA 4.0',
+      altTextEn: 'Perwaghagh Falls hidden deep in dense forest gorge of Torpa Khunti',
+      altTextHi: 'तोरपा खूंटी के जंगलों में स्थित पेरवाघाघ झरना',
+      description:
+          'Perwaghagh translates to "The Waterfall of Pigeons" in local dialect, where thousands of wild pigeons nest in natural cliff crevasses behind the cascading falls. Hidden amidst dense virgin forests in Torpa block, the emerald green pool and soothing water roar offer one of Jharkhand’s most untouched natural paradises.',
+      highlights: [
+        'Emerald Green Natural Forest Pool',
+        'Pigeon Caves Behind Cascading Water',
+        'Untouched Virgin Forest Ambience',
+        'Smooth Scenic Drive via Torpa Road',
+      ],
+      safetyTips: [
+        'Swim only in shallow designated areas; water is deep near the cliff mouth.',
+        'Carry snacks and water; limited stalls available inside forest trail.',
+      ],
+      entryFee: 'Free Entry',
+      timeNeeded: 'Half Day (3–4 Hours)',
+      stepsOrParking: 'Nature trail walk · Ample parking space',
+      bestTimeToVisit: 'September to March',
+      timings: '07:00 AM – 05:00 PM',
+      rating: 4.8,
+      reviewsCount: 520,
+      approxDistanceKm: 72.0,
+      startingFare: 1699.0,
+      isTrending: true,
+      isPopular: true,
+    ),
+
+    // 15. Baba Amreshwar Dham (Angrabari, Khunti)
+    PopularDestinationModel(
+      id: 'amreshwar_dham',
+      name: 'Baba Amreshwar Dham (Angrabari)',
+      hindiName: 'बाबा अमरेश्वर धाम (अंगराबाड़ी, खूंटी)',
+      category: 'temple',
+      district: 'Khunti',
+      locationAddress: 'Angrabari, Khunti-Torpa Highway, Khunti, Jharkhand 835210',
+      latitude: 23.0210,
+      longitude: 85.2760,
+      imageUrl: 'https://images.unsplash.com/photo-1621252179027-94459d278660?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        'https://images.unsplash.com/photo-1621252179027-94459d278660?auto=format&fit=crop&w=1200&q=80',
+      ],
+      imageCredit: 'District Car Verified Partner / Temple Trust',
+      imageLicense: 'CC BY-SA 4.0',
+      altTextEn: 'Sacred Banyan tree shrine and Shiva lingam at Amreshwar Dham Angrabari',
+      altTextHi: 'अंगराबाड़ी स्थित पवित्र अमरेश्वर धाम मंदिर',
+      description:
+          'Baba Amreshwar Dham, also popularly renowned as Angrabari, is a holy temple complex nestled beneath sacred ancient banyan trees just 9 km from Khunti town. Named "Amreshwar Dham" by the Sage Shankaracharya Swami Swaroopanand Saraswati, it enshrines Lord Shiva, Maa Durga, Lord Ram-Sita, and Lord Hanuman.',
+      highlights: [
+        'Ancient Natural Swayambhu Shiva Lingam',
+        'Sacred Banyan Tree Temple Canopy',
+        'Visited by Shravani Mela Pilgrims',
+        'Peaceful Spiritual Atmosphere',
+      ],
+      safetyTips: [
+        'Dress respectfully for temple sanctum.',
+        'Special crowds during Mondays and Mahashivratri.',
+      ],
+      entryFee: 'Free Entry',
+      timeNeeded: '1–2 Hours',
+      stepsOrParking: 'Direct road access · Easy parking',
+      bestTimeToVisit: 'All Year (Especially July-August & Shivratri)',
+      timings: '05:30 AM – 08:30 PM',
+      rating: 4.9,
+      reviewsCount: 1140,
+      approxDistanceKm: 48.0,
+      startingFare: 1199.0,
+      isTrending: true,
+      isPopular: true,
+    ),
+
     // 14. Combo 1: Tri-Waterfall Circuit Combo
     PopularDestinationModel(
       id: 'combo_waterfalls_circuit',

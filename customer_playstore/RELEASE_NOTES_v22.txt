@@ -1,0 +1,36 @@
+District Car - Customer App (Version 1.0.0+22)
+Release Date: November 2026
+
+============================================================
+GOOGLE PLAY CONSOLE - WHAT'S NEW (RELEASE NOTES)
+============================================================
+
+<en-IN>
+What's New in Version 1.0.0 (Build 22):
+• Optimized for Khunti District: 45+ local landmarks, blocks, haats, and hospital locations now instantly searchable.
+• Smart Booking Safeguards: Enhanced live route calculation prevents incorrect pricing. Booking activates only after precise fare confirmation.
+• Dedicated Khunti Hubs: Quick-tap shortcuts for Khunti Bus Stand, Sadar Hospital, Local Market, Amreshwar Dham & Panchghagh Falls.
+• Dynamic Ride Modes: Seamless real-time switching between Ride Now and Scheduled Bookings.
+• Explore Jharkhand: High-resolution authentic photos added across all tourist destinations.
+• Performance enhancements and bug fixes.
+</en-IN>
+
+<hi-IN>
+वर्जन 1.0.0 (बिल्ड 22) में नया क्या है:
+• खूंटी जिले के लिए विशेष ऑप्टिमाइज़ेशन: खूंटी सदर, तोरपा, मुरहू, कर्रा, रनिया और अड़की के 45+ प्रमुख बाज़ार, अस्पताल व चौक अब तुरंत सर्च में उपलब्ध।
+• सटीक किराया सुरक्षा: अब रूट व लाइव किराया 100% कैलकुलेट होने के बाद ही बुकिंग सक्रिय होगी। गलत या शून्य किराए की बुकिंग समस्या का पूर्ण समाधान।
+• खूंटी क्विक टैग्स: बस स्टैंड (खूंटी), सदर अस्पताल, बाज़ार, अमरेश्वर धाम और पंचघाघ फॉल्स के लिए वन-टैप शॉर्टकट।
+• डायनामिक राइड मोड: एडमिन पैनल से 'Ride Now' और 'Schedule' बुकिंग का रियल-टाइम कंट्रोल।
+• एक्सप्लोर झारखंड: सभी पर्यटन स्थलों की असली व खूबसूरत हाई-रिज़ॉल्यूशन तस्वीरें जोड़ी गईं।
+• ऐप परफॉरमेंस और स्थिरता में सुधार।
+</hi-IN>
+
+============================================================
+TECHNICAL SUMMARY
+============================================================
+- Version Code: 22
+- Version Name: 1.0.0
+- Target Android SDK: 34 (Android 14)
+- Min Android SDK: 21
+- Package Name: com.districtcar.customer
+- Bundle File: customer_playstore/DistrictCar_Customer_Release_v22.aab (73.4 MB)

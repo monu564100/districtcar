@@ -68,10 +68,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   );
 
   LocationModel _destinationLocation = LocationModel(
-    latitude: 23.0740,
-    longitude: 85.2780,
-    address: 'Khunti District Bus Stand & Village, Jharkhand',
+    latitude: 0.0,
+    longitude: 0.0,
+    address: '',
   );
+
+  // Dynamic Remote Config Ride Toggles (from Admin Web)
+  StreamSubscription? _remoteConfigSub;
+  bool _isRideNowEnabled = true;
+  bool _isScheduleEnabled = true;
 
   // Time Slot & Date Schedule State
   DateTime _selectedDate = DateTime.now();
@@ -118,6 +123,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       }
     });
     _detectUserCurrentGpsOnStart();
+    _listenToRemoteConfig();
     _fetchGoogleDistanceAndDuration();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       RemoteUpdateChecker.checkAndShowUpdateDialog(
@@ -146,6 +152,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   @override
   void dispose() {
+    _remoteConfigSub?.cancel();
     _guestPopupTimer?.cancel();
     _guestPopupTimer = null;
     _scrollController.dispose();
@@ -153,6 +160,31 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 
   
+    void _listenToRemoteConfig() {
+    _remoteConfigSub = FirebaseFirestore.instance
+        .collection('remote_configs')
+        .doc('app_updates')
+        .snapshots()
+        .listen((snap) {
+      if (snap.exists && mounted) {
+        final data = snap.data();
+        if (data != null) {
+          final rNow = data['isRideNowEnabled'] != false;
+          final sched = data['isScheduleEnabled'] != false;
+          setState(() {
+            _isRideNowEnabled = rNow;
+            _isScheduleEnabled = sched;
+            if (!_isRideNowEnabled && _isScheduleEnabled) {
+              _isScheduleMode = true;
+            } else if (!_isScheduleEnabled && _isRideNowEnabled) {
+              _isScheduleMode = false;
+            }
+          });
+        }
+      }
+    }, onError: (_) {});
+  }
+
   Future<void> _checkAndShowGuestSignInPopup() async {
     try {
       // 1. If customer is already logged in, do not show popup
@@ -300,29 +332,33 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
-  void _setQuickDestination(String place) {
+    void _setQuickDestination(String place) {
     HapticService.selection();
-    String address = 'District Main Market, Jharkhand';
-    double lat = 23.3600;
-    double lng = 85.3200;
+    String address = 'Khunti Main Daily Market & Bhagat Singh Chowk, Khunti, Jharkhand';
+    double lat = 23.0765;
+    double lng = 85.2798;
 
     final lower = place.toLowerCase();
-    if (lower.contains('ghar') || lower.contains('home')) {
-      address = 'Home Village / Mohalla, Jharkhand';
-      lat = 23.3500;
-      lng = 85.3100;
-    } else if (lower.contains('bus') || lower.contains('stand')) {
-      address = 'Kanta Toli Inter-District Bus Stand, Ranchi';
-      lat = 23.3690;
-      lng = 85.3450;
-    } else if (lower.contains('hospital') || lower.contains('aspataal')) {
-      address = 'RIMS Hospital & Medical Hub, Bariatu, Ranchi';
-      lat = 23.3900;
-      lng = 85.3580;
-    } else if (lower.contains('bazaar') || lower.contains('mandi')) {
-      address = 'Daily Vegetable Mandi & Haat Bazaar, Jharkhand';
-      lat = 23.3650;
-      lng = 85.3240;
+    if (lower.contains('bus') || lower.contains('बस स्टैंड')) {
+      address = 'Khunti Main Bus Stand, Torpa Road, Khunti, Jharkhand';
+      lat = 23.0740;
+      lng = 85.2780;
+    } else if (lower.contains('hospital') || lower.contains('अस्पताल') || lower.contains('sadar')) {
+      address = 'Khunti Sadar Hospital & Emergency Trauma Centre, Court Road, Khunti, Jharkhand';
+      lat = 23.0792;
+      lng = 85.2815;
+    } else if (lower.contains('amreshwar') || lower.contains('अमरेश्वर') || lower.contains('angrabari')) {
+      address = 'Baba Amreshwar Dham Temple, Angrabari, Khunti, Jharkhand';
+      lat = 23.0210;
+      lng = 85.2760;
+    } else if (lower.contains('panchghagh') || lower.contains('पंचघाघ')) {
+      address = 'Panchghagh Falls & Picnic Zone, Murhu, Khunti, Jharkhand';
+      lat = 22.9460;
+      lng = 85.2710;
+    } else if (lower.contains('bazaar') || lower.contains('बाजार') || lower.contains('mandi') || lower.contains('market')) {
+      address = 'Khunti Main Daily Market & Bhagat Singh Chowk, Khunti, Jharkhand';
+      lat = 23.0765;
+      lng = 85.2798;
     }
 
     setState(() {
@@ -409,7 +445,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   String _googleDurationText = '';
   bool _isGoogleRoutesLoading = false;
 
-  void _fetchGoogleDistanceAndDuration() async {
+    void _fetchGoogleDistanceAndDuration() async {
+    if (_destinationLocation.address.isEmpty || _destinationLocation.latitude == 0.0) {
+      if (mounted) {
+        setState(() {
+          _googleDistanceKm = 0.0;
+          _googleDurationMinutes = 0;
+          _googleDurationText = '';
+          _isGoogleRoutesLoading = false;
+        });
+      }
+      return;
+    }
     setState(() => _isGoogleRoutesLoading = true);
     try {
       final res = await LocationSearchService().getDirectionsDistanceAndDuration(
@@ -441,6 +488,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 
   double _getCalculatedDistanceKm() {
+    if (_destinationLocation.address.isEmpty || _destinationLocation.latitude == 0.0) {
+      return 0.0;
+    }
     if (_googleDistanceKm > 0.0) return _googleDistanceKm;
     final distMeters = Geolocator.distanceBetween(
       _pickupLocation.latitude,
@@ -454,8 +504,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   // Rural average speed validation: 25 to 45 km/h
   int _getCalculatedDurationMinutes(double distanceKm) {
+    if (distanceKm <= 0.0) return 0;
     if (_googleDurationMinutes > 0) {
-      // Validate bounds: clamp to realistic rural speed (25–45 km/h)
       final minDuration = (distanceKm / 45.0 * 60.0).round();
       final maxDuration = (distanceKm / 25.0 * 60.0).round();
       return _googleDurationMinutes.clamp(minDuration.clamp(5, 600), maxDuration.clamp(10, 720));
@@ -465,15 +515,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   // Geofence & Service limit validator
   bool _isVehicleServiceable(String categoryName, double distanceKm) {
+    if (distanceKm <= 0.0) return true;
     final lower = categoryName.toLowerCase();
     if (lower.contains('bike') || lower.contains('auto') || lower.contains('rick')) {
       return distanceKm <= 60.0;
     }
-    // Cabs/Boleros/SUVs configurable up to 300 km inter-district
     return distanceKm <= 300.0;
   }
 
   double _calculateFare(VehicleCategoryModel? category, double distanceKm, [DistrictCarPricingRules? rules]) {
+    if (_destinationLocation.address.isEmpty || _destinationLocation.latitude == 0.0 || distanceKm <= 0.0) {
+      return 0.0;
+    }
     if (category == null) {
       return (60.0 + (distanceKm * 18.0)).roundToDouble();
     }
@@ -775,10 +828,67 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  void _handleBookingSearch(double estimatedFare) async {
+    void _handleBookingSearch(double estimatedFare) async {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) {
       context.push('/login');
+      return;
+    }
+
+    if (_destinationLocation.address.isEmpty || _destinationLocation.latitude == 0.0) {
+      _openDestinationLocationPicker();
+      return;
+    }
+
+    if (_isGoogleRoutesLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isHindi
+              ? 'कृपया प्रतीक्षा करें, सटीक किराया गणना जारी है...'
+              : 'Please wait, calculating exact fare for your route...'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (estimatedFare <= 0.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isHindi
+              ? 'अमान्य किराया, कृपया ड्रॉप लोकेशन दोबारा चुनें'
+              : 'Unable to calculate fare. Please select drop location again.'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!_isRideNowEnabled && !_isScheduleMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isHindi
+              ? 'वर्तमान में केवल एडवांस शेड्यूल राइड उपलब्ध है'
+              : 'Instant rides paused. Please choose Schedule Ride.'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!_isScheduleEnabled && _isScheduleMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isHindi
+              ? 'वर्तमान में शेड्यूल राइड बंद है, तुरंत राइड चुनें'
+              : 'Scheduled rides paused. Please choose Ride Now.'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
@@ -1221,14 +1331,47 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         ],
       ),
 
-      // I. Sticky Bottom Bar: Fixed 58h button + labeled bottom nav
+            // I. Sticky Bottom Bar: Fixed 58h button + labeled bottom nav
       bottomNavigationBar: StickyBookBar(
         vehicleName: currentCat?.displayName ?? 'Auto',
         fare: totalFare,
-        isServiceable: true,
-        isDestinationSelected: _destinationLocation.address.isNotEmpty,
+        isServiceable: isServiceable,
+        isDestinationSelected: _destinationLocation.address.isNotEmpty && _destinationLocation.latitude != 0.0,
+        isPriceCalculating: _isGoogleRoutesLoading,
+        isRidesPaused: !_isRideNowEnabled && !_isScheduleEnabled,
         isLoading: _isBookingLoading,
+        isHindi: _isHindi,
+        currentNavIndex: _currentDockIndex,
+        onNavSelected: _onDockTabSelected,
         onBook: () async {
+          if (_destinationLocation.address.isEmpty || _destinationLocation.latitude == 0.0) {
+            _openDestinationLocationPicker();
+            return;
+          }
+          if (_isGoogleRoutesLoading) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_isHindi
+                    ? 'कृपया प्रतीक्षा करें, सटीक किराया गणना जारी है...'
+                    : 'Please wait, calculating exact fare for your route...'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+          if (totalFare <= 0.0 || distanceKm <= 0.0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_isHindi
+                    ? 'अमान्य किराया, कृपया ड्रॉप लोकेशन दोबारा चुनें'
+                    : 'Unable to calculate fare. Please select drop location again.'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
           // Enforce minimum booking cap with 3D illustration popup
           if (distanceKm < pricingRules.minDistanceCapKm) {
             await ShortDistanceDialog.show(
@@ -1274,9 +1417,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
           _showBookingConfirmSheet(totalFare, currentCat);
         },
-        currentNavIndex: 0,
-        onNavSelected: _onDockTabSelected,
-        isHindi: false,
       ),
     );
   }
@@ -1466,7 +1606,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Headline: Ride Mode (Ride Now vs Schedule)
+                    // Section Headline: Ride Mode (Ride Now vs Schedule)
           Row(
             children: [
               const Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF0F172A)),
@@ -1481,7 +1621,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 ),
               ),
               const Spacer(),
-              if (!_isScheduleMode)
+              if (!_isScheduleMode && _isRideNowEnabled)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -1501,117 +1641,143 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           ),
           const SizedBox(height: 10),
 
-          // 1. Segmented Mode Switcher: "Ride Now" vs "Schedule Ride"
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                // Option A: Ride Now (तुरंत)
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      HapticService.selection();
-                      setState(() {
-                        _isScheduleMode = false;
-                        _selectedTimeSlot = 'Now (Within 30 mins)';
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: !_isScheduleMode ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: !_isScheduleMode
-                            ? const [
-                                BoxShadow(
-                                  color: Color.fromRGBO(0, 0, 0, 0.06),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.bolt_rounded,
-                            size: 16,
-                            color: !_isScheduleMode ? const Color(0xFFD97706) : AppTokens.secondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _isHindi ? 'अभी चलें (Now)' : 'Ride Now',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: !_isScheduleMode ? FontWeight.w800 : FontWeight.w600,
-                              color: !_isScheduleMode ? const Color(0xFF0F172A) : AppTokens.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
+          // 1. Dynamic Mode Switcher (remotely toggleable from Admin Web)
+          if (!_isRideNowEnabled && !_isScheduleEnabled)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFFDC2626), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isHindi
+                          ? 'बुकिंग अस्थायी रूप से बंद है। सहायता के लिए 918789601387 पर कॉल करें।'
+                          : 'Cab bookings are temporarily paused. Call 918789601387 for queries.',
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF991B1B)),
                     ),
                   ),
-                ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  // Option A: Ride Now (तुरंत)
+                  if (_isRideNowEnabled)
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          HapticService.selection();
+                          setState(() {
+                            _isScheduleMode = false;
+                            _selectedTimeSlot = 'Now (Within 30 mins)';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: !_isScheduleMode ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: !_isScheduleMode
+                                ? const [
+                                    BoxShadow(
+                                      color: Color.fromRGBO(0, 0, 0, 0.06),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.bolt_rounded,
+                                size: 16,
+                                color: !_isScheduleMode ? const Color(0xFFD97706) : AppTokens.secondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _isHindi ? 'अभी चलें (Now)' : 'Ride Now',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: !_isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                                  color: !_isScheduleMode ? const Color(0xFF0F172A) : AppTokens.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
 
-                // Option B: Schedule Ride (शेड्यूल करें)
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      HapticService.selection();
-                      setState(() {
-                        _isScheduleMode = true;
-                      });
-                      _validateAndSetScheduleTime(_selectedScheduleTime);
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _isScheduleMode ? const Color(0xFF0F172A) : Colors.transparent,
+                  // Option B: Schedule Ride (शेड्यूल करें)
+                  if (_isScheduleEnabled)
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          HapticService.selection();
+                          setState(() {
+                            _isScheduleMode = true;
+                          });
+                          _validateAndSetScheduleTime(_selectedScheduleTime);
+                        },
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: _isScheduleMode
-                            ? const [
-                                BoxShadow(
-                                  color: Color.fromRGBO(15, 23, 42, 0.20),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _isScheduleMode ? const Color(0xFF0F172A) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _isScheduleMode
+                                ? const [
+                                    BoxShadow(
+                                      color: Color.fromRGBO(15, 23, 42, 0.20),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_month_rounded,
+                                size: 15,
+                                color: _isScheduleMode ? Colors.white : AppTokens.secondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _isHindi ? 'शेड्यूल करें' : 'Schedule',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: _isScheduleMode ? FontWeight.w800 : FontWeight.w600,
+                                  color: _isScheduleMode ? Colors.white : AppTokens.secondary,
                                 ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_month_rounded,
-                            size: 15,
-                            color: _isScheduleMode ? Colors.white : AppTokens.secondary,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _isHindi ? 'शेड्यूल करें' : 'Schedule',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: _isScheduleMode ? FontWeight.w800 : FontWeight.w600,
-                              color: _isScheduleMode ? Colors.white : AppTokens.secondary,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
           // 2. Animated Date & Time Selector when Schedule mode is active
           AnimatedCrossFade(

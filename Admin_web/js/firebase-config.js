@@ -231,6 +231,9 @@ function initRealtimeListeners(onDataChange) {
         if (typeof updateGuestPopupUI === 'function') {
           updateGuestPopupUI(AdminStore.remoteConfig.showGuestSignInPopup !== false);
         }
+        if (typeof updateRideTogglesUI === 'function') {
+          updateRideTogglesUI(AdminStore.remoteConfig);
+        }
         if (onDataChange) onDataChange('remoteConfig');
       }
     }, (err) => {
@@ -685,6 +688,55 @@ async function apiSetGuestSignInPopup(enabled) {
   return isEnabled;
 }
 
+
+/**
+ * Standalone 1-click API to Turn ON or Turn OFF Customer Ride Now (Instant booking)
+ */
+async function apiSetRideNowEnabled(enabled) {
+  const isEnabled = Boolean(enabled);
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('app_updates').set({
+        isRideNowEnabled: isEnabled,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log('✅ [Firestore] Ride Now set to: ' + (isEnabled ? 'ON' : 'OFF'));
+    } catch (e) {
+      console.error('Error setting Ride Now in Firestore:', e);
+      throw e;
+    }
+  }
+  if (!AdminStore.remoteConfig) {
+    AdminStore.remoteConfig = {};
+  }
+  AdminStore.remoteConfig.isRideNowEnabled = isEnabled;
+  return isEnabled;
+}
+
+/**
+ * Standalone 1-click API to Turn ON or Turn OFF Customer Schedule Ride (Advance booking)
+ */
+async function apiSetScheduleEnabled(enabled) {
+  const isEnabled = Boolean(enabled);
+  if (db) {
+    try {
+      await db.collection('remote_configs').doc('app_updates').set({
+        isScheduleEnabled: isEnabled,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log('✅ [Firestore] Schedule Ride set to: ' + (isEnabled ? 'ON' : 'OFF'));
+    } catch (e) {
+      console.error('Error setting Schedule Ride in Firestore:', e);
+      throw e;
+    }
+  }
+  if (!AdminStore.remoteConfig) {
+    AdminStore.remoteConfig = {};
+  }
+  AdminStore.remoteConfig.isScheduleEnabled = isEnabled;
+  return isEnabled;
+}
+
 async function apiSavePricingRules(rules) {
   if (db) {
     try {
@@ -759,17 +811,20 @@ async function apiSaveFestiveTheme(themeConfig) {
   return AdminStore.festiveTheme;
 }
 
-async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup) {
+async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup, isRideNowEnabled, isScheduleEnabled) {
   if (!db) return false;
   try {
-    await db.collection('remote_configs').doc('app_updates').set({
+    const payload = {
       driverCurrentBuild: parseInt(driverBuild, 10) || 26,
       customerCurrentBuild: parseInt(customerBuild, 10) || 26,
       forceUpdate: Boolean(forceUpdate),
       driverApkUrl: apkUrl || "https://districtcar.in/build_outputs/DistrictCar_Driver_Release.apk",
       showGuestSignInPopup: showGuestSignInPopup !== undefined ? Boolean(showGuestSignInPopup) : true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+    if (isRideNowEnabled !== undefined) payload.isRideNowEnabled = Boolean(isRideNowEnabled);
+    if (isScheduleEnabled !== undefined) payload.isScheduleEnabled = Boolean(isScheduleEnabled);
+    await db.collection('remote_configs').doc('app_updates').set(payload, { merge: true });
     return true;
   } catch (e) {
     console.error("Error saving remote config:", e);

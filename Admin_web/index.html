@@ -629,7 +629,7 @@
           </div>
 
           <!-- Standalone Dedicated Guest Sign-In Popup Control Card -->
-          <div style="max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:22px 24px; margin-bottom:20px; box-shadow:var(--shadow-sm);">
+          <div style="max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow-sm);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
               <div>
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -647,6 +647,60 @@
                   <i class="fa-solid fa-circle-play"></i> Turn ON Popup Signin
                 </button>
                 <button type="button" id="btnTurnOffGuestPopup" class="btn btn-secondary" onclick="setGuestSignInPopupDirect(false)" style="background:#FEF2F2; color:#DC2626; border-color:#FECACA; padding:10px 18px; font-size:13.5px; font-weight:700;">
+                  <i class="fa-solid fa-circle-pause"></i> Turn OFF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Standalone Dedicated Customer "Ride Now" Control Card -->
+          <div style="max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <h3 style="font-size:16px; font-weight:800; color:#0F172A; margin:0;">
+                    <i class="fa-solid fa-bolt" style="color:#D97706; margin-right:4px;"></i> Customer "Ride Now" (Instant Cab Booking)
+                  </h3>
+                  <span id="rideNowStatusBadge" style="background:#ECFDF5; color:#059669; border:1px solid #A7F3D0; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;">
+                    <i class="fa-solid fa-circle-check"></i> ACTIVE (ON)
+                  </span>
+                </div>
+                <p style="font-size:13px; color:#64748B; margin:6px 0 0 0; max-width:440px; line-height:1.5;">
+                  Allows customers to book instant cabs immediately (within 30 mins). Turn OFF to temporarily disable instant on-demand rides.
+                </p>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <button type="button" id="btnTurnOnRideNow" class="btn btn-primary" onclick="setRideNowDirect(true)" style="background:#059669; border-color:#059669; padding:10px 18px; font-size:13.5px; font-weight:700;">
+                  <i class="fa-solid fa-circle-play"></i> Turn ON Ride Now
+                </button>
+                <button type="button" id="btnTurnOffRideNow" class="btn btn-secondary" onclick="setRideNowDirect(false)" style="background:#FEF2F2; color:#DC2626; border-color:#FECACA; padding:10px 18px; font-size:13.5px; font-weight:700;">
+                  <i class="fa-solid fa-circle-pause"></i> Turn OFF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Standalone Dedicated Customer "Schedule Ride" Control Card -->
+          <div style="max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:22px 24px; margin-bottom:20px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <h3 style="font-size:16px; font-weight:800; color:#0F172A; margin:0;">
+                    <i class="fa-solid fa-calendar-days" style="color:#2563EB; margin-right:4px;"></i> Customer "Schedule Ride" (Advance Booking)
+                  </h3>
+                  <span id="scheduleStatusBadge" style="background:#ECFDF5; color:#059669; border:1px solid #A7F3D0; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;">
+                    <i class="fa-solid fa-circle-check"></i> ACTIVE (ON)
+                  </span>
+                </div>
+                <p style="font-size:13px; color:#64748B; margin:6px 0 0 0; max-width:440px; line-height:1.5;">
+                  Allows customers to schedule rides in advance for later hours or upcoming days. Turn OFF to pause advance scheduling.
+                </p>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <button type="button" id="btnTurnOnSchedule" class="btn btn-primary" onclick="setScheduleDirect(true)" style="background:#059669; border-color:#059669; padding:10px 18px; font-size:13.5px; font-weight:700;">
+                  <i class="fa-solid fa-circle-play"></i> Turn ON Schedule
+                </button>
+                <button type="button" id="btnTurnOffSchedule" class="btn btn-secondary" onclick="setScheduleDirect(false)" style="background:#FEF2F2; color:#DC2626; border-color:#FECACA; padding:10px 18px; font-size:13.5px; font-weight:700;">
                   <i class="fa-solid fa-circle-pause"></i> Turn OFF
                 </button>
               </div>
@@ -689,6 +743,33 @@
                     </label>
                     <p style="font-size:12px; color:#64748B; margin:4px 0 0 0; line-height:1.5;">
                       When enabled, unauthenticated guest customers opening the app will see a high-quality Sign-In prompt on the home screen after 5 seconds (shown once per day, cancellable). Uncheck this toggle to turn OFF the popup remotely across all customer devices.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Customer App Ride Now & Schedule Dynamic Controls -->
+              <div class="form-group" style="margin-top:16px; padding:16px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; display:grid; gap:14px;">
+                <div style="display:flex; align-items:flex-start; gap:12px;">
+                  <input type="checkbox" id="cfgRideNowEnabled" style="width:20px; height:20px; margin-top:2px; cursor:pointer;" checked>
+                  <div>
+                    <label for="cfgRideNowEnabled" style="font-size:14px; font-weight:700; color:#0F172A; cursor:pointer;">
+                      Enable Customer "Ride Now" (Instant Cab Booking)
+                    </label>
+                    <p style="font-size:12px; color:#64748B; margin:2px 0 0 0;">
+                      When unchecked, the "Ride Now" instant ride option is turned OFF in the customer app.
+                    </p>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:flex-start; gap:12px; border-top:1px dashed #CBD5E1; padding-top:12px;">
+                  <input type="checkbox" id="cfgScheduleEnabled" style="width:20px; height:20px; margin-top:2px; cursor:pointer;" checked>
+                  <div>
+                    <label for="cfgScheduleEnabled" style="font-size:14px; font-weight:700; color:#0F172A; cursor:pointer;">
+                      Enable Customer "Schedule Ride" (Advance Booking)
+                    </label>
+                    <p style="font-size:12px; color:#64748B; margin:2px 0 0 0;">
+                      When unchecked, the "Schedule Ride" advance timing option is turned OFF in the customer app.
                     </p>
                   </div>
                 </div>

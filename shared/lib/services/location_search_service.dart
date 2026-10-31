@@ -48,8 +48,80 @@ class LocationSearchService {
   // Official Google Maps API Key provided by user
   static const String googleApiKey = 'AIzaSyC4J6x9hq3DeuivIndeTfnwr_A3aJlT-ec';
 
-  // Popular Jharkhand district & rural mobility hubs
+    // Popular Jharkhand district & rural mobility hubs (Khunti prioritized)
   static const List<LocationSearchResult> popularHubs = [
+    LocationSearchResult(
+      title: 'Khunti District Main Bus Stand (तोरपा रोड)',
+      subtitle: 'Torpa Road, Khunti, Jharkhand',
+      latitude: 23.0740,
+      longitude: 85.2780,
+    ),
+    LocationSearchResult(
+      title: 'Bhagat Singh Chowk & Daily Market',
+      subtitle: 'Main Road Market, Khunti, Jharkhand',
+      latitude: 23.0765,
+      longitude: 85.2798,
+    ),
+    LocationSearchResult(
+      title: 'Khunti Sadar Hospital & Trauma Centre',
+      subtitle: 'Court Road, Khunti, Jharkhand',
+      latitude: 23.0792,
+      longitude: 85.2815,
+    ),
+    LocationSearchResult(
+      title: 'Panchghagh Falls & Picnic Zone',
+      subtitle: 'Murhu, Khunti, Jharkhand',
+      latitude: 22.9460,
+      longitude: 85.2710,
+    ),
+    LocationSearchResult(
+      title: 'Baba Amreshwar Dham (Angrabari)',
+      subtitle: 'Angrabari, Khunti, Jharkhand',
+      latitude: 23.0210,
+      longitude: 85.2760,
+    ),
+    LocationSearchResult(
+      title: 'Perwaghagh Falls (The Pigeon Waterfall)',
+      subtitle: 'Fatuha, Torpa, Khunti, Jharkhand',
+      latitude: 22.8450,
+      longitude: 85.0450,
+    ),
+    LocationSearchResult(
+      title: 'Torpa Main Chowk & Referral Hospital',
+      subtitle: 'Torpa, Khunti, Jharkhand',
+      latitude: 22.9380,
+      longitude: 85.1220,
+    ),
+    LocationSearchResult(
+      title: 'Murhu Main Bazaar & Daily Market',
+      subtitle: 'Murhu, Khunti, Jharkhand',
+      latitude: 22.9840,
+      longitude: 85.2810,
+    ),
+    LocationSearchResult(
+      title: 'Karra Main Chowk & Railway Station',
+      subtitle: 'Karra, Khunti, Jharkhand',
+      latitude: 23.1680,
+      longitude: 85.1240,
+    ),
+    LocationSearchResult(
+      title: 'Rania Main Chowk & Haat Bazaar',
+      subtitle: 'Rania, Khunti, Jharkhand',
+      latitude: 22.7840,
+      longitude: 85.0850,
+    ),
+    LocationSearchResult(
+      title: 'Arki Block Headquarters & Chowk',
+      subtitle: 'Arki, Khunti, Jharkhand',
+      latitude: 23.0150,
+      longitude: 85.5020,
+    ),
+    LocationSearchResult(
+      title: 'Ulihatu (Bhagwan Birsa Munda Birthplace)',
+      subtitle: 'Ulihatu, Arki, Khunti, Jharkhand',
+      latitude: 22.9560,
+      longitude: 85.4980,
+    ),
     LocationSearchResult(
       title: 'Albert Ekka Chowk (Main Road)',
       subtitle: 'Ranchi, Jharkhand',
@@ -185,8 +257,8 @@ class LocationSearchService {
       if (biasLat != null && biasLng != null) {
         url += '&location=$biasLat,$biasLng&radius=50000';
       } else {
-        // Bias around Jharkhand state center (Ranchi 23.3441, 85.3096)
-        url += '&location=23.3441,85.3096&radius=120000';
+        // High Priority Bias around Khunti District Center (23.0740, 85.2780)
+        url += '&location=23.0740,85.2780&radius=80000';
       }
 
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));

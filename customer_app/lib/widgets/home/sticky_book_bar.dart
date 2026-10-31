@@ -9,6 +9,8 @@ class StickyBookBar extends StatefulWidget {
   final double fare;
   final bool isServiceable;
   final bool isDestinationSelected;
+  final bool isPriceCalculating;
+  final bool isRidesPaused;
   final bool isLoading;
   final VoidCallback onBook;
   final int currentNavIndex;
@@ -21,6 +23,8 @@ class StickyBookBar extends StatefulWidget {
     required this.fare,
     this.isServiceable = true,
     required this.isDestinationSelected,
+    this.isPriceCalculating = false,
+    this.isRidesPaused = false,
     this.isLoading = false,
     required this.onBook,
     required this.currentNavIndex,
@@ -52,7 +56,7 @@ class _StickyBookBarState extends State<StickyBookBar> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final bool canBook = widget.isDestinationSelected && widget.isServiceable && !widget.isLoading;
+    final bool canBook = (!widget.isDestinationSelected || (!widget.isPriceCalculating && widget.fare > 0 && widget.isServiceable && !widget.isRidesPaused)) && !widget.isLoading;
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).padding.bottom + 8),
@@ -101,24 +105,51 @@ class _StickyBookBarState extends State<StickyBookBar> with SingleTickerProvider
                           height: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4),
                         )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.directions_car_rounded, size: 20, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                !widget.isDestinationSelected
-                                    ? (widget.isHindi ? 'कहाँ जाना है? चुनें' : 'Select Destination')
-                                    : !widget.isServiceable
-                                        ? (widget.isHindi ? 'दूरी सीमा से बाहर है' : 'Out of Service Range')
-                                        : '${widget.isHindi ? "बुक करें" : "Book"} ${widget.vehicleName} • ₹${widget.fare.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.2,
-                                ),
-                                maxLines: 1,
+                      : widget.isRidesPaused
+                          ? Text(
+                              widget.isHindi ? 'बुकिंग अस्थायी रूप से बंद है' : 'Bookings Temporarily Paused',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                            )
+                          : widget.isPriceCalculating
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      widget.isHindi ? 'किराया गणना जारी...' : 'Calculating Exact Fare...',
+                                      style: const TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.directions_car_rounded, size: 20, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        !widget.isDestinationSelected
+                                            ? (widget.isHindi ? 'ड्रॉप लोकेशन दर्ज करें' : 'Enter Drop Location')
+                                            : !widget.isServiceable
+                                                ? (widget.isHindi ? 'दूरी सीमा से बाहर है' : 'Out of Service Range')
+                                                : widget.fare <= 0
+                                                    ? (widget.isHindi ? 'किराया उपलब्ध नहीं' : 'Fare Unavailable')
+                                                    : '${widget.isHindi ? "बुक करें" : "Book"} ${widget.vehicleName} • ₹${widget.fare.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.2,
+                                        ),
+                                        maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
