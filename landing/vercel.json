@@ -5,6 +5,10 @@
     {
       "source": "/customer",
       "destination": "/customer/index.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/services.html"
     }
   ],
   "headers": [

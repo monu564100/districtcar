@@ -15,8 +15,12 @@ Allow: /tours/
 Allow: /tours.html
 Allow: /blogs/
 Allow: /blogs.html
+Allow: /services/
+Allow: /services.html
 Allow: /blog/
 Allow: /customer
+Allow: /services/
+Allow: /services.html
 
 # Explicit AI Agent & Large Language Model Crawlers
 User-agent: GPTBot
