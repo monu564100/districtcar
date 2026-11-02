@@ -1,3 +1,4 @@
+const axios = require('axios');
 const { firebaseClient, clientFirestore } = require('./firebaseClient');
 const { travelCampaigns } = require('./travelCampaigns');
 
@@ -560,6 +561,153 @@ class NotificationService {
       pushResult: res,
     };
   }
+
+  /**
+   * 6. Send SMS via APITXT.com GET API
+   */
+  async sendApitxtSms({ mobile, message, otp }) {
+    let cleanMobile = String(mobile || '').replace(/[^0-9]/g, '');
+    if (cleanMobile.length === 10) cleanMobile = '91' + cleanMobile;
+    const safeOtp = String(otp || Math.floor(100000 + Math.random() * 900000)).replace(/[^0-9]/g, '').slice(-6).padStart(6, '9');
+    const authKey = 'sCopxtBHXm_Z2wlY8q5zGWejD0S8MDnrv4K1wI1oKHg';
+    const endpoint = 'https://apitxt.com/api/sendOTP';
+
+    try {
+      const response = await axios.get(endpoint, {
+        params: {
+          authkey: authKey,
+          mobile: cleanMobile,
+          otp: safeOtp,
+          message: message || 'District Car: Alert'
+        },
+        timeout: 10000
+      });
+      console.log(`✅ [NotificationService:APITXT] SMS delivered to ${cleanMobile}:`, response.data);
+      return { success: true, mobile: cleanMobile, data: response.data };
+    } catch (err) {
+      console.error(`❌ [NotificationService:APITXT] Failed to send SMS to ${cleanMobile}:`, err.message);
+      return { success: false, mobile: cleanMobile, error: err.message };
+    }
+  }
+
+  /**
+   * 7. Send APITXT Booking Alert to Both Admin Numbers (+919142127512, +918789601387)
+   */
+  async sendApitxtBookingAlert({ bookingId, readableId, pickupAddress, destinationAddress, estimatedFare, rideOtp }) {
+    const adminNumbers = ['919142127512', '918789601387'];
+    const rId = readableId || (bookingId ? bookingId.substring(0, 6).toUpperCase() : 'NEW');
+    const shortPickup = (pickupAddress || 'Pickup').length > 25 ? (pickupAddress || 'Pickup').substring(0, 22) + '...' : (pickupAddress || 'Pickup');
+    const shortDrop = (destinationAddress || 'Drop').length > 25 ? (destinationAddress || 'Drop').substring(0, 22) + '...' : (destinationAddress || 'Drop');
+    const fare = Math.round(Number(estimatedFare || 0));
+    const otpCode = String(rideOtp || rId || Math.floor(100000 + Math.random() * 900000)).replace(/[^0-9]/g, '').slice(-6).padStart(6, '9');
+    const smsMessage = `District Car: New Booking #${rId}! From: ${shortPickup} To: ${shortDrop} Fare: Rs.${fare}`;
+
+    console.log(`🚨 [NotificationService] Dispatching APITXT SMS for Booking #${rId} to admins (+919142127512, +918789601387)...`);
+
+    const results = [];
+    for (const num of adminNumbers) {
+      const res = await this.sendApitxtSms({
+        mobile: num,
+        message: smsMessage,
+        otp: otpCode
+      });
+      results.push(res);
+    }
+    return results;
+  }
+
+  /**
+   * 8. Send Targeted Notification (Specific Customer, Specific Driver, or Broadcast)
+   */
+  async sendCustomNotification({
+    targetAudience = 'all_customers',
+    targetUserId = null,
+    targetUserName = null,
+    targetPhone = null,
+    title,
+    body,
+    priority = 'high',
+    imageUrl = null,
+    extraData = {}
+  }) {
+    const db = this.getDb();
+    let notifId = null;
+
+    if (db) {
+      try {
+        const docRef = await clientAddDoc(clientCollection(db, 'notifications'), {
+          title,
+          body,
+          imageUrl: imageUrl || null,
+          targetAudience,
+          targetUserId: targetUserId || null,
+          targetUserName: targetUserName || null,
+          targetPhone: targetPhone || null,
+          priority,
+          sentBy: 'Admin HQ',
+          sentAt: clientServerTimestamp()
+        });
+        notifId = docRef.id;
+
+        // Deliver to personal in-app inbox
+        if (targetAudience === 'specific_customer' && targetUserId) {
+          await clientAddDoc(clientCollection(db, 'users', targetUserId, 'inbox_notifications'), {
+            title,
+            body,
+            priority,
+            isRead: false,
+            sentAt: clientServerTimestamp()
+          }).catch(() => {});
+        } else if (targetAudience === 'specific_driver' && targetUserId) {
+          await clientAddDoc(clientCollection(db, 'drivers', targetUserId, 'inbox_notifications'), {
+            title,
+            body,
+            priority,
+            isRead: false,
+            sentAt: clientServerTimestamp()
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.warn('[NotificationService] Firestore notification log notice:', e.message);
+      }
+    }
+
+    // Determine FCM target
+    let target = '/topics/all_users';
+    if (targetAudience === 'all_customers') target = '/topics/customers';
+    else if (targetAudience === 'all_drivers') target = '/topics/drivers';
+    else if (targetUserId) {
+      // Look up FCM token if available
+      try {
+        const col = targetAudience === 'specific_driver' ? 'drivers' : 'users';
+        const userSnap = await clientGetDoc(clientDoc(db, col, targetUserId));
+        if (userSnap.exists()) {
+          const uData = userSnap.data();
+          if (uData.fcmToken) target = uData.fcmToken;
+        }
+      } catch (_) {}
+    }
+
+    const pushRes = await this.firebase.sendPushNotification({
+      target,
+      title,
+      body,
+      imageUrl,
+      data: {
+        notificationId: notifId || '',
+        targetAudience,
+        priority,
+        ...extraData
+      }
+    });
+
+    return {
+      success: true,
+      notificationId: notifId,
+      pushResult: pushRes
+    };
+  }
+
 }
 
 module.exports = new NotificationService();

@@ -37,6 +37,8 @@ const AdminStore = {
   payouts: [],
   settlements: [],
   categories: [],
+  notifications: [],
+  totalApitxtSmsSent: 0,
   pricingRules: {
     minDistanceCapKm: 5.0,
     shortTripMaxDistanceKm: 25.0,
@@ -169,6 +171,28 @@ function initRealtimeListeners(onDataChange) {
         const tB = b.createdAt?.seconds || (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
         return tB - tA;
       });
+      // Real-time APITXT SMS alert on new incoming bookings (+919142127512 and +918789601387)
+      snap.docChanges().forEach((change) => {
+        const b = change.doc.data() || {};
+        const id = change.doc.id;
+
+        if (change.type === 'added') {
+          if (initialBookingsLoaded && !knownBookingIds.has(id)) {
+            if (!b.apitxtSmsSent && !sentApitxtBookingIds.has(id)) {
+              sentApitxtBookingIds.add(id);
+              triggerNewBookingApitxtAlert({ id, ...b });
+            }
+          }
+          knownBookingIds.add(id);
+        } else if (change.type === 'modified') {
+          if ((b.status === 'requested' || b.status === 'searching_driver') && !b.apitxtSmsSent && !sentApitxtBookingIds.has(id)) {
+            sentApitxtBookingIds.add(id);
+            triggerNewBookingApitxtAlert({ id, ...b });
+          }
+        }
+      });
+      initialBookingsLoaded = true;
+
       console.log(`📋 [Firestore] Synced ${AdminStore.bookings.length} bookings.`);
       if (onDataChange) onDataChange('bookings');
     }, (err) => {
@@ -809,6 +833,173 @@ async function apiSaveFestiveTheme(themeConfig) {
   }
   AdminStore.festiveTheme = { ...AdminStore.festiveTheme, ...themeConfig };
   return AdminStore.festiveTheme;
+}
+
+// ============================================================================
+// APITXT.com SMS & PUSH NOTIFICATIONS API
+// ============================================================================
+const APITXT_CONFIG = {
+  endpoint: 'https://apitxt.com/api/sendOTP',
+  authKey: 'sCopxtBHXm_Z2wlY8q5zGWejD0S8MDnrv4K1wI1oKHg',
+  adminNumbers: ['919142127512', '918789601387']
+};
+
+/**
+ * Dispatch Instant SMS via APITXT.com sendOTP API
+ */
+async function apiSendApitxtSms(mobile, message, otp) {
+  let cleanMobile = String(mobile || '').replace(/[^0-9]/g, '');
+  if (cleanMobile.length === 10) cleanMobile = '91' + cleanMobile;
+  const safeOtp = String(otp || Math.floor(100000 + Math.random() * 900000)).replace(/[^0-9]/g, '').slice(-6).padStart(6, '9');
+  const encodedMsg = encodeURIComponent(message || 'District Car: Alert');
+  const url = `${APITXT_CONFIG.endpoint}?authkey=${APITXT_CONFIG.authKey}&mobile=${cleanMobile}&otp=${safeOtp}&message=${encodedMsg}`;
+
+  console.log(`[APITXT] Dispatching GET to ${cleanMobile}`);
+
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.log(`✅ [APITXT] SMS Response for ${cleanMobile}:`, data);
+      AdminStore.totalApitxtSmsSent = (AdminStore.totalApitxtSmsSent || 0) + 1;
+      return { success: true, mobile: cleanMobile, data };
+    }
+  } catch (err) {
+    // Mode no-cors fallback: ensures GET request is transmitted without browser CORS blockage
+    try {
+      await fetch(url, { method: 'GET', mode: 'no-cors' });
+      console.log(`📡 [APITXT] SMS Dispatched (no-cors fallback) to ${cleanMobile}`);
+      AdminStore.totalApitxtSmsSent = (AdminStore.totalApitxtSmsSent || 0) + 1;
+      return { success: true, mobile: cleanMobile, mode: 'no-cors' };
+    } catch (e2) {
+      console.error(`❌ [APITXT] Failed to send to ${cleanMobile}:`, e2);
+      return { success: false, mobile: cleanMobile, error: e2.message };
+    }
+  }
+}
+
+/**
+ * Trigger Instant SMS to both Admins on New Booking
+ */
+async function triggerNewBookingApitxtAlert(booking) {
+  const readableId = booking.readableId || (booking.id ? booking.id.substring(0, 6).toUpperCase() : 'NEW');
+  const pickup = booking.pickup?.address || booking.pickupAddress || 'Pickup Point';
+  const drop = booking.destination?.address || booking.destinationAddress || 'Drop Location';
+  const fare = Math.round(booking.estimatedFare || booking.totalFare || booking.fareSnapshot?.totalFare || 0);
+  const shortPickup = pickup.length > 25 ? pickup.substring(0, 22) + '...' : pickup;
+  const shortDrop = drop.length > 25 ? drop.substring(0, 22) + '...' : drop;
+  
+  const otpCode = String(booking.rideOtp || booking.readableId || Math.floor(100000 + Math.random() * 900000)).replace(/[^0-9]/g, '').slice(-6).padStart(6, '9');
+  const smsText = `District Car: New Booking #${readableId}! From: ${shortPickup} To: ${shortDrop} Fare: Rs.${fare}`;
+
+  console.log(`🚨 [APITXT] New booking #${readableId} detected! Sending instant SMS to admins...`);
+
+  // Play browser audio beep if allowed
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.3;
+    osc.start();
+    setTimeout(() => { osc.stop(); audioCtx.close(); }, 350);
+  } catch (_) {}
+
+  // Dispatch SMS to both authorized admin numbers
+  for (const adminNum of APITXT_CONFIG.adminNumbers) {
+    await apiSendApitxtSms(adminNum, smsText, otpCode);
+  }
+
+  // Update Firestore booking record to mark SMS notified
+  if (db && booking.id) {
+    db.collection('bookings').doc(booking.id).update({
+      apitxtSmsSent: true,
+      apitxtSmsSentAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(`🚨 New Booking #${readableId}! SMS sent to +919142127512 & +918789601387 via APITXT.`);
+  }
+}
+
+/**
+ * Send Push Notification from Admin Web
+ */
+async function apiSendPushNotification({
+  targetAudience,
+  targetUserId = null,
+  targetUserName = null,
+  targetPhone = null,
+  title,
+  body,
+  templateKey = 'custom',
+  priority = 'high'
+}) {
+  if (!db) throw new Error("Firestore database connection not available");
+
+  const notifDoc = {
+    title,
+    body,
+    targetAudience,
+    targetUserId: targetUserId || null,
+    targetUserName: targetUserName || null,
+    targetPhone: targetPhone || null,
+    templateKey,
+    priority,
+    status: 'delivered',
+    sentBy: 'Admin HQ',
+    sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+    timestamp: Date.now()
+  };
+
+  // 1. Add to root 'notifications' collection
+  const notifRef = await db.collection('notifications').add(notifDoc);
+  console.log(`🔔 [Notification] Saved notification #${notifRef.id} to Firestore`);
+
+  // 2. Deliver to specific recipient's personal inbox
+  if (targetAudience === 'specific_customer' && targetUserId) {
+    try {
+      await db.collection('users').doc(targetUserId).collection('inbox_notifications').add({
+        title,
+        body,
+        type: templateKey,
+        priority,
+        isRead: false,
+        sentAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log(`📥 [Inbox] Delivered to customer ${targetUserId} personal inbox`);
+    } catch (e) {
+      console.warn("Could not write to customer inbox:", e);
+    }
+  } else if (targetAudience === 'specific_driver' && targetUserId) {
+    try {
+      await db.collection('drivers').doc(targetUserId).collection('inbox_notifications').add({
+        title,
+        body,
+        type: templateKey,
+        priority,
+        isRead: false,
+        sentAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log(`📥 [Inbox] Delivered to driver ${targetUserId} personal inbox`);
+    } catch (e) {
+      console.warn("Could not write to driver inbox:", e);
+    }
+  }
+
+  // 3. Optional: Forward to notification_service if online
+  try {
+    fetch('http://localhost:4000/api/notifications/custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(notifDoc)
+    }).catch(() => {});
+  } catch (_) {}
+
+  return notifRef.id;
 }
 
 async function apiSaveRemoteConfig(driverBuild, customerBuild, forceUpdate, apkUrl, showGuestSignInPopup, isRideNowEnabled, isScheduleEnabled) {

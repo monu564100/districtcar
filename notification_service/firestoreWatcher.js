@@ -65,6 +65,16 @@ class FirestoreWatcher {
                 this._markProcessed(newBookingKey);
                 console.log(`[FirestoreWatcher] Detected new booking: ${id} (${data.readableId || id})`);
 
+                // Dispatch Instant SMS via APITXT.com to both Admins (+919142127512 and +918789601387)
+                notificationService.sendApitxtBookingAlert({
+                  bookingId: id,
+                  readableId: data.readableId || id,
+                  pickupAddress: data.pickup?.address || 'Pickup Point',
+                  destinationAddress: data.destination?.address || 'Destination',
+                  estimatedFare: data.estimatedFare || data.fareSnapshot?.totalFare || 0,
+                  rideOtp: data.rideOtp
+                }).catch(e => console.warn('[FirestoreWatcher] APITXT SMS alert error:', e.message));
+
                 notificationService.notifyDriversNewBooking({
                   bookingId: id,
                   readableId: data.readableId || id,

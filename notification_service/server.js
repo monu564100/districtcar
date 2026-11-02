@@ -227,6 +227,59 @@ app.post('/api/notifications/admin-broadcast', async (req, res) => {
   }
 });
 
+
+/**
+ * 7. Endpoint: Instant APITXT SMS Test for Admin Numbers
+ */
+app.post('/api/sms/apitxt-test', async (req, res) => {
+  try {
+    const { message, otp } = req.body || {};
+    const testOtp = otp || String(Math.floor(100000 + Math.random() * 900000));
+    const testMsg = message || `District Car Admin Test SMS: Real-time booking alert verified. Time: ${new Date().toLocaleTimeString('en-IN')}`;
+
+    const res1 = await notificationService.sendApitxtSms({ mobile: '919142127512', message: testMsg, otp: testOtp });
+    const res2 = await notificationService.sendApitxtSms({ mobile: '918789601387', message: testMsg, otp: testOtp });
+
+    res.json({
+      success: true,
+      recipients: ['919142127512', '918789601387'],
+      results: [res1, res2]
+    });
+  } catch (err) {
+    console.error('Error in /api/sms/apitxt-test:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 8. Endpoint: Send Targeted or Broadcast Notification
+ */
+app.post('/api/notifications/custom', async (req, res) => {
+  try {
+    const { targetAudience, targetUserId, targetUserName, targetPhone, title, body, priority, imageUrl, extraData } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ success: false, error: 'title and body are required' });
+    }
+
+    const result = await notificationService.sendCustomNotification({
+      targetAudience,
+      targetUserId,
+      targetUserName,
+      targetPhone,
+      title,
+      body,
+      priority,
+      imageUrl,
+      extraData
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error in /api/notifications/custom:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Start Express Server
 const server = app.listen(PORT, () => {
   console.log(`=======================================================`);
