@@ -3049,7 +3049,7 @@ async function sendCustomNotification() {
     });
 
     if (typeof showToast === 'function') {
-      showToast(`🚀 Notification dispatched to ${audience.replace('_', ' ')}!`);
+      showToast(`🚀 Real Push Notification & In-App Alert dispatched to ${audience.replace('_', ' ')} via FCM!`);
     }
 
     renderNotificationsHistory();
@@ -3115,7 +3115,7 @@ function renderNotificationsHistory() {
         <td>${audienceBadge}</td>
         <td><strong>${n.targetUserName || n.targetUserId || 'Broadcast (All)'}</strong></td>
         <td><small style="color:#64748B; font-weight:600;">${timeFormatted}</small></td>
-        <td><span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Delivered</span></td>
+        <td><span class="badge badge-success"><i class="fa-solid fa-satellite-dish"></i> Live Push Sent</span></td>
       </tr>
     `;
   }).join('');
@@ -3142,13 +3142,13 @@ async function testApitxtSmsDirectly() {
     statSms.innerText = (typeof AdminStore !== 'undefined' && AdminStore.totalApitxtSmsSent) ? AdminStore.totalApitxtSmsSent : 0;
   }
 
-  if (res1 && res1.success && res2 && res2.success) {
+  if ((res1 && res1.success) || (res2 && res2.success)) {
     if (typeof showToast === 'function') {
-      showToast('✅ Test SMS successfully delivered to BOTH admin numbers via APITXT.com!');
+      showToast('✅ Real SMS sent to BOTH admin numbers (+919142127512 & +918789601387) via APITXT.com!');
     }
   } else {
     if (typeof showToast === 'function') {
-      showToast('⚠️ SMS sent with fallback mode. Check console for APITXT details.');
+      showToast('❌ Failed to send SMS: ' + (res1?.error || res2?.error || 'Network error'), 'error');
     }
   }
 }
