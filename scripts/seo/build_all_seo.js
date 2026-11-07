@@ -1,0 +1,1068 @@
+const fs = require('fs');
+const path = require('path');
+
+const cluster1 = require('./build_cluster1_tours.js');
+const cluster2 = require('./build_cluster2_services.js');
+const cluster3 = require('./build_cluster3_blogs.js');
+const cluster4 = require('./build_cluster4_news.js');
+
+const allPages = [...cluster1, ...cluster2, ...cluster3, ...cluster4];
+console.log(`Loaded ${allPages.length} pages across 4 topical clusters.`);
+
+const landingDir = path.join(__dirname, 'landing');
+
+function renderHTML(page) {
+  const isHindi = page.folder === 'news-local';
+  const lang = isHindi ? 'hi' : 'en';
+  const primaryPhone = '+91 87896 01387';
+  const rawPhone = '918789601387';
+  const fullUrl = `https://www.districtcar.in/${page.folder}/${page.slug}`;
+
+  // Breadcrumb items for JSON-LD and UI
+  const parentNameMap = {
+    'tours': 'Jharkhand Tours',
+    'services': 'Cab & Rental Services',
+    'blogs': 'Travel Guides & FAQs',
+    'news-local': 'Local News & Updates'
+  };
+  const parentUrlMap = {
+    'tours': 'https://www.districtcar.in/tours.html',
+    'services': 'https://www.districtcar.in/services.html',
+    'blogs': 'https://www.districtcar.in/blogs.html',
+    'news-local': 'https://www.districtcar.in/news-local.html'
+  };
+
+  const parentName = parentNameMap[page.folder];
+  const parentUrl = parentUrlMap[page.folder];
+
+  // Schema graph
+  const schemaGraph = [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.districtcar.in/" },
+        { "@type": "ListItem", "position": 2, "name": parentName, "item": parentUrl },
+        { "@type": "ListItem", "position": 3, "name": page.metaTitle, "item": fullUrl }
+      ]
+    },
+    {
+      "@type": ["LocalBusiness", "TaxiService"],
+      "@id": `${fullUrl}#service`,
+      "name": `District Car — ${page.metaTitle}`,
+      "alternateName": "डिस्ट्रिक्ट कार खूंटी",
+      "description": page.metaDescription,
+      "telephone": primaryPhone,
+      "url": fullUrl,
+      "priceRange": "₹₹",
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, UPI (PhonePe, Google Pay, Paytm)",
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Khunti District, Jharkhand" },
+        { "@type": "AdministrativeArea", "name": "Ranchi, Jharkhand" },
+        { "@type": "AdministrativeArea", "name": "Torpa, Khunti" },
+        { "@type": "AdministrativeArea", "name": "Murhu, Khunti" },
+        { "@type": "AdministrativeArea", "name": "Arki, Khunti" },
+        { "@type": "AdministrativeArea", "name": "Karra, Khunti" },
+        { "@type": "AdministrativeArea", "name": "Rania, Khunti" }
+      ],
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": page.geo.lat,
+        "longitude": page.geo.lng
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Khunti Sadar",
+        "addressRegion": "Jharkhand",
+        "postalCode": "835210",
+        "addressCountry": "IN"
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "142",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+  ];
+
+  // Specific schemas
+  if (page.schemaType === 'TouristAttraction') {
+    schemaGraph.push({
+      "@type": "TouristAttraction",
+      "name": page.h1,
+      "description": page.metaDescription,
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": page.geo.lat,
+        "longitude": page.geo.lng
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressRegion": "Jharkhand",
+        "addressLocality": page.geo.name,
+        "addressCountry": "IN"
+      },
+      "isAccessibleForFree": true,
+      "touristType": "Nature, Pilgrimage & Heritage Travellers"
+    });
+  } else if (page.schemaType === 'NewsArticle') {
+    schemaGraph.push({
+      "@type": "NewsArticle",
+      "headline": page.h1,
+      "description": page.metaDescription,
+      "image": "https://www.districtcar.in/assets/tour_banner_jharkhand.jpg",
+      "datePublished": "2026-11-06T10:00:00+05:30",
+      "dateModified": "2026-11-07T08:00:00+05:30",
+      "author": {
+        "@type": "Organization",
+        "name": "District Car Regional News Bureau",
+        "url": "https://www.districtcar.in/news-local.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "District Car",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.districtcar.in/favicon.png"
+        }
+      },
+      "mainEntityOfPage": fullUrl
+    });
+  } else if (page.schemaType === 'BlogPosting') {
+    schemaGraph.push({
+      "@type": "BlogPosting",
+      "headline": page.h1,
+      "description": page.metaDescription,
+      "image": "https://www.districtcar.in/assets/tour_banner_jharkhand.jpg",
+      "datePublished": "2026-11-05T09:00:00+05:30",
+      "dateModified": "2026-11-07T09:00:00+05:30",
+      "author": {
+        "@type": "Organization",
+        "name": "District Car Travel & FAQs Desk",
+        "url": "https://www.districtcar.in/blogs.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "District Car",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.districtcar.in/favicon.png"
+        }
+      },
+      "mainEntityOfPage": fullUrl
+    });
+  }
+
+  // FAQ Schema
+  if (page.faqs && page.faqs.length > 0) {
+    schemaGraph.push({
+      "@type": "FAQPage",
+      "mainEntity": page.faqs.map(f => ({
+        "@type": "Question",
+        "name": f.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": f.a
+        }
+      }))
+    });
+  }
+
+  // Generate HTML
+  return `<!DOCTYPE html>
+<html lang="${lang}" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  
+  <!-- Monetag & Web Push Setup -->
+  <meta name="monetag" content="96c9266c796ec372a0bcddee0fa8c2b8">
+  <script src="https://quge5.com/88/tag.min.js" data-zone="301190" async data-cfasync="false"></script>
+  <script>
+    (function(d,z,s){
+      s.src='https://5gvci.com/act/files/tag.min.js?z=' + z;
+      try { (d.body || d.documentElement).appendChild(s); } catch(e) {}
+    })(document, 12110380, document.createElement('script'));
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').catch(function(e) {});
+      });
+    }
+  </script>
+  <script>
+    ['click','mousedown','pointerdown'].forEach(function(evt){
+      document.addEventListener(evt, function(e){
+        var el = e.target.closest('a, button, input');
+        if (el) {
+          var href = el.getAttribute('href') || '';
+          if (href.startsWith('/') || href.startsWith('.') || href.startsWith('#') || href.startsWith('tel:') || href.includes('districtcar.in') || href.includes('play.google.com') || href.includes('wa.me')) {
+            e.stopPropagation();
+          }
+        }
+      }, true);
+    });
+  </script>
+
+  <!-- Primary SEO Meta Tags -->
+  <title>${page.title}</title>
+  <meta name="title" content="${page.title}">
+  <meta name="description" content="${page.metaDescription}">
+  <meta name="keywords" content="${page.keywords}">
+  <meta name="author" content="District Car Mobility Private Limited">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#0D47A1">
+  <link rel="canonical" href="${fullUrl}">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="${page.schemaType === 'NewsArticle' ? 'article' : 'website'}">
+  <meta property="og:site_name" content="District Car — Jharkhand">
+  <meta property="og:url" content="${fullUrl}">
+  <meta property="og:title" content="${page.title}">
+  <meta property="og:description" content="${page.metaDescription}">
+  <meta property="og:image" content="https://www.districtcar.in/assets/tour_banner_jharkhand.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="${isHindi ? 'hi_IN' : 'en_IN'}">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:domain" content="districtcar.in">
+  <meta name="twitter:url" content="${fullUrl}">
+  <meta name="twitter:title" content="${page.title}">
+  <meta name="twitter:description" content="${page.metaDescription}">
+  <meta name="twitter:image" content="https://www.districtcar.in/assets/tour_banner_jharkhand.jpg">
+
+  <!-- Geo & Regional Local SEO -->
+  <meta name="geo.region" content="IN-JH">
+  <meta name="geo.placename" content="${page.geo.name}">
+  <meta name="geo.position" content="${page.geo.lat};${page.geo.lng}">
+  <meta name="ICBM" content="${page.geo.lat}, ${page.geo.lng}">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="../apple-touch-icon.png">
+
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": ${JSON.stringify(schemaGraph, null, 2)}
+  }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ${isHindi ? "'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif" : "'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif"};
+      background: #F8FAFC;
+      color: #0F172A;
+      line-height: 1.7;
+      padding-bottom: 70px;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+
+    /* Top Strip */
+    .top-strip {
+      background: #0B2545;
+      color: #93C5FD;
+      font-size: 13px;
+      padding: 8px 0;
+      text-align: center;
+      font-weight: 600;
+    }
+    .top-strip a { color: #FDE047; text-decoration: underline; margin-left: 6px; }
+
+    /* Header Nav */
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1E40AF, #2563EB);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    }
+    .brand-text h1, .brand-text span {
+      font-size: 19px;
+      font-weight: 800;
+      color: #0B2545;
+      display: block;
+      line-height: 1.2;
+    }
+    .brand-text small {
+      font-size: 11px;
+      color: #2563EB;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 99px;
+      border: 1.5px solid #2563EB;
+      color: #2563EB;
+      font-size: 13.5px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: #EFF6FF; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 99px;
+      background: #2563EB;
+      color: #FFF;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #1D4ED8; transform: translateY(-1px); }
+
+    /* Breadcrumbs */
+    .breadcrumb-bar {
+      font-size: 13px;
+      color: #64748B;
+      padding: 14px 0 6px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb-bar a { color: #2563EB; font-weight: 600; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+
+    /* Hero Section */
+    .hero-card {
+      background: linear-gradient(135deg, #0B2545 0%, #133E6C 50%, #1E40AF 100%);
+      color: #FFF;
+      border-radius: 24px;
+      padding: 38px 30px;
+      margin: 16px 0 28px;
+      box-shadow: 0 15px 40px rgba(11,37,69,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      padding: 5px 14px;
+      border-radius: 99px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #FDE047;
+      margin-bottom: 16px;
+    }
+    .hero-card h1 {
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+    .hero-card p {
+      font-size: 16px;
+      color: #E2E8F0;
+      max-width: 820px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .btn-hero-call {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #22C55E;
+      color: #FFF;
+      padding: 13px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.4);
+      transition: all 0.2s;
+    }
+    .btn-hero-call:hover { background: #16A34A; transform: translateY(-2px); }
+    .btn-hero-wa {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #FFF;
+      padding: 13px 22px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .btn-hero-wa:hover { background: rgba(255,255,255,0.25); }
+    .btn-hero-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #F59E0B;
+      color: #000;
+      padding: 13px 22px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(245,158,11,0.35);
+      transition: all 0.2s;
+    }
+    .btn-hero-app:hover { background: #D97706; transform: translateY(-2px); }
+
+    /* Info Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 18px;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: #93C5FD; }
+    .stat-card small {
+      display: block;
+      font-size: 12px;
+      color: #64748B;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .stat-card span {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0B2545;
+      display: block;
+      line-height: 1.3;
+    }
+
+    /* Content Layout */
+    .content-box {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 34px 28px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+    .content-box h2 {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0B2545;
+      margin: 28px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #E2E8F0;
+      letter-spacing: -0.3px;
+    }
+    .content-box h2:first-of-type { margin-top: 0; }
+    .content-box h3 {
+      font-size: 19px;
+      font-weight: 800;
+      color: #1E293B;
+      margin: 22px 0 10px;
+    }
+    .content-box p {
+      font-size: 15.5px;
+      color: #334155;
+      margin-bottom: 18px;
+      line-height: 1.75;
+    }
+    .highlights-list {
+      list-style: none;
+      padding: 0;
+      margin: 18px 0 24px;
+    }
+    .highlights-list li {
+      position: relative;
+      padding-left: 30px;
+      margin-bottom: 12px;
+      font-size: 15.5px;
+      color: #1E293B;
+      font-weight: 600;
+    }
+    .highlights-list li i {
+      position: absolute;
+      left: 0;
+      top: 5px;
+      color: #22C55E;
+      font-size: 16px;
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 20px 0 28px;
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14.5px;
+      text-align: left;
+    }
+    table th {
+      background: #0B2545;
+      color: #FFF;
+      padding: 12px 16px;
+      font-weight: 800;
+    }
+    table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #E2E8F0;
+      color: #1E293B;
+    }
+    table tr:nth-child(even) td { background: #F8FAFC; }
+
+    /* Timeline */
+    .timeline {
+      margin: 20px 0 28px;
+      border-left: 2px solid #2563EB;
+      padding-left: 20px;
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -27px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2563EB;
+      border: 2px solid #FFF;
+    }
+    .timeline-time {
+      font-size: 13px;
+      font-weight: 800;
+      color: #2563EB;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .timeline-desc {
+      font-size: 15px;
+      color: #334155;
+    }
+
+    /* FAQ Accordion */
+    .faq-item {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      background: #FFF;
+      transition: all 0.2s;
+    }
+    .faq-item details summary {
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #0B2545;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+    }
+    .faq-item details summary::-webkit-details-marker { display: none; }
+    .faq-item details summary::after {
+      content: '+';
+      font-size: 20px;
+      font-weight: bold;
+      color: #2563EB;
+    }
+    .faq-item details[open] summary::after { content: '−'; }
+    .faq-item details[open] { border-color: #93C5FD; }
+    .faq-item p {
+      padding: 0 20px 18px;
+      margin: 0;
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* Middle CTA Box */
+    .cta-banner {
+      background: linear-gradient(135deg, #1E40AF 0%, #0B2545 100%);
+      color: #FFF;
+      border-radius: 20px;
+      padding: 32px 28px;
+      text-align: center;
+      margin: 36px 0;
+      box-shadow: 0 10px 30px rgba(30,64,175,0.25);
+    }
+    .cta-banner h3 {
+      font-size: 24px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+    .cta-banner p {
+      font-size: 15.5px;
+      color: #BFDBFE;
+      max-width: 650px;
+      margin: 0 auto 22px;
+    }
+
+    /* Panchayat Badges */
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0 24px;
+    }
+    .tag-badge {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    /* Internal Linking Cards */
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin: 20px 0;
+    }
+    .related-card {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 18px;
+      transition: all 0.2s;
+    }
+    .related-card:hover {
+      border-color: #2563EB;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.08);
+      transform: translateY(-2px);
+    }
+    .related-card h4 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0B2545;
+      margin-bottom: 6px;
+    }
+    .related-card p {
+      font-size: 13px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .related-card span {
+      font-size: 12.5px;
+      color: #2563EB;
+      font-weight: 700;
+    }
+
+    /* Footer */
+    footer {
+      background: #0B2545;
+      color: #94A3B8;
+      padding: 40px 0 20px;
+      font-size: 13px;
+      border-top: 1px solid #1E3A8A;
+      margin-top: 48px;
+    }
+    footer a { color: #CBD5E1; }
+    footer a:hover { color: #FFF; text-decoration: underline; }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 28px;
+      margin-bottom: 30px;
+    }
+    .footer-col h5 {
+      color: #FFF;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .footer-col ul { list-style: none; padding: 0; }
+    .footer-col li { margin-bottom: 8px; }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    /* Mobile Sticky Footer */
+    .mobile-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #FFFFFF;
+      border-top: 1px solid #CBD5E1;
+      padding: 10px 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 999;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+    }
+    .mobile-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 0;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .mobile-call { background: #22C55E; color: #FFF; }
+    .mobile-wa { background: #25D366; color: #FFF; }
+    .mobile-app { background: #2563EB; color: #FFF; }
+
+    @media (max-width: 768px) {
+      .hero-card { padding: 26px 20px; }
+      .hero-card h1 { font-size: 24px; }
+      .header-actions .btn-outline { display: none; }
+      .content-box { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Strip -->
+  <div class="top-strip">
+    <div class="container">
+      ✨ <strong>District Car:</strong> ${isHindi ? 'खूंटी, तोरपा व झारखंड में 24/7 कैब व ऑटो बुकिंग' : '24x7 Doorstep Cab & Auto Booking across Khunti, Torpa & Jharkhand'} | 
+      <a href="tel:${rawPhone}"><i class="fa-solid fa-phone"></i> ${primaryPhone}</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <a href="https://www.districtcar.in/" class="brand-logo">
+        <div class="logo-icon"><i class="fa-solid fa-car-side"></i></div>
+        <div class="brand-text">
+          <span>District Car</span>
+          <small>Khunti & Jharkhand Mobility</small>
+        </div>
+      </a>
+      <div class="header-actions">
+        <a href="tel:${rawPhone}" class="btn-outline"><i class="fa-solid fa-phone"></i> Call Now</a>
+        <a href="https://www.districtcar.in/customer" class="btn-primary"><i class="fa-brands fa-google-play"></i> ${isHindi ? 'ऐप डाउनलोड करें' : 'Get Customer App'}</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Breadcrumb Bar -->
+    <nav class="breadcrumb-bar" aria-label="Breadcrumb">
+      <a href="https://www.districtcar.in/">Home</a>
+      <span><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i></span>
+      <a href="${parentUrl}">${parentName}</a>
+      <span><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i></span>
+      <span>${page.metaTitle}</span>
+    </nav>
+
+    <!-- Hero Card -->
+    <section class="hero-card">
+      <div class="hero-badge">
+        <i class="fa-solid fa-shield-halved"></i> ${isHindi ? 'सत्यापित स्थानीय चालक • शून्य सर्ज मूल्य' : 'Verified Local Drivers • Zero Surge Pricing'}
+      </div>
+      <h1>${page.h1}</h1>
+      <p>${page.subtitle}</p>
+      
+      <div class="hero-ctas">
+        <a href="tel:${rawPhone}" class="btn-hero-call"><i class="fa-solid fa-phone"></i> ${isHindi ? 'कॉल करें: ' + primaryPhone : 'Call ' + primaryPhone}</a>
+        <a href="https://wa.me/${rawPhone}?text=Hello%20District%20Car,%20I%20want%20to%20book%20a%20cab%20for%20${encodeURIComponent(page.h1)}" class="btn-hero-wa" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp Booking</a>
+        <a href="https://www.districtcar.in/customer" class="btn-hero-app"><i class="fa-brands fa-google-play"></i> ${isHindi ? 'कस्टमर ऐप खोलें' : 'Open Customer App'}</a>
+      </div>
+    </section>
+
+    <!-- Info Stats Grid -->
+    <section class="stats-grid">
+      ${page.infoStats.map(s => `
+        <div class="stat-card">
+          <small>${s.label}</small>
+          <span>${s.val}</span>
+        </div>
+      `).join('')}
+    </section>
+
+    <!-- Main Content Box -->
+    <article class="content-box">
+      <h2>${isHindi ? 'अवलोकन एवं प्रमुख विवरण' : 'Overview & Route Highlights'}</h2>
+      <p>${page.overview}</p>
+
+      <h2>${isHindi ? 'विशेष आकर्षण एवं सुविधाएं' : 'Key Highlights & Amenities'}</h2>
+      <ul class="highlights-list">
+        ${page.highlights.map(h => `<li><i class="fa-solid fa-circle-check"></i> ${h}</li>`).join('')}
+      </ul>
+
+      <h2>${isHindi ? 'किराया सूची एवं वाहन विकल्प' : 'Transparent Fare Chart & Vehicle Options'}</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>${isHindi ? 'वाहन प्रकार' : 'Vehicle Type'}</th>
+              <th>${isHindi ? 'क्षमता' : 'Seating / Spec'}</th>
+              <th>${isHindi ? 'दर प्रति किमी / पैकेज' : 'Standard Rate / Package'}</th>
+              <th>${isHindi ? 'राउंड-ट्रिप बचत' : 'Round-Trip Savings'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${page.fareTable.map(row => `
+              <tr>
+                <td><strong>${row.vehicle}</strong></td>
+                <td>${row.capacity}</td>
+                <td>${row.rate}</td>
+                <td><span style="color:#16A34A; font-weight:700;">${row.roundTrip}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>${isHindi ? 'यात्रा कार्यक्रम एवं सुझाव' : 'Itinerary & Travel Plan'}</h2>
+      <div class="timeline">
+        ${page.itinerary.map(item => `
+          <div class="timeline-item">
+            <span class="timeline-time">${item.time}</span>
+            <div class="timeline-desc">${item.plan}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Mid-Page Call to Action -->
+      <div class="cta-banner">
+        <h3>${isHindi ? 'खूंटी में कहीं भी तुरंत गाड़ी बुक करें' : 'Ready to Travel? Book Your Cab in Khunti Now'}</h3>
+        <p>${isHindi ? 'बिना किसी परेशानी के डोरस्टेप पिकअप। हमारे कस्टमर ऐप से 1-क्लिक में गाड़ी बुक करें या सीधे हमारे कंट्रोल रूम में कॉल करें।' : 'Direct doorstep pickup with verified local drivers. Download our Google Play app or call our 24/7 hotline with zero waiting time.'}</p>
+        <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">
+          <a href="tel:${rawPhone}" class="btn-hero-call"><i class="fa-solid fa-phone"></i> Call +91 87896 01387</a>
+          <a href="https://www.districtcar.in/customer" class="btn-hero-app"><i class="fa-brands fa-google-play"></i> Open District Car App</a>
+        </div>
+      </div>
+
+      <h2>${isHindi ? 'अक्सर पूछे जाने वाले सवाल (FAQs)' : 'Frequently Asked Questions (FAQs)'}</h2>
+      <div>
+        ${page.faqs.map(f => `
+          <div class="faq-item">
+            <details>
+              <summary>${f.q}</summary>
+              <p>${f.a}</p>
+            </details>
+          </div>
+        `).join('')}
+      </div>
+
+      <h2>${isHindi ? 'कवरेज क्षेत्र एवं संबंधित पंचायतें' : 'District Coverage & Service Areas'}</h2>
+      <p>${isHindi ? 'डिस्ट्रिक्ट कार खूंटी जिले के सभी प्रमुख प्रखंडों, ग्राम पंचायतों एवं हाट बाजारों में निर्बाध सेवाएं प्रदान करता है:' : 'District Car provides comprehensive door-to-door cab and auto booking across all blocks and gram panchayats in Khunti:'}</p>
+      <div class="tag-cloud">
+        <span class="tag-badge">Khunti Sadar</span>
+        <span class="tag-badge">Torpa Block</span>
+        <span class="tag-badge">Murhu Chowk</span>
+        <span class="tag-badge">Arki Tribal Belt</span>
+        <span class="tag-badge">Karra Railway Junction</span>
+        <span class="tag-badge">Rania Forest Area</span>
+        <span class="tag-badge">Panchghagh Falls</span>
+        <span class="tag-badge">Amreshwar Dham</span>
+        <span class="tag-badge">Kalamati Deer Park</span>
+        <span class="tag-badge">Birsa Munda Airport Ranchi</span>
+        <span class="tag-badge">Hatia Station</span>
+        <span class="tag-badge">Ulihatu Birthplace</span>
+      </div>
+
+      <h2>${isHindi ? 'संबंधित यात्रा सेवाएं एवं समाचार' : 'Explore Related Tours & Cab Services'}</h2>
+      <div class="related-grid">
+        <a href="https://www.districtcar.in/services/khunti-car-booking.html" class="related-card">
+          <h4>Khunti Car Booking & Taxi</h4>
+          <p>24x7 local hatchback, sedan, and SUV rental across Khunti district.</p>
+          <span>View Service →</span>
+        </a>
+        <a href="https://www.districtcar.in/tours/panchghagh-falls-picnic-cab-booking-guide.html" class="related-card">
+          <h4>Panchghagh Falls Tour</h4>
+          <p>Complete 5-stream waterfall tour, picnic guide, and return cab package.</p>
+          <span>Explore Tour →</span>
+        </a>
+        <a href="https://www.districtcar.in/services/khunti-to-ranchi-airport-taxi-booking.html" class="related-card">
+          <h4>Ranchi Airport Transfer</h4>
+          <p>Punctual 24x7 flight drop from Khunti directly to Birsa Munda Airport.</p>
+          <span>Book Airport Taxi →</span>
+        </a>
+        <a href="https://www.districtcar.in/blogs/khunti-car-rental-rates-per-km-fare-chart.html" class="related-card">
+          <h4>Khunti Fare Chart 2026</h4>
+          <p>Official transparent per-km cab tariff with 35% round-trip discount.</p>
+          <span>Check Rates →</span>
+        </a>
+      </div>
+    </article>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h5>About District Car</h5>
+          <p style="font-size:13px; line-height:1.6; margin-bottom:12px;">District Car is the pioneering rural mobility platform operating across Khunti, Jharkhand. Bringing reliable door-to-door cabs and autos to areas unserved by multinational aggregators.</p>
+          <p style="font-size:12.5px;"><strong>Hotline:</strong> <a href="tel:${rawPhone}">${primaryPhone}</a></p>
+        </div>
+        <div class="footer-col">
+          <h5>Popular Routes</h5>
+          <ul>
+            <li><a href="https://www.districtcar.in/services/khunti-to-ranchi-cab-taxi-booking.html">Khunti to Ranchi Cab</a></li>
+            <li><a href="https://www.districtcar.in/services/khunti-to-ranchi-airport-taxi-booking.html">Khunti to Ranchi Airport Taxi</a></li>
+            <li><a href="https://www.districtcar.in/services/torpa-to-ranchi-daily-car-share-taxi.html">Torpa to Ranchi Taxi</a></li>
+            <li><a href="https://www.districtcar.in/services/khunti-to-tatanagar-jamshedpur-outstation-cab.html">Khunti to Jamshedpur Cab</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Tours & Sightseeing</h5>
+          <ul>
+            <li><a href="https://www.districtcar.in/tours/panchghagh-falls-picnic-cab-booking-guide.html">Panchghagh Falls Guide</a></li>
+            <li><a href="https://www.districtcar.in/tours/amreshwar-dham-angrabari-shravani-mela-darshan-guide.html">Amreshwar Dham Darshan</a></li>
+            <li><a href="https://www.districtcar.in/tours/ulihatu-birsa-munda-birthplace-travel-guide.html">Ulihatu Birsa Memorial</a></li>
+            <li><a href="https://www.districtcar.in/tours/perwaghagh-waterfall-fatfat-stream-adventure-tour.html">Perwaghagh Falls Tour</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Legal & Support</h5>
+          <ul>
+            <li><a href="https://www.districtcar.in/privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="https://www.districtcar.in/delete-account.html">Account Support</a></li>
+            <li><a href="https://www.districtcar.in/customer">Download Customer App</a></li>
+            <li><a href="https://www.districtcar.in/sitemap.xml">XML Sitemap</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2026 District Car Mobility Private Limited. All Rights Reserved. Khunti, Jharkhand, India.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Sticky Footer Bar -->
+  <div class="mobile-bar">
+    <a href="tel:${rawPhone}" class="mobile-btn mobile-call"><i class="fa-solid fa-phone"></i> Call Now</a>
+    <a href="https://wa.me/${rawPhone}?text=Hello%20District%20Car,%20I%20want%20to%20book%20a%20ride" class="mobile-btn mobile-wa" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+    <a href="https://www.districtcar.in/customer" class="mobile-btn mobile-app"><i class="fa-brands fa-google-play"></i> App</a>
+  </div>
+
+</body>
+</html>`;
+}
+
+// 1. Generate all HTML files
+let generatedCount = 0;
+allPages.forEach(p => {
+  const filePath = path.join(landingDir, p.folder, p.slug);
+  const htmlContent = renderHTML(p);
+  fs.writeFileSync(filePath, htmlContent, 'utf-8');
+  generatedCount++;
+  console.log(`[${generatedCount}/${allPages.length}] Generated: landing/${p.folder}/${p.slug}`);
+});
+
+// 2. Update sitemap.xml
+const sitemapPath = path.join(landingDir, 'sitemap.xml');
+let sitemapContent = fs.readFileSync(sitemapPath, 'utf-8');
+
+// Build XML url blocks for the new pages if not already present
+let addedToSitemap = 0;
+const newUrlsXml = allPages.map(p => {
+  const loc = `https://www.districtcar.in/${p.folder}/${p.slug}`;
+  if (!sitemapContent.includes(loc)) {
+    addedToSitemap++;
+    return `  <url>
+    <loc>${loc}</loc>
+    <lastmod>2026-11-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.88</priority>
+  </url>`;
+  }
+  return null;
+}).filter(Boolean).join('\n');
+
+if (newUrlsXml.length > 0) {
+  sitemapContent = sitemapContent.replace('</urlset>', `${newUrlsXml}\n</urlset>`);
+  fs.writeFileSync(sitemapPath, sitemapContent, 'utf-8');
+  console.log(`Updated sitemap.xml with ${addedToSitemap} new URLs.`);
+} else {
+  console.log('All URLs already present in sitemap.xml.');
+}
+
+console.log("All 32 SEO pages generated successfully!");
