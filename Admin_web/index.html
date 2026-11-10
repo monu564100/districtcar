@@ -377,7 +377,16 @@
               <p>View customer profiles, trip history, spending metrics, and account security controls.</p>
             </div>
             <div class="view-actions">
-              <button class="btn btn-secondary btn-sm" onclick="renderUsersTable()">
+              <button class="btn btn-primary btn-sm" onclick="exportCustomersExcel()" title="Export all customers with WhatsApp links to Excel (.xlsx)">
+                <i class="fa-solid fa-file-excel"></i> Export Customers Excel (.xlsx)
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="exportCustomersCSV()" title="Export all customers to CSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="openCustomerInviteModal()" title="Customize WhatsApp Group Link & Personalized Invite Message">
+                <i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> WhatsApp Invite Settings
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="renderUsersTable()" title="Refresh Customers">
                 <i class="fa-solid fa-rotate-right"></i> Refresh
               </button>
             </div>
@@ -410,11 +419,13 @@
                 <tr>
                   <th>Customer Profile</th>
                   <th>Phone Number</th>
+                  <th>DOB</th>
+                  <th>Address / Location</th>
                   <th>Account Status</th>
                   <th>Total Rides</th>
                   <th>Total Spent</th>
                   <th>Joined On</th>
-                  <th style="text-align:right;">Account Action</th>
+                  <th style="text-align:right;">Actions & WA Invite</th>
                 </tr>
               </thead>
               <tbody id="usersTableBody">
@@ -1630,6 +1641,7 @@
 
   <!-- External Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Firebase 10.8.0 Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -1683,6 +1695,76 @@
           <button type="submit" class="btn btn-primary">Save Category Fares</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOMER WHATSAPP INVITE & COMMUNITY SETTINGS -->
+  <div class="modal-backdrop" id="modalCustomerInviteSettings">
+    <div class="modal-dialog" style="max-width:580px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:50%; background:#DCFCE7; color:#15803D; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="fa-brands fa-whatsapp"></i>
+          </div>
+          <div>
+            <h3 class="modal-title">WhatsApp Community Invite Settings</h3>
+            <p style="font-size:12px; color:#64748B; margin:0;">Configure group link & message template for Excel exports and 1-click messaging</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modalCustomerInviteSettings')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;">
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12px; font-weight:700; margin-bottom:6px; color:#0F172A;">
+            <i class="fa-solid fa-link" style="color:#2563EB; margin-right:4px;"></i> Official WhatsApp Group / Community Link
+          </label>
+          <input type="url" id="inputWaGroupLink" class="form-input" style="width:100%; font-family:monospace; font-size:13px;" placeholder="https://chat.whatsapp.com/LmXJaLuZiocGrEeYpW3Hhb">
+          <span style="font-size:11.5px; color:#64748B; display:block; margin-top:4px;">
+            This link is embedded into Excel exports, CSVs, and each customer's personalized WhatsApp invite.
+          </span>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="font-size:12px; font-weight:700; color:#0F172A;">
+              <i class="fa-regular fa-comment-dots" style="color:#15803D; margin-right:4px;"></i> Personalized Invite Message Template
+            </label>
+            <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px;" onclick="resetCustomerInviteTemplate()">
+              <i class="fa-solid fa-rotate-left"></i> Reset Template
+            </button>
+          </div>
+          <textarea id="inputWaInviteTemplate" class="form-input" rows="7" style="width:100%; font-size:12px; line-height:1.5;" oninput="updateCustomerInvitePreview()"></textarea>
+          <div style="font-size:11.5px; color:#64748B; margin-top:5px; display:flex; gap:10px; flex-wrap:wrap;">
+            <span>Dynamic tags:</span>
+            <code style="background:#F1F5F9; padding:2px 5px; border-radius:4px; font-weight:700; color:#2563EB;">{name}</code>
+            <code style="background:#F1F5F9; padding:2px 5px; border-radius:4px; font-weight:700; color:#2563EB;">{phone}</code>
+            <code style="background:#F1F5F9; padding:2px 5px; border-radius:4px; font-weight:700; color:#2563EB;">{group_link}</code>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">
+              <i class="fa-solid fa-eye" style="margin-right:4px;"></i> Live Preview (Sample: Priya Sharma)
+            </span>
+            <button type="button" class="btn btn-outline btn-sm" style="font-size:11px; padding:2px 8px;" onclick="copyCustomerInvitePreview()">
+              <i class="fa-regular fa-copy"></i> Copy Preview
+            </button>
+          </div>
+          <pre id="previewCustomerInviteText" style="white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:12px; color:#1E293B; background:#FFFFFF; padding:12px; border-radius:8px; border:1px solid #CBD5E1; margin:0; max-height:150px; overflow-y:auto;"></pre>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:14px 24px; display:flex; justify-content:space-between; align-items:center;">
+        <a id="previewTestWaLinkBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="color:#15803D; border-color:#86EFAC;">
+          <i class="fa-brands fa-whatsapp"></i> Test Live Link
+        </a>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCustomerInviteSettings')">Close</button>
+          <button type="button" class="btn btn-primary" onclick="saveCustomerInviteSettings()">
+            <i class="fa-solid fa-floppy-disk"></i> Save Settings
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

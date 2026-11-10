@@ -720,7 +720,8 @@ function renderUsersTable() {
       const name = (u.displayName || u.name || '').toLowerCase();
       const phone = (u.phoneNumber || u.phone || '').toLowerCase();
       const email = (u.email || '').toLowerCase();
-      if (!name.includes(searchTerm) && !phone.includes(searchTerm) && !email.includes(searchTerm)) {
+      const address = (u.address || u.homeAddress || '').toLowerCase();
+      if (!name.includes(searchTerm) && !phone.includes(searchTerm) && !email.includes(searchTerm) && !address.includes(searchTerm)) {
         return false;
       }
     }
@@ -728,7 +729,7 @@ function renderUsersTable() {
   });
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:36px; color:#64748B;">No users found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:36px; color:#64748B;">No users found.</td></tr>`;
     return;
   }
 
@@ -740,12 +741,16 @@ function renderUsersTable() {
       : '<span class="badge badge-success">Active</span>';
 
     const userName = u.displayName || u.name || 'District Customer';
+    const dobStr = formatCustomerDOB(u);
+    const addressStr = getCustomerAddress(u);
+    const shortAddress = addressStr.length > 32 ? addressStr.substring(0, 30) + '...' : addressStr;
+    const waInviteUrl = generateWhatsAppInviteLink(u);
 
     html += `
       <tr>
         <td>
           <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:34px; height:34px; border-radius:50%; background:#1E293B; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px;">
+            <div style="width:34px; height:34px; border-radius:50%; background:#1E293B; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px; flex-shrink:0;">
               ${(userName[0] || 'U').toUpperCase()}
             </div>
             <div>
@@ -759,12 +764,25 @@ function renderUsersTable() {
             <i class="fa-solid fa-phone"></i> ${u.phoneNumber || u.phone || 'N/A'}
           </a>
         </td>
+        <td>
+          <span style="font-size:12px; color:#334155; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+            <i class="fa-solid fa-cake-candles" style="color:#EC4899; font-size:11px;"></i> ${dobStr}
+          </span>
+        </td>
+        <td>
+          <span title="${addressStr.replace(/"/g, '&quot;')}" style="font-size:12px; color:#334155; display:inline-flex; align-items:center; gap:4px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <i class="fa-solid fa-location-dot" style="color:#2563EB; font-size:11px; flex-shrink:0;"></i> ${shortAddress}
+          </span>
+        </td>
         <td>${statusChip}</td>
         <td><strong>${u.totalBookings || 1}</strong></td>
         <td><strong style="color:#059669;">₹${(u.totalSpent || 450).toLocaleString('en-IN')}</strong></td>
         <td>${u.createdAt ? new Date(u.createdAt.seconds ? u.createdAt.seconds * 1000 : u.createdAt).toLocaleDateString('en-IN') : 'N/A'}</td>
         <td>
-          <div class="action-btns">
+          <div class="action-btns" style="display:flex; gap:6px; justify-content:flex-end; align-items:center;">
+            <a href="${waInviteUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm" style="display:inline-flex; align-items:center; gap:5px; background:#16A34A; border-color:#16A34A; color:#FFF; text-decoration:none;" title="Send 1-Click Personalized WhatsApp Group Invite">
+              <i class="fa-brands fa-whatsapp"></i> Invite
+            </a>
             <button class="btn ${isBlocked ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleUserBlock('${u.id}', ${isBlocked})">
               <i class="fa-solid ${isBlocked ? 'fa-unlock' : 'fa-ban'}"></i> ${isBlocked ? 'Unblock' : 'Block'}
             </button>
@@ -1849,11 +1867,315 @@ function exportCommissionCSV() {
 }
 
 function downloadCSV(csvContent, filename) {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const content = csvContent.startsWith('\uFEFF') ? csvContent : ('\uFEFF' + csvContent);
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+/**
+ * 14.1 Customer WhatsApp Group Invite & Excel/CSV Export Engine
+ */
+const DEFAULT_WA_GROUP_LINK = 'https://chat.whatsapp.com/LmXJaLuZiocGrEeYpW3Hhb';
+const DEFAULT_WA_INVITE_TEMPLATE = `नमस्ते {name} जी! 🙏
+
+District Car (डिस्ट्रिक्ट कार) परिवार में आपका हार्दिक स्वागत है! 🚗✨
+
+खूंटी और ग्रामीण झारखंड के हर गाँव-कस्बे में सबसे सुरक्षित, सस्ती और भरोसेमंद कैब व ऑटो सेवा पहुँचाने के लिए हम 24x7 समर्पित हैं।
+
+हमारे स्पेशल ऑफर्स, डिस्काउंट कूपन, नई रूट अपडेट्स और सीधे कस्टमर सपोर्ट के लिए हमारे ऑफिशियल District Car WhatsApp कम्युनिटी ग्रुप से अभी जुड़ें:
+👉 {group_link}
+
+सुरक्षित यात्रा, आपकी अपनी डिस्ट्रिक्ट कार! 🚕❤️
+हेल्पलाइन: +91 87896 01387`;
+
+function getWhatsAppGroupLink() {
+  return localStorage.getItem('dc_wa_group_link') || DEFAULT_WA_GROUP_LINK;
+}
+
+function getWhatsAppInviteTemplate() {
+  return localStorage.getItem('dc_wa_invite_template') || DEFAULT_WA_INVITE_TEMPLATE;
+}
+
+function cleanPhoneNumberForWhatsApp(phone) {
+  if (!phone) return '';
+  let digits = String(phone).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 10) {
+    digits = '91' + digits;
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    digits = '91' + digits.substring(1);
+  }
+  return digits;
+}
+
+function formatCustomerDOB(u) {
+  const raw = u.dateOfBirth || u.dob || u.birthDate || u.dobString;
+  if (!raw) return 'Not specified';
+  if (typeof raw === 'object' && raw.seconds) {
+    return new Date(raw.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  if (typeof raw === 'string' && raw.includes('-')) {
+    const parts = raw.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+  }
+  return String(raw);
+}
+
+function getCustomerAddress(u) {
+  if (u.address && typeof u.address === 'string' && u.address.trim()) return u.address.trim();
+  if (u.homeAddress && typeof u.homeAddress === 'string' && u.homeAddress.trim()) return u.homeAddress.trim();
+  if (u.location && typeof u.location === 'string' && u.location.trim()) return u.location.trim();
+  if (u.city && typeof u.city === 'string' && u.city.trim()) return `${u.city.trim()}, Jharkhand`;
+
+  // Search booking records for this customer
+  const uPhoneDigits = (u.phoneNumber || u.phone || '').replace(/\D/g, '').slice(-10);
+  const foundBooking = (AdminStore.bookings || []).find(b => {
+    if (b.customerId && b.customerId === u.id) return true;
+    if (uPhoneDigits && b.customerPhone) {
+      const bPhoneDigits = b.customerPhone.replace(/\D/g, '').slice(-10);
+      if (bPhoneDigits && bPhoneDigits === uPhoneDigits) return true;
+    }
+    return false;
+  });
+
+  if (foundBooking) {
+    const pAddr = foundBooking.pickup?.address || foundBooking.pickupAddress;
+    const dAddr = foundBooking.destination?.address || foundBooking.destinationAddress;
+    if (pAddr) return pAddr;
+    if (dAddr) return dAddr;
+  }
+
+  return 'Khunti, Jharkhand';
+}
+
+function getPersonalizedWhatsAppMessage(customer) {
+  const rawName = customer.displayName || customer.name || 'District Customer';
+  const name = rawName.trim();
+  const phone = customer.phoneNumber || customer.phone || '';
+  const groupLink = getWhatsAppGroupLink();
+  const template = getWhatsAppInviteTemplate();
+
+  return template
+    .replace(/\{name\}/g, name)
+    .replace(/\{phone\}/g, phone)
+    .replace(/\{group_link\}/g, groupLink);
+}
+
+function generateWhatsAppInviteLink(customer) {
+  const cleanPhone = cleanPhoneNumberForWhatsApp(customer.phoneNumber || customer.phone);
+  const msg = getPersonalizedWhatsAppMessage(customer);
+  const encoded = encodeURIComponent(msg);
+  if (cleanPhone) {
+    return `https://wa.me/${cleanPhone}?text=${encoded}`;
+  }
+  return `https://wa.me/?text=${encoded}`;
+}
+
+function exportCustomersExcel() {
+  const list = AdminStore.users || [];
+  if (list.length === 0) {
+    return alert('No customer records found to export.');
+  }
+
+  const groupLink = getWhatsAppGroupLink();
+
+  // Header row
+  const header = [
+    'Customer ID',
+    'Full Name',
+    'Phone Number',
+    'Date of Birth (DOB)',
+    'Address / Location',
+    'Account Status',
+    'Total Rides',
+    'Total Spent (₹)',
+    'Joined On',
+    'Official WhatsApp Group Link',
+    'WhatsApp 1-Click Invite Link',
+    'Personalized WhatsApp Invite Message'
+  ];
+
+  const dataRows = list.map((u, idx) => {
+    const name = u.displayName || u.name || `Customer #${idx + 1}`;
+    const phone = u.phoneNumber || u.phone || 'N/A';
+    const dob = formatCustomerDOB(u);
+    const address = getCustomerAddress(u);
+    const status = u.isBlocked ? 'Blocked' : 'Active';
+    const rides = u.totalBookings || 1;
+    const spent = u.totalSpent || 0;
+    const joined = u.createdAt
+      ? new Date(u.createdAt.seconds ? u.createdAt.seconds * 1000 : u.createdAt).toLocaleDateString('en-IN')
+      : 'N/A';
+    const waLink = generateWhatsAppInviteLink(u);
+    const personalizedMsg = getPersonalizedWhatsAppMessage(u);
+
+    return [
+      u.id || `CUST_${idx + 1}`,
+      name,
+      phone,
+      dob,
+      address,
+      status,
+      rides,
+      spent,
+      joined,
+      groupLink,
+      waLink,
+      personalizedMsg
+    ];
+  });
+
+  const allRows = [header, ...dataRows];
+
+  if (typeof XLSX !== 'undefined') {
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+    // Optimized column widths
+    ws['!cols'] = [
+      { wch: 18 }, // Customer ID
+      { wch: 22 }, // Full Name
+      { wch: 18 }, // Phone Number
+      { wch: 16 }, // DOB
+      { wch: 36 }, // Address
+      { wch: 14 }, // Account Status
+      { wch: 12 }, // Total Rides
+      { wch: 15 }, // Total Spent
+      { wch: 14 }, // Joined On
+      { wch: 45 }, // Group Link
+      { wch: 55 }, // WA 1-Click Link
+      { wch: 75 }  // Personalized Message
+    ];
+
+    // Hyperlinks for WhatsApp URLs
+    for (let r = 1; r < allRows.length; r++) {
+      const groupCellRef = XLSX.utils.encode_cell({ c: 9, r: r });
+      if (ws[groupCellRef]) {
+        ws[groupCellRef].l = { Target: groupLink, Tooltip: 'Click to open WhatsApp Community Group' };
+      }
+      const waCellRef = XLSX.utils.encode_cell({ c: 10, r: r });
+      const waUrl = dataRows[r - 1][10];
+      if (ws[waCellRef] && waUrl) {
+        ws[waCellRef].l = { Target: waUrl, Tooltip: 'Click to open chat with pre-filled personalized invite' };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'DistrictCar_Customers');
+
+    const fileName = `DistrictCar_Customers_WhatsApp_Invite_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    if (typeof showToast === 'function') {
+      showToast(`Exported ${list.length} customers to Excel (${fileName})!`);
+    }
+  } else {
+    console.warn('XLSX library not loaded, falling back to CSV export.');
+    exportCustomersCSV();
+  }
+}
+
+function exportCustomersCSV() {
+  const list = AdminStore.users || [];
+  if (list.length === 0) {
+    return alert('No customer records found to export.');
+  }
+
+  const groupLink = getWhatsAppGroupLink();
+  let csv = '\uFEFF';
+  csv += 'CustomerID,FullName,PhoneNumber,DOB,Address,AccountStatus,TotalRides,TotalSpentINR,JoinedOn,WhatsAppGroupLink,WhatsApp1ClickInviteLink,PersonalizedMessage\n';
+
+  list.forEach((u, idx) => {
+    const id = String(u.id || `CUST_${idx + 1}`).replace(/"/g, '""');
+    const name = String(u.displayName || u.name || `Customer #${idx + 1}`).replace(/"/g, '""');
+    const phone = String(u.phoneNumber || u.phone || '').replace(/"/g, '""');
+    const dob = String(formatCustomerDOB(u)).replace(/"/g, '""');
+    const address = String(getCustomerAddress(u)).replace(/"/g, '""');
+    const status = u.isBlocked ? 'Blocked' : 'Active';
+    const rides = u.totalBookings || 1;
+    const spent = u.totalSpent || 0;
+    const joined = String(u.createdAt
+      ? new Date(u.createdAt.seconds ? u.createdAt.seconds * 1000 : u.createdAt).toLocaleDateString('en-IN')
+      : 'N/A').replace(/"/g, '""');
+    const waLink = String(generateWhatsAppInviteLink(u)).replace(/"/g, '""');
+    const msg = String(getPersonalizedWhatsAppMessage(u)).replace(/"/g, '""');
+
+    csv += `"${id}","${name}","${phone}","${dob}","${address}","${status}","${rides}","${spent}","${joined}","${groupLink}","${waLink}","${msg}"\n`;
+  });
+
+  const fileName = `DistrictCar_Customers_${new Date().toISOString().split('T')[0]}.csv`;
+  downloadCSV(csv, fileName);
+  if (typeof showToast === 'function') {
+    showToast(`Exported ${list.length} customers to CSV (${fileName})!`);
+  }
+}
+
+function openCustomerInviteModal() {
+  const groupLinkInput = document.getElementById('inputWaGroupLink');
+  const templateInput = document.getElementById('inputWaInviteTemplate');
+  if (groupLinkInput) groupLinkInput.value = getWhatsAppGroupLink();
+  if (templateInput) templateInput.value = getWhatsAppInviteTemplate();
+  updateCustomerInvitePreview();
+  openModal('modalCustomerInviteSettings');
+}
+
+function updateCustomerInvitePreview() {
+  const groupLink = document.getElementById('inputWaGroupLink')?.value.trim() || getWhatsAppGroupLink();
+  const template = document.getElementById('inputWaInviteTemplate')?.value || getWhatsAppInviteTemplate();
+  const sampleCustomer = { displayName: 'Priya Sharma', phoneNumber: '+91 91234 56789' };
+
+  const previewMsg = template
+    .replace(/\{name\}/g, sampleCustomer.displayName)
+    .replace(/\{phone\}/g, sampleCustomer.phoneNumber)
+    .replace(/\{group_link\}/g, groupLink);
+
+  const previewEl = document.getElementById('previewCustomerInviteText');
+  if (previewEl) previewEl.textContent = previewMsg;
+
+  const testBtn = document.getElementById('previewTestWaLinkBtn');
+  if (testBtn) {
+    testBtn.href = `https://wa.me/919123456789?text=${encodeURIComponent(previewMsg)}`;
+  }
+}
+
+function saveCustomerInviteSettings() {
+  const groupLink = document.getElementById('inputWaGroupLink')?.value.trim();
+  const template = document.getElementById('inputWaInviteTemplate')?.value;
+  if (groupLink) localStorage.setItem('dc_wa_group_link', groupLink);
+  if (template) localStorage.setItem('dc_wa_invite_template', template);
+  if (typeof showToast === 'function') {
+    showToast('WhatsApp invite settings saved successfully!');
+  }
+  closeModal('modalCustomerInviteSettings');
+  renderUsersTable();
+}
+
+function resetCustomerInviteTemplate() {
+  if (confirm('Reset message template to District Car official default?')) {
+    const templateInput = document.getElementById('inputWaInviteTemplate');
+    if (templateInput) templateInput.value = DEFAULT_WA_INVITE_TEMPLATE;
+    updateCustomerInvitePreview();
+  }
+}
+
+function copyCustomerInvitePreview() {
+  const previewEl = document.getElementById('previewCustomerInviteText');
+  if (!previewEl) return;
+  navigator.clipboard.writeText(previewEl.textContent).then(() => {
+    if (typeof showToast === 'function') {
+      showToast('Sample message copied to clipboard!');
+    } else {
+      alert('Copied to clipboard!');
+    }
+  }).catch(() => {
+    alert('Preview message:\n\n' + previewEl.textContent);
+  });
 }
 
 /**
@@ -3167,3 +3489,12 @@ window.renderNotificationTemplates = renderNotificationTemplates;
 window.populateRecipientDropdowns = populateRecipientDropdowns;
 window.renderCustomerJoinChart = renderCustomerJoinChart;
 window.renderUserTabJoinChart = renderUserTabJoinChart;
+window.exportCustomersExcel = exportCustomersExcel;
+window.exportCustomersCSV = exportCustomersCSV;
+window.openCustomerInviteModal = openCustomerInviteModal;
+window.updateCustomerInvitePreview = updateCustomerInvitePreview;
+window.saveCustomerInviteSettings = saveCustomerInviteSettings;
+window.resetCustomerInviteTemplate = resetCustomerInviteTemplate;
+window.copyCustomerInvitePreview = copyCustomerInvitePreview;
+window.generateWhatsAppInviteLink = generateWhatsAppInviteLink;
+window.getPersonalizedWhatsAppMessage = getPersonalizedWhatsAppMessage;
